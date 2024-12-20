@@ -1,0 +1,16 @@
+.gitignore
+Makefile.in
+config.h.in
+config.h.in~
+aclocal.m4
+ar-lib
+autom4te.cache/
+build/
+compile
+config.guess
+config.sub
+configure
+install-sh
+ltmain.sh
+m4/
+missing
