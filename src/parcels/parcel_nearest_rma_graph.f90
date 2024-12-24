@@ -48,6 +48,8 @@ module parcel_nearest_rma_graph
         procedure, private :: get_leaf
         procedure, private :: get_merged
 
+        procedure, private :: barrier
+
     end type
 
     public :: rma_graph_t
@@ -210,7 +212,8 @@ contains
 
             ! This barrier is necessary!
             call start_timer(this%sync_timer)
-            call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
+            call this%barrier
+!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
             ! determine leaf parcels
@@ -227,7 +230,8 @@ contains
             ! We must synchronise all MPI processes here to ensure all MPI processes
             ! have done theirRMA operations as we modify the windows again.
             call start_timer(this%sync_timer)
-            call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
+            call this%barrier
+!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
             ! filter out parcels that are "unavailable" for merging
@@ -247,7 +251,8 @@ contains
             ! array which may be modified in the loop above. In order to make sure all
             ! MPI ranks have finished above loop, we need this barrier.
             call start_timer(this%sync_timer)
-            call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
+            call this%barrier
+!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
 
@@ -302,7 +307,8 @@ contains
 
         ! This barrier is necessary as we modifiy l_available above and need it below.
         call start_timer(this%sync_timer)
-        call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
+        call this%barrier
+!         call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
         call stop_timer(this%sync_timer)
 
         ! Second stage
@@ -364,7 +370,8 @@ contains
 
         ! This barrier is necessary.
         call start_timer(this%sync_timer)
-        call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
+        call this%barrier
+!         call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
         call stop_timer(this%sync_timer)
 
         !------------------------------------------------------
@@ -636,152 +643,56 @@ contains
 
     end function get_merged
 
-!     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-!
-!     subroutine sync_merged(this)
-!         class(rma_graph_t), intent(inout) :: this
-!         type(MPI_Request)                 :: requests(8)
-!         type(MPI_Status)                  :: statuses(8)
-!         integer                           :: n
-!
-!         !----------------------------------------------------------------------
-!         ! Send from remote to owning rank and sync data at owning rank
-!         do n = 1, 8
-!             call this%send_from_remote(n,                           &
-!                                        this%remote(n)%l_merged,     &
-!                                        this%remote(n)%dirty_merged, &
-!                                        requests(n))
-!         enddo
-!
-!         do n = 1, 8
-!             call this%recv_from_remote(n, this%l_merged)
-!         enddo
-!
-!         call MPI_Waitall(8,                 &
-!                         requests,           &
-!                         statuses,           &
-!                         cart%err)
-!
-!         call mpi_check_for_error(cart, &
-!                                 "in MPI_Waitall of parcel_mpi::sync_merged.")
-!
-!         call free_buffers
-!
-!         !----------------------------------------------------------------------
-!         ! Send result from owning rank to remote
-!         do n = 1, 8
-!             call this%send_all(n, this%l_merged, requests(n))
-!         enddo
-!
-!         do n = 1, 8
-!             call this%recv_all(n, this%remote(n)%l_merged)
-!
-!             ! Reset:
-!             this%remote(n)%dirty_merged = .false.
-!         enddo
-!
-!         call MPI_Waitall(8,                 &
-!                         requests,           &
-!                         statuses,           &
-!                         cart%err)
-!
-!         call mpi_check_for_error(cart, &
-!                                 "in MPI_Waitall of parcel_mpi::sync_merged.")
-!
-!         call free_buffers
-!
-!
-!     end subroutine sync_merged
-!
-!     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-!
-!     subroutine send_from_remote(this, n, l_data, dirty, request)
-!         class(rma_graph_t),           intent(inout) :: this
-!         integer,                      intent(in)    :: n
-!         logical,                      intent(in)    :: l_data(:)
-!         logical,                      intent(in)    :: dirty(:)
-!         type(MPI_Request),            intent(inout) :: request
-!         type(intlog_pair_t), dimension(:), pointer  :: send_buf
-!         integer                                     :: send_size, m, i, ic, nlen
-!
-!         nlen = size(dirty)
-!         call get_int_logical_buffer(n, send_buf)
-!
-!         ! find changed (i.e. 'dirty') values
-!         send_size = count(dirty)
-!
-!         allocate(send_buf(send_size))
-!
-!         if (send_size > 0) then
-!             ! pack ic index and logical to send buffer
-!             i = 1
-!             do m = 1, nlen
-!                 if (dirty(m)) then
-!                     ic = this%remote(n)%put_iclo(m)
-!                     send_buf(i)%ival = ic
-!                     send_buf(i)%lval = l_data(m)
-!                     i = i + 1
-!                 endif
-!             enddo
-!         endif
-!
-!         call MPI_Isend(send_buf(1:send_size),       &
-!                        send_size,                   &
-!                        MPI_INTEGER_LOGICAL_ARRAY,   &
-!                        neighbours(n)%rank,          &
-!                        SEND_NEIGHBOUR_TAG(n),       &
-!                        cart%comm,                   &
-!                        request,                     &
-!                        cart%err)
-!
-!         call mpi_check_for_error(cart, &
-!             "in MPI_Isend of rma_graph_t::send_from_remote.")
-!
-!     end subroutine send_from_remote
-!
-!     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-!
-!     subroutine recv_from_remote(this, n, l_data)
-!         class(rma_graph_t), intent(inout) :: this
-!         integer,            intent(in)    :: n
-!         logical,            intent(inout) :: l_data(:)
-!         type(intlog_pair_t), allocatable  :: recv_buf(:)
-!         type(MPI_Status)                  :: recv_status
-!         integer                           :: recv_size, m, ic
-!
-!
-!         ! check for incoming messages
-!         call mpi_check_for_message(neighbours(n)%rank,      &
-!                                    RECV_NEIGHBOUR_TAG(n),   &
-!                                    recv_size,               &
-!                                    cart,                    &
-!                                    MPI_INTEGER_LOGICAL_ARRAY)
-!
-!
-!         allocate(recv_buf(recv_size))
-!
-!         call MPI_Recv(recv_buf(1:recv_size),        &
-!                       recv_size,                    &
-!                       MPI_INTEGER_LOGICAL_ARRAY,    &
-!                       neighbours(n)%rank,           &
-!                       RECV_NEIGHBOUR_TAG(n),        &
-!                       cart%comm,                    &
-!                       recv_status,                  &
-!                       cart%err)
-!
-!         call mpi_check_for_error(cart, &
-!             "in MPI_Recv of rma_graph_t::recv_from_remote.")
-!
-!         if (recv_size > 0) then
-!             ! unpack ic index and logical to recv buffer
-!             do m = 1, recv_size
-!                 ic = recv_buf(m)%ival
-!                 l_data(ic) = recv_buf(m)%lval
-!             enddo
-!         endif
-!
-!         deallocate(recv_buf)
-!
-!     end subroutine recv_from_remote
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine barrier(this)
+        class(rma_graph_t), intent(inout) :: this
+        type(MPI_Request)                 :: requests(8)
+        type(MPI_Status)                  :: statuses(8)
+        integer                           :: n
+        logical                           :: l_send, l_recv(8)
+
+        l_send = .true.
+
+        !----------------------------------------------------------------------
+        ! Send from remote to owning rank and sync data at owning rank
+        do n = 1, 8
+            call MPI_Isend(l_send,                  &
+                           1,                       &
+                           MPI_LOGICAL,             &
+                           neighbours(n)%rank,      &
+                           SEND_NEIGHBOUR_TAG(n),   &
+                           cart%comm,               &
+                           requests(n),             &
+                           cart%err)
+
+            call mpi_check_for_error(cart, &
+                "in MPI_Isend of rma_graph_t::barrier.")
+        enddo
+
+        do n = 1, 8
+            call MPI_Recv(l_recv(n),                &
+                          1,                        &
+                          MPI_LOGICAL,              &
+                          neighbours(n)%rank,       &
+                          RECV_NEIGHBOUR_TAG(n),    &
+                          cart%comm,                &
+                          statuses(n),              &
+                          cart%err)
+        enddo
+
+        call MPI_Waitall(8,                 &
+                        requests,           &
+                        statuses,           &
+                        cart%err)
+
+        call mpi_check_for_error(cart, &
+                                "in MPI_Waitall of rma_graph_t::barrier.")
+
+        if (.not. all(l_recv)) then
+            call mpi_exit_on_error("in rma_graph_t::barrier: Not all MPI ranks finished.")
+        endif
+
+    end subroutine barrier
 
 end module parcel_nearest_rma_graph
