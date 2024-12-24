@@ -16,6 +16,8 @@ benchmark_parcel_merging_SOURCES =		\
 	parcels/parcel_split.f90		\
 	parcels/parcel_init.f90			\
 	parcels/parcel_nearest_graph.f90	\
+	parcels/parcel_nearest_p2p_graph.f90	\
+	parcels/parcel_nearest_rma_graph.f90	\
 	parcels/parcel_nearest.f90		\
 	parcels/parcel_merge.f90		\
 	parcels/parcel_netcdf.f90		\

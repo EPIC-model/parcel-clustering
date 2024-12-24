@@ -6,9 +6,7 @@ module utils
     use parcels_mod, only : parcels
     use parcel_split_mod, only : split_timer
     use parcel_merging, only : merge_timer
-    use parcel_nearest, only : merge_nearest_timer          &
-                             , merge_tree_resolve_timer     &
-                             , nearest_allreduce_timer
+    use parcel_nearest, only : merge_nearest_timer, tree
     use parcel_netcdf, only : parcel_io_timer
     use parcel_init, only : init_timer
     use mpi_environment
@@ -31,8 +29,6 @@ contains
         call register_timer('parcel initialisation', init_timer)
         call register_timer('parcel I/O', parcel_io_timer)
         call register_timer('merge nearest', merge_nearest_timer)
-        call register_timer('merge tree resolve', merge_tree_resolve_timer)
-        call register_timer('MPI allreduce timer (in tree resolve)', nearest_allreduce_timer)
     end subroutine register_all_timers
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::

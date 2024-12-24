@@ -4,8 +4,8 @@ program benchmark_parcel_merging
     use parameters, only : update_parameters, lower, extent, nx, ny, nz, max_num_parcels
     use parcel_init, only : parcel_default
     use parcel_merging
+    use parcel_nearest, only : tree
     use parcel_mpi, only : parcel_communicate
-    use parcel_nearest, only : nearest_allreduce_timer
     use mpi_environment
     use mpi_layout
     use mpi_datatypes, only : MPI_INTEGER_64BIT
@@ -14,7 +14,6 @@ program benchmark_parcel_merging
     use utils, only : epic_timer               &
                     , merge_timer              &
                     , merge_nearest_timer      &
-                    , merge_tree_resolve_timer &
                     , register_timer           &
                     , print_timer              &
                     , start_timer              &
@@ -31,15 +30,6 @@ program benchmark_parcel_merging
 
     call mpi_env_initialise
 
-    call register_timer('epic', epic_timer)
-    call register_timer('parcel merge', merge_timer)
-    call register_timer('merge nearest', merge_nearest_timer)
-    call register_timer('merge tree resolve', merge_tree_resolve_timer)
-    call register_timer('MPI allreduce', allreduce_timer)
-    call register_timer('generate data', generate_timer)
-    call register_timer('nearest MPI allreduce', nearest_allreduce_timer)
-    call register_timer('nearest MPI graph info', nearest_graph_info_timer)
-    call register_timer('nearest MPI graph sync', nearest_graph_sync_timer)
 
     call parse_command_line
 
@@ -55,6 +45,16 @@ program benchmark_parcel_merging
     call parcels%allocate(max_num_parcels)
 
     call init_rng
+
+    call tree%initialise(max_num_parcels)
+
+    call register_timer('epic', epic_timer)
+    call register_timer('parcel merge', merge_timer)
+    call register_timer('merge nearest', merge_nearest_timer)
+    call register_timer('MPI allreduce', allreduce_timer)
+    call register_timer('generate data', generate_timer)
+
+    call tree%register_timer
 
     call start_timer(epic_timer)
 
@@ -111,6 +111,8 @@ program benchmark_parcel_merging
     call stop_timer(epic_timer)
 
     call parcels%deallocate
+
+    call tree%finalise
 
     buf(1) = n_parcel_merges
     buf(2) = n_big_close

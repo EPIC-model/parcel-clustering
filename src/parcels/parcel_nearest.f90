@@ -33,6 +33,8 @@ module parcel_nearest
                         , mpi_check_rma_window_model
     use iso_c_binding, only : c_ptr, c_f_pointer
     use parcel_nearest_graph, only : graph_t
+    use parcel_nearest_p2p_graph, only : p2p_graph_t
+    use parcel_nearest_rma_graph, only : rma_graph_t
     use parcel_mpi, only : n_parcel_sends               &
                          , north_pid                    &
                          , south_pid                    &
@@ -62,10 +64,7 @@ module parcel_nearest
 #endif
     implicit none
 
-    integer :: merge_nearest_timer, merge_tree_resolve_timer
-    integer :: nearest_allreduce_timer
-    integer :: nearest_graph_info_timer
-    integer :: nearest_graph_sync_timer
+    integer :: merge_nearest_timer
 
     private
 
@@ -89,7 +88,8 @@ module parcel_nearest
 
     type(nearest_type) :: near
 
-    type(graph_t) :: tree
+!     type(p2p_graph_t) :: tree
+    type(rma_graph_t) :: tree
 
     integer              :: n_neighbour_small(8)  ! number of small parcels received
 
@@ -109,18 +109,15 @@ module parcel_nearest
 
     public :: find_nearest                      &
             , merge_nearest_timer               &
-            , merge_tree_resolve_timer          &
             , update_remote_indices             &
             , locate_parcel_in_boundary_cell    &
             , send_small_parcel_bndry_info      &
             , find_closest_parcel_globally      &
-            , nearest_allreduce_timer           &
 #ifdef ENABLE_VERBOSE
             , simtime                           &
 #endif
-            , nearest_graph_info_timer          &
-            , nearest_graph_sync_timer          &
-            , near
+            , near                              &
+            , tree
 
 contains
 
@@ -297,7 +294,7 @@ contains
         n_neighbour_small = 0
         n_remote_small = 0
 
-        call tree%initialise(max_num_parcels)
+        call tree%reset
 
         near%nppc = 0 !nppc(ijk) will contain the number of parcels in grid cell ijk
 
@@ -333,7 +330,6 @@ contains
         if (n_global_small == 0) then
             call near%dealloc
             call deallocate_parcel_id_buffers
-            call tree%finalise
             call stop_timer(merge_nearest_timer)
             return
         endif
@@ -458,7 +454,7 @@ contains
         !---------------------------------------------------------------------
         ! Figure out the mergers:
         if (subcomm%comm /= MPI_COMM_NULL) then
-            call resolve_tree(isma, iclo, rclo, n_local_small)
+            call tree%resolve(subcomm, isma, iclo, rclo, n_local_small)
         endif
 
         timings(merge_nearest_timer)%n_calls = timings(merge_nearest_timer)%n_calls - 1
@@ -508,8 +504,6 @@ contains
         endif
 
         call near%dealloc
-
-        call tree%finalise
 
         call stop_timer(merge_nearest_timer)
 
@@ -821,248 +815,18 @@ contains
 
     end subroutine find_closest_parcel_globally
 
-    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    ! https://github.com/mpi-forum/mpi-forum-historic/issues/413
-    ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node294.htm
-    ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node279.htm
-    subroutine resolve_tree(isma, iclo, rclo, n_local_small)
-        integer, intent(inout) :: isma(0:)
-        integer, intent(inout) :: iclo(:)
-        integer, intent(inout) :: rclo(:)
-        integer, intent(inout) :: n_local_small
-        integer                :: ic, rc, is, m, j
-        logical                :: l_helper
-        logical                :: l_continue_iteration, l_do_merge(n_local_small)
-        logical                :: l_isolated_dual_link(n_local_small)
-
-        call start_timer(merge_tree_resolve_timer)
-
-        !------------------------------------------------------------------
-        ! Exchange information:
-        call start_timer(nearest_graph_info_timer)
-        call tree%gather_info(iclo, rclo, n_local_small)
-        call stop_timer(nearest_graph_info_timer)
-
-        !------------------------------------------------------------------
-        ! Resolve tree now:
-
-        ! First, iterative, stage
-        l_continue_iteration = .true.
-
-        do while (l_continue_iteration)
-            l_continue_iteration = .false.
-            ! reset relevant properties for candidate mergers
-
-            do m = 1, n_local_small
-                is = isma(m)
-                ! only consider links that still may be merging
-                ! reset relevant properties
-                if (.not. tree%l_merged(is)) then
-                    ic = iclo(m)
-                    rc = rclo(m)
-                    tree%l_leaf(is) = .true.
-                    call tree%put_avail(rc, ic, .true.)
-                endif
-            enddo
-
-            ! Exchange information:
-            call start_timer(nearest_graph_sync_timer)
-            call tree%sync_avail
-            call stop_timer(nearest_graph_sync_timer)
-
-            ! determine leaf parcels
-            do m = 1, n_local_small
-                is = isma(m)
-
-                if (.not. tree%l_merged(is)) then
-                    ic = iclo(m)
-                    rc = rclo(m)
-                    call tree%put_leaf(rc, ic, .false.)
-                endif
-            enddo
-
-            ! Exchange information:
-            call start_timer(nearest_graph_sync_timer)
-            call tree%sync_leaf
-            call stop_timer(nearest_graph_sync_timer)
-
-            ! filter out parcels that are "unavailable" for merging
-            do m = 1, n_local_small
-                is = isma(m)
-
-                if (.not. tree%l_merged(is)) then
-                    if (.not. tree%l_leaf(is)) then
-                        ic = iclo(m)
-                        rc = rclo(m)
-                        call tree%put_avail(rc, ic, .false.)
-                    endif
-                endif
-            enddo
-
-            ! Exchange information:
-            call start_timer(nearest_graph_sync_timer)
-            call tree%sync_avail
-            call stop_timer(nearest_graph_sync_timer)
-
-            ! identify mergers in this iteration
-            do m = 1, n_local_small
-                is = isma(m)
-
-                if (.not. tree%l_merged(is)) then
-                    ic = iclo(m)
-                    rc = rclo(m)
-
-                    l_helper = tree%get_avail(rc, ic)
-
-                    if (tree%l_leaf(is) .and. l_helper) then
-                        l_continue_iteration = .true. ! merger means continue iteration
-                        tree%l_merged(is) = .true.
-                        call tree%put_merged(rc, ic, .true.)
-                    endif
-                endif
-            enddo
-
-            ! Exchange information:
-            call start_timer(nearest_graph_sync_timer)
-            call tree%sync_merged
-            call stop_timer(nearest_graph_sync_timer)
-
-            call start_timer(nearest_allreduce_timer)
-            ! Performance improvement: We actually only need to synchronize with neighbours
-            call MPI_Allreduce(MPI_IN_PLACE,            &
-                               l_continue_iteration,    &
-                               1,                       &
-                               MPI_LOGICAL,             &
-                               MPI_LOR,                 &
-                               subcomm%comm,            &
-                               subcomm%err)
-            call stop_timer(nearest_allreduce_timer)
-            call mpi_check_for_error(subcomm, &
-                "in MPI_Allreduce of parcel_nearest::resolve_tree.")
-        enddo
-
-        ! No barrier necessary because of the blocking MPI_Allreduce that acts like
-        ! a barrier!
-
-        ! Second stage, related to dual links
-        do m = 1, n_local_small
-            is = isma(m)
-
-            if (.not. tree%l_merged(is)) then
-                if (tree%l_leaf(is)) then ! set in last iteration of stage 1
-                    ic = iclo(m)
-                    rc = rclo(m)
-                    call tree%put_avail(rc, ic, .true.)
-                endif
-            endif
-        enddo
-
-        ! Exchange information:
-        call start_timer(nearest_graph_sync_timer)
-        call tree%sync_avail
-        call stop_timer(nearest_graph_sync_timer)
-
-        ! Second stage
-        do m = 1, n_local_small
-            is = isma(m)
-            ic = iclo(m)
-            rc = rclo(m)
-            l_do_merge(m) = .false.
-            l_isolated_dual_link(m) = .false.
-
-            if (tree%l_merged(is) .and. tree%l_leaf(is)) then
-                ! previously identified mergers: keep
-                l_do_merge(m) = .true.
-                !----------------------------------------------------------
-                ! begin of sanity check
-                ! After first stage mergers parcel cannot be both initiator
-                ! and receiver in stage 1
-                l_helper = tree%get_leaf(rc, ic)
-
-                if (l_helper) then
-                    call mpi_exit_on_error(&
-                        'in parcel_nearest::resolve_tree: First stage error')
-                endif
-
-                ! end of sanity check
-                !----------------------------------------------------------
-
-            elseif (.not. tree%l_merged(is)) then
-                if (tree%l_leaf(is)) then
-                    ! links from leafs
-                    l_do_merge(m) = .true.
-                elseif (.not. tree%l_available(is)) then
-                    ! Above means parcels that have been made 'available' do not keep outgoing links
-
-                    l_helper = tree%get_avail(rc, ic)
-
-                    if (l_helper) then
-                        ! merge this parcel into ic along with the leaf parcels
-                        l_do_merge(m) = .true.
-
-                    else
-                        l_isolated_dual_link(m) = .true.
-                        ! isolated dual link
-                        ! Don't keep current link
-                        ! But make small parcel available so other parcel can merge with it
-                        ! THIS NEEDS THINKING ABOUT A PARALLEL IMPLEMENTATION
-                        ! This could be based on the other parcel being outside the domain
-                        ! And a "processor order"
-                        if (cart%rank <= rc) then
-                            ! The MPI rank with lower number makes its parcel
-                            ! available.
-                            tree%l_available(is) = .true.
-                        endif
-                    endif
-                endif
-            endif
-        enddo
-
-        ! Exchange information:
-        call start_timer(nearest_graph_sync_timer)
-        call tree%sync_avail
-        call stop_timer(nearest_graph_sync_timer)
-
-        !------------------------------------------------------
-        do m = 1, n_local_small
-            is = isma(m)
-            ic = iclo(m)
-            rc = rclo(m)
-
-            if ((l_do_merge(m) .eqv. .false.) .and. l_isolated_dual_link(m)) then
-                ! isolated dual link
-
-                l_helper = tree%get_avail(rc, ic)
-
-                if (l_helper) then
-                    ! merge this parcel into ic along with the leaf parcels
-                    l_do_merge(m) = .true.
-                !else
-                !   ! Dual link is resolved on other rank
-                endif
-            endif
-            !------------------------------------------------------
-        enddo
-
-        j = 0
-        do m = 1, n_local_small
-            is = isma(m)
-            ic = iclo(m)
-            rc = rclo(m)
-            if (l_do_merge(m)) then
-                j = j + 1
-                isma(j) = is
-                iclo(j) = ic
-                rclo(j) = rc
-            endif
-        enddo
-        n_local_small = j
-
-        call tree%free_memory
-
-        call stop_timer(merge_tree_resolve_timer)
-    end subroutine resolve_tree
+!     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+!
+!     ! https://github.com/mpi-forum/mpi-forum-historic/issues/413
+!     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node294.htm
+!     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node279.htm
+!     subroutine resolve_tree(isma, iclo, rclo, n_local_small)
+!         integer, intent(inout) :: isma(0:)
+!         integer, intent(inout) :: iclo(:)
+!         integer, intent(inout) :: rclo(:)
+!         integer, intent(inout) :: n_local_small
+!
+!     end subroutine resolve_tree
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
