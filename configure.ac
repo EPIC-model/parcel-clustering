@@ -214,6 +214,52 @@ if test "x$mpi_found" = "xno"; then
     AC_MSG_ERROR([Cannot find MPI Fortran library])
 fi
 
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# OpenSHMEM
+
+AC_SEARCH_LIBS([shmem_init],
+            [oshmem],
+            [],
+            [])
+
+AC_SEARCH_LIBS([shmem_finalize],
+            [oshmem],
+            [],
+            [])
+
+AC_SEARCH_LIBS([shmem_logical_put],
+            [oshmem],
+            [],
+            [])
+
+for lib in NONE oshmem; do
+    save_LIBS=$LIBS
+    if test x"$lib" = xNONE; then
+    AC_MSG_CHECKING([for shmem_init])
+    else
+    AC_MSG_CHECKING([for module shmem_init in -l$lib])
+    LIBS="-l$lib $LIBS"
+    fi
+    AC_LINK_IFELSE(
+        [AC_LANG_PROGRAM([], [
+        implicit none
+        include 'shmem.fh'
+        integer :: rank, nranks
+        integer :: my_pe, num_pes
+        call shmem_init
+        rank = my_pe()
+        nranks = num_pes()
+        call shmem_finalize])],
+        [openshmem_found=yes],
+        [openshmem_found=no])
+    AC_MSG_RESULT([$openshmem_found])
+
+    if test "x$openshmem_found" = "xyes"; then
+    break;
+    fi
+    LIBS=$save_LIBS
+done
+
 #######################################################################################
 ##
 ## "--enable" flags
