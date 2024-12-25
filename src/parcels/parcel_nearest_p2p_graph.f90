@@ -44,6 +44,8 @@ module parcel_nearest_p2p_graph
 
     type, extends(graph_t) :: p2p_graph_t
 
+        private
+
         ! Logicals used to determine which mergers are executed
         ! Integers above could be reused for this, but this would
         ! make the algorithm less readable
@@ -56,6 +58,8 @@ module parcel_nearest_p2p_graph
         integer :: resolve_timer
         integer :: allreduce_timer
         integer :: info_timer
+        integer :: put_timer
+        integer :: get_timer
         integer :: sync_timer
 
     contains
@@ -466,6 +470,8 @@ contains
         call register_timer('graph resolve', this%resolve_timer)
         call register_timer('MPI graph allreduce', this%allreduce_timer)
         call register_timer('MPI graph info', this%info_timer)
+        call register_timer('MPI P2P put', this%put_timer)
+        call register_timer('MPI P2P get', this%get_timer)
         call register_timer('MPI graph sync', this%sync_timer)
 
     end subroutine p2p_graph_register_timer
@@ -482,6 +488,8 @@ contains
         if (rank == cart%rank) then
             this%l_available(ic) = val
         else
+            call start_timer(this%put_timer)
+
             n = get_neighbour_from_rank(rank)
 
             m = findloc(array=this%remote(n)%put_iclo, value=ic, dim=1)
@@ -496,6 +504,7 @@ contains
 
             this%remote(n)%l_available(m) = val
             this%remote(n)%dirty_avail(m) = .true.
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_avail
@@ -512,6 +521,8 @@ contains
         if (rank == cart%rank) then
             this%l_leaf(ic) = val
         else
+            call start_timer(this%put_timer)
+
             n = get_neighbour_from_rank(rank)
 
             m = findloc(array=this%remote(n)%put_iclo, value=ic, dim=1)
@@ -526,6 +537,7 @@ contains
 
             this%remote(n)%l_leaf(m) = val
             this%remote(n)%dirty_leaf(m) = .true.
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_leaf
@@ -542,6 +554,7 @@ contains
         if (rank == cart%rank) then
             this%l_merged(ic) = val
         else
+            call start_timer(this%put_timer)
             n = get_neighbour_from_rank(rank)
 
             m = findloc(array=this%remote(n)%put_iclo, value=ic, dim=1)
@@ -556,6 +569,7 @@ contains
 
             this%remote(n)%l_merged(m) = val
             this%remote(n)%dirty_merged(m) = .true.
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_merged
@@ -572,6 +586,7 @@ contains
         if (rank == cart%rank) then
             val = this%l_available(ic)
         else
+            call start_timer(this%get_timer)
             n = get_neighbour_from_rank(rank)
 
             m = findloc(array=this%remote(n)%put_iclo, value=ic, dim=1)
@@ -582,6 +597,7 @@ contains
             endif
 
             val = this%remote(n)%l_available(m)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_avail
@@ -598,6 +614,7 @@ contains
         if (rank == cart%rank) then
             val = this%l_leaf(ic)
         else
+            call start_timer(this%get_timer)
             n = get_neighbour_from_rank(rank)
 
             m = findloc(array=this%remote(n)%put_iclo, value=ic, dim=1)
@@ -608,6 +625,7 @@ contains
             endif
 
             val = this%remote(n)%l_leaf(m)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_leaf
@@ -624,6 +642,7 @@ contains
         if (rank == cart%rank) then
             val = this%l_merged(ic)
         else
+            call start_timer(this%get_timer)
             n = get_neighbour_from_rank(rank)
 
             m = findloc(array=this%remote(n)%put_iclo, value=ic, dim=1)
@@ -634,6 +653,7 @@ contains
             endif
 
             val = this%remote(n)%l_merged(m)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_merged

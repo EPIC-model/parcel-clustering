@@ -12,6 +12,8 @@ module parcel_nearest_rma_graph
 
     type, extends(graph_t) :: rma_graph_t
 
+        private
+
         ! Logicals used to determine which mergers are executed
         ! Integers above could be reused for this, but this would
         ! make the algorithm less readable
@@ -472,7 +474,7 @@ contains
         integer(KIND=MPI_ADDRESS_KIND)    :: offset
 
         if (rank == cart%rank) then
-            this%l_leaf(ic) = .false.
+            this%l_leaf(ic) = val
         else
             call start_timer(this%rma_put_timer)
             call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_leaf, cart%err)
@@ -504,7 +506,7 @@ contains
         integer(KIND=MPI_ADDRESS_KIND)    :: offset
 
         if (rank == cart%rank) then
-            this%l_merged(ic) = .true.
+            this%l_merged(ic) = val
         else
             call start_timer(this%rma_put_timer)
             call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_merged, cart%err)
@@ -535,6 +537,7 @@ contains
         integer,            intent(in)    :: ic
         logical                           :: val
         integer(KIND=MPI_ADDRESS_KIND)    :: offset
+
 
         if (rank == cart%rank) then
             val = this%l_available(ic)

@@ -16,8 +16,13 @@ module utils
     implicit none
 
     integer :: epic_timer
-    integer, allocatable :: seed(:)
-    integer :: sk
+!     integer, allocatable :: seed(:)
+!     integer :: sk
+
+    interface sample_random
+        module procedure :: sample_random_vector
+        module procedure :: sample_random_scalar
+    end interface sample_random
 
 contains
 
@@ -35,11 +40,38 @@ contains
 
     subroutine init_rng
 
-        call random_seed(size = sk)
-        allocate(seed(1:sk))
-        call random_seed(get=seed)
+        ! 25 Dec 2024
+        ! https://gcc.gnu.org/onlinedocs/gfortran/RANDOM_005fINIT.html
+        call random_init(repeatable=.true., image_distinct=.true.)
+!         call random_seed(size = sk)
+!         allocate(seed(1:sk))
+!         call random_seed(get=seed)
 
     end subroutine init_rng
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    ! Get numbers between 0 and 1
+    subroutine sample_random_vector(u)
+        double precision, intent(inout) :: u(:)
+
+        call random_number(u)
+
+        u = ((world%rank + 1) * u) / dble(world%size)
+
+    end subroutine sample_random_vector
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    ! Get numbes between 0 and 1
+    subroutine sample_random_scalar(u)
+        double precision, intent(inout) :: u
+
+        call random_number(u)
+
+        u = ((world%rank + 1) * u) / dble(world%size)
+
+    end subroutine sample_random_scalar
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -63,7 +95,7 @@ contains
         double precision              :: u(4)
 
         ! get 4 uniform numbers in [0, 1[:
-        call random_number(u)
+        call sample_random(u)
 
         ! transform to standard normal:
         call random_normal(u(1), u(2))
@@ -112,13 +144,13 @@ contains
             do iy = box%lo(2), box%hi(2)
                 do ix = box%lo(1), box%hi(1)
                     if (l_variable_nppc) then
-                        call random_number(lam)
+                        call sample_random(lam)
                         npp = int(lam * n_per_cell) + 10    ! ensure at least 10 parcels per cell
                     endif
                     corner = lower + dble((/ix, iy, iz/)) * dx
                     do m = 1, npp
                         ! rn between 0 and 1
-                        call random_number(rn)
+                        call sample_random(rn)
 
                         x = corner(1) + dx(1) * rn(1)
                         y = corner(2) + dx(2) * rn(2)
@@ -195,7 +227,7 @@ contains
         double precision :: random_out
 
         do shuffle_index = parcels%local_num, 2, -1
-            call random_number(random_out)
+            call sample_random(random_out)
             rand_target = int(random_out * shuffle_index) + 1
 
             tmp_vec = parcels%position(:, rand_target)

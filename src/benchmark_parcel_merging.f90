@@ -20,11 +20,15 @@ program benchmark_parcel_merging
                     , stop_timer               &
                     , setup_parcels            &
                     , init_rng
+    use parcel_nearest_p2p_graph, only : p2p_graph_t
+    use parcel_nearest_rma_graph, only : rma_graph_t
+    use parcel_nearest_shmem_graph, only : shmem_graph_t
     implicit none
 
     integer              :: k, niter, allreduce_timer, generate_timer
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc
+    character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
     character(len=1)     :: snum
     integer(kind=int64)  :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
 
@@ -46,9 +50,20 @@ program benchmark_parcel_merging
 
     call init_rng
 
+    select case(graph_type)
+        case ('MPI P2P')
+            allocate(p2p_graph_t :: tree)
+        case ('MPI RMA')
+            allocate(rma_graph_t :: tree)
+        case ('OpenSHMEM')
+            allocate(shmem_graph_t :: tree)
+        case default
+            allocate(p2p_graph_t :: tree)
+    end select
+
     call tree%initialise(max_num_parcels)
 
-    call register_timer('epic', epic_timer)
+    call register_timer('total', epic_timer)
     call register_timer('parcel merge', merge_timer)
     call register_timer('merge nearest', merge_nearest_timer)
     call register_timer('MPI allreduce', allreduce_timer)
@@ -158,6 +173,7 @@ contains
         parcel%size_factor = 1.25d0
         l_shuffle = .false.
         l_variable_nppc = .false.
+        graph_type = 'MPI P2P'
 
 
         i = 0
@@ -223,6 +239,10 @@ contains
                 l_shuffle = .true.
             else if (arg == '--variable-nppc') then
                 l_variable_nppc = .true.
+            else if (arg == '--graph-type') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                graph_type = trim(arg)
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_parcel_merginga.out ",                &
@@ -254,6 +274,7 @@ contains
             print *, "size_factor", parcel%size_factor
             print *, "shuffle parcels", l_shuffle
             print *, "variable number of parcels/cell:", l_variable_nppc
+            print *, "graph type: " // graph_type
         endif
 
     end subroutine parse_command_line

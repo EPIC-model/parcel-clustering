@@ -14,6 +14,8 @@ module parcel_nearest_shmem_graph
 
     type, extends(graph_t) :: shmem_graph_t
 
+        private
+
         ! Logicals used to determine which mergers are executed
         ! Integers above could be reused for this, but this would
         ! make the algorithm less readable
@@ -117,9 +119,6 @@ contains
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    ! https://github.com/mpi-forum/mpi-forum-historic/issues/413
-    ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node294.htm
-    ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node279.htm
     subroutine shmem_graph_resolve(this, mpi_comm, isma, iclo, rclo, n_local_small)
         class(shmem_graph_t), intent(inout) :: this
         type(communicator), intent(inout) :: mpi_comm
@@ -395,8 +394,9 @@ contains
         logical,            intent(in)    :: val
 
         if (rank == cart%rank) then
-            this%l_leaf(ic) = .false.
+            this%l_leaf(ic) = val
         else
+
             call start_timer(this%shmem_put_timer)
             call shmem_logical_put(this%l_leaf(ic), val, 1, rank)
             call stop_timer(this%shmem_put_timer)
@@ -413,7 +413,7 @@ contains
         logical,            intent(in)    :: val
 
         if (rank == cart%rank) then
-            this%l_merged(ic) = .true.
+            this%l_merged(ic) = val
         else
             call start_timer(this%shmem_put_timer)
             call shmem_logical_put(this%l_merged(ic), val, 1, rank)
