@@ -243,7 +243,6 @@ for lib in NONE oshmem; do
     AC_LINK_IFELSE(
         [AC_LANG_PROGRAM([], [
         implicit none
-        include 'shmem.fh'
         integer :: rank, nranks
         integer :: my_pe, num_pes
         call shmem_init

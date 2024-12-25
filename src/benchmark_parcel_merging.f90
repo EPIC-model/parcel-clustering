@@ -112,8 +112,6 @@ program benchmark_parcel_merging
 
     call parcels%deallocate
 
-    call tree%finalise
-
     buf(1) = n_parcel_merges
     buf(2) = n_big_close
     buf(3:9) = n_way_parcel_mergers
@@ -136,8 +134,9 @@ program benchmark_parcel_merging
 
     call print_timer
 
-    call mpi_env_finalise
+    call tree%finalise
 
+    call mpi_env_finalise
 
 contains
     subroutine parse_command_line

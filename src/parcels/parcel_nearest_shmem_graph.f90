@@ -1,15 +1,12 @@
 module parcel_nearest_shmem_graph
     use mpi_layout
     use mpi_utils
-    use parcel_mpi, only : get_parcel_id_buffer_ptr     &
-                         , deallocate_parcel_id_buffers
-    use datatypes, only : intlog_pair_t
-    use mpi_datatypes, only : MPI_INTEGER_LOGICAL_ARRAY
     use mpi_timer, only : start_timer       &
                         , stop_timer        &
                         , register_timer
     use parcel_nearest_graph, only : graph_t
     use iso_c_binding, only : c_ptr, c_f_pointer
+    use mpi_environment, only : l_ignore_mpi_finalize
     implicit none
 !     include 'shmem.fh'
 
@@ -86,8 +83,6 @@ contains
 
         call this%reset
 
-        print *, "initialised"
-
     end subroutine shmem_graph_initialise
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -99,7 +94,13 @@ contains
             return
         endif
 
+        this%l_shmem_allocated = .false.
+
+        call shmem_barrier_all
+
         call shmem_finalize
+
+        l_ignore_mpi_finalize = .true.
 
     end subroutine shmem_graph_finalise
 
@@ -128,7 +129,6 @@ contains
         integer,            intent(inout) :: n_local_small
         integer                           :: ic, rc, is, m, j
         logical                           :: l_helper
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
         logical                           :: l_continue_iteration, l_do_merge(n_local_small)
         logical                           :: l_isolated_dual_link(n_local_small)
 
@@ -375,7 +375,6 @@ contains
         integer,            intent(in)    :: rank
         integer,            intent(in)    :: ic
         logical,            intent(in)    :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
 
         if (rank == cart%rank) then
             this%l_available(ic) = val
@@ -394,7 +393,6 @@ contains
         integer,            intent(in)    :: rank
         integer,            intent(in)    :: ic
         logical,            intent(in)    :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
 
         if (rank == cart%rank) then
             this%l_leaf(ic) = .false.
@@ -413,7 +411,6 @@ contains
         integer,            intent(in)    :: rank
         integer,            intent(in)    :: ic
         logical,            intent(in)    :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
 
         if (rank == cart%rank) then
             this%l_merged(ic) = .true.
@@ -432,7 +429,6 @@ contains
         integer,            intent(in)    :: rank
         integer,            intent(in)    :: ic
         logical                           :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
 
         if (rank == cart%rank) then
             val = this%l_available(ic)
@@ -451,7 +447,6 @@ contains
         integer,            intent(in)    :: rank
         integer,            intent(in)    :: ic
         logical                           :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
 
         if (rank == cart%rank) then
             val = this%l_leaf(ic)
@@ -470,7 +465,6 @@ contains
         integer,            intent(in)    :: rank
         integer,            intent(in)    :: ic
         logical                           :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
 
         if (rank == cart%rank) then
             val = this%l_merged(ic)

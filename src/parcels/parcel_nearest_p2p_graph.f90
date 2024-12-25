@@ -1,8 +1,6 @@
 module parcel_nearest_p2p_graph
     use mpi_layout
     use mpi_utils
-    use parcel_mpi, only : get_parcel_id_buffer_ptr     &
-                         , deallocate_parcel_id_buffers
     use datatypes, only : intlog_pair_t
     use mpi_datatypes, only : MPI_INTEGER_LOGICAL_ARRAY
     use mpi_timer, only : start_timer       &

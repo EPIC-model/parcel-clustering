@@ -35,6 +35,7 @@ module parcel_nearest
     use parcel_nearest_graph, only : graph_t
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
+    use parcel_nearest_shmem_graph, only : shmem_graph_t
     use parcel_mpi, only : n_parcel_sends               &
                          , north_pid                    &
                          , south_pid                    &
@@ -89,7 +90,8 @@ module parcel_nearest
     type(nearest_type) :: near
 
 !     type(p2p_graph_t) :: tree
-    type(rma_graph_t) :: tree
+!     type(rma_graph_t) :: tree
+    type(shmem_graph_t) :: tree
 
     integer              :: n_neighbour_small(8)  ! number of small parcels received
 

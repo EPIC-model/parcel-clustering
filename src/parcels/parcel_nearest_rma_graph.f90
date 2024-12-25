@@ -1,10 +1,6 @@
 module parcel_nearest_rma_graph
     use mpi_layout
     use mpi_utils
-    use parcel_mpi, only : get_parcel_id_buffer_ptr     &
-                         , deallocate_parcel_id_buffers
-    use datatypes, only : intlog_pair_t
-    use mpi_datatypes, only : MPI_INTEGER_LOGICAL_ARRAY
     use mpi_timer, only : start_timer       &
                         , stop_timer        &
                         , register_timer
@@ -185,7 +181,6 @@ contains
         integer,            intent(inout) :: n_local_small
         integer                           :: ic, rc, is, m, j
         logical                           :: l_helper
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
         logical                           :: l_continue_iteration, l_do_merge(n_local_small)
         logical                           :: l_isolated_dual_link(n_local_small)
 

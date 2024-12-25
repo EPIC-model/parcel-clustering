@@ -16,6 +16,8 @@ module mpi_environment
 
     type(communicator) :: world
 
+    logical :: l_ignore_mpi_finalize = .false.
+
 contains
 
     subroutine mpi_env_initialise
@@ -45,8 +47,10 @@ contains
         call MPI_Initialized(flag, world%err)
 
         if (flag) then
-            call mpi_ops_free
-            call MPI_Finalize(world%err)
+            if (.not. l_ignore_mpi_finalize) then
+                call mpi_ops_free
+                call MPI_Finalize(world%err)
+            endif
         endif
 
         call MPI_Finalized(flag, world%err)
