@@ -25,7 +25,7 @@ program benchmark_parcel_merging
     use parcel_nearest_shmem_graph, only : shmem_graph_t
     implicit none
 
-    integer              :: k, niter, allreduce_timer, generate_timer
+    integer              :: k, niter, allreduce_timer, generate_timer, seed
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc
     character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
@@ -48,7 +48,7 @@ program benchmark_parcel_merging
 
     call parcels%allocate(max_num_parcels)
 
-    call init_rng
+    call init_rng(seed)
 
     select case(graph_type)
         case ('MPI P2P')
@@ -174,6 +174,7 @@ contains
         l_shuffle = .false.
         l_variable_nppc = .false.
         graph_type = 'MPI P2P'
+        seed = 42
 
 
         i = 0
@@ -243,15 +244,21 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 graph_type = trim(arg)
+            else if (arg == '--seed') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                read(arg,'(i6)') seed
             else if (arg == '--help') then
                 if (world%rank == world%root) then
-                    print *, "./benchmark_parcel_merginga.out ",                &
-                             "--nx [int] --ny [int] --nz [int] ",               &
-                             "--lx [float] --ly [float] --lz [float] ",         &
-                             "--xlen [float] --ylen [float] --zlen [float] ",   &
-                             "--niter [int] --n_per_cell [int] ",               &
-                             "--min_vratio [float] --size_factor [float] ",     &
-                             "--shuffle (optional) --variable-nppc (optional)"
+                    print *, "./benchmark_parcel_merginga.out ",                 &
+                             "--nx [int] --ny [int] --nz [int] ",                &
+                             "--lx [float] --ly [float] --lz [float] ",          &
+                             "--xlen [float] --ylen [float] --zlen [float] ",    &
+                             "--niter [int] --n_per_cell [int] ",                &
+                             "--min_vratio [float] --size_factor [float] ",      &
+                             "--shuffle (optional) --variable-nppc (optional) ", &
+                             "--seed [int] ",                                    &
+                             "--graph-type [MPI P2P, MPI RMA, OpenSHMEM]"
                 endif
                 call mpi_stop
             endif
