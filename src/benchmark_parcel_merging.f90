@@ -250,7 +250,7 @@ contains
                 read(arg,'(i6)') seed
             else if (arg == '--help') then
                 if (world%rank == world%root) then
-                    print *, "./benchmark_parcel_merginga.out ",                 &
+                    print *, "./benchmark_parcel_merging ",                      &
                              "--nx [int] --ny [int] --nz [int] ",                &
                              "--lx [float] --ly [float] --lz [float] ",          &
                              "--xlen [float] --ylen [float] --zlen [float] ",    &
