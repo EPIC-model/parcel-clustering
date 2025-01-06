@@ -34,7 +34,7 @@ module utils
 contains
 
     subroutine register_all_timers
-        call register_timer('epic', epic_timer)
+        call register_timer('total', epic_timer)
         call register_timer('parcel container resize', resize_timer)
         call register_timer('parcel split', split_timer)
         call register_timer('parcel merge', merge_timer)

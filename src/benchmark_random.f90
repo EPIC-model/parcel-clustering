@@ -1,4 +1,4 @@
-program benchmark_parcel_merging
+program benchmark_random
     use parcel_container
     use options, only : parcel
     use parameters, only : update_parameters, lower, extent, nx, ny, nz, max_num_parcels
@@ -250,7 +250,7 @@ contains
                 read(arg,'(i6)') seed
             else if (arg == '--help') then
                 if (world%rank == world%root) then
-                    print *, "./benchmark_parcel_merging ",                      &
+                    print *, "./benchmark_random ",                              &
                              "--nx [int] --ny [int] --nz [int] ",                &
                              "--lx [float] --ly [float] --lz [float] ",          &
                              "--xlen [float] --ylen [float] --zlen [float] ",    &
@@ -286,4 +286,4 @@ contains
 
     end subroutine parse_command_line
 
-end program benchmark_parcel_merging
+end program benchmark_random

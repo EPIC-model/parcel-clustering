@@ -18,6 +18,7 @@ AC_CONFIG_FILES([
     src/utils/Makefile
     src/mpi/Makefile
     src/netcdf/Makefile
+    src/parcels/Makefile
 ])
 
 # 30 May 2023

@@ -1,34 +1,52 @@
-SUBDIRS = mpi netcdf utils
+SUBDIRS = mpi netcdf utils parcels
 
 AM_FCFLAGS =				\
 	-I $(top_builddir)/src/mpi	\
 	-I $(top_builddir)/src/utils	\
-	-I $(top_builddir)/src/netcdf
+	-I $(top_builddir)/src/netcdf	\
+	-I $(top_builddir)/src/parcels
 
-bin_PROGRAMS = benchmark_parcel_merging
-benchmark_parcel_merging_SOURCES =		\
-	parcels/parcel_ops.f90			\
-	parcels/parcel_container.f90 		\
-	parcels/parcel_ellipsoid.f90		\
-	parcels/parcels.f90			\
-	parcels/parcel_bc.f90                   \
-	parcels/parcel_mpi.f90			\
-	parcels/parcel_split.f90		\
-	parcels/parcel_init.f90			\
-	parcels/parcel_nearest_graph.f90	\
-	parcels/parcel_nearest_p2p_graph.f90	\
-	parcels/parcel_nearest_rma_graph.f90	\
-	parcels/parcel_nearest_shmem_graph.f90	\
-	parcels/parcel_nearest.f90		\
-	parcels/parcel_merge.f90		\
-	parcels/parcel_netcdf.f90		\
-	utils.f90				\
-	benchmark_parcel_merging.f90
+bin_PROGRAMS = benchmark_random	\
+               benchmark_read	\
+               verify
 
-benchmark_parcel_merging_LDADD = 			\
-	$(top_builddir)/src/utils/libepic_utils.la 	\
-	$(top_builddir)/src/mpi/libepic_mpi.la		\
-	$(top_builddir)/src/netcdf/libepic_netcdf.la
+benchmark_random_SOURCES = utils.f90 benchmark_random.f90
+
+benchmark_random_LDADD =				\
+	$(top_builddir)/src/utils/libepic_utils.la      \
+        $(top_builddir)/src/mpi/libepic_mpi.la          \
+        $(top_builddir)/src/netcdf/libepic_netcdf.la	\
+        $(top_builddir)/src/parcels/libparcels.la
+
+benchmark_read_SOURCES = utils.f90 benchmark_read.f90
+
+benchmark_read_LDADD = 					\
+	$(top_builddir)/src/utils/libepic_utils.la      \
+        $(top_builddir)/src/mpi/libepic_mpi.la          \
+        $(top_builddir)/src/netcdf/libepic_netcdf.la	\
+        $(top_builddir)/src/parcels/libparcels.la
+
+
+if ENABLE_PYTHON
+verify_SOURCES =				\
+	utils.f90	           		\
+	serial/parcel_nearest_serial.f90	\
+	serial/parcel_merge_serial.f90         	\
+	verify.f90
+
+verify_LDADD =						\
+	$(top_builddir)/src/utils/libepic_utils.la      \
+        $(top_builddir)/src/mpi/libepic_mpi.la          \
+        $(top_builddir)/src/netcdf/libepic_netcdf.la	\
+        $(top_builddir)/src/parcels/libparcels.la
+
+verify_py_PYTHON = verify_cluster_algorithm.py
+verify_pydir = $(bindir)
+
+
+install-exec-hook:
+	chmod 755 $(bindir)/verify_cluster_algorithm.py
+endif
 
 clean-local:
 	rm -f *.mod *.smod
