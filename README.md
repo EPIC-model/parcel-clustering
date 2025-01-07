@@ -11,3 +11,11 @@
 * HDF5 >= 1.12.1
 * MPI (MPICH, Cray MPI, OpenMPI)
 * OpenSHMEM (included in OpenMPI)
+
+## Installation
+1. `./bootstrap`
+2. `mkdir build; cd build`
+3. `../configure --prefix=$PREFIX --enable-python`
+4. `make; make install`
+
+Note: The `$PREFIX` variable denotes the installation directory.
