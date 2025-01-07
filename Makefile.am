@@ -1,13 +1,12 @@
-SUBDIRS =		\
-	src
+SUBDIRS = src
 
-# if ENABLE_PYTHON
-# SUBDIRS += python-scripts
-# endif
+if ENABLE_PYTHON
+SUBDIRS += pytools
+endif
 
 ACLOCAL_AMFLAGS = -I m4
 
-dist_doc_DATA = README.md
+# dist_doc_DATA = README.md
 
 # dataroot_DATA =
 # 	examples/taylor_green.config
@@ -19,19 +18,9 @@ dist_doc_DATA = README.md
 # 	examples/straka2d.nml
 # 	examples/taylorgreen2d.nml
 
-# if ENABLE_PYTHON
-# dataroot_DATA = examples/write_moist_setup.py
 
-
-# # make python script an executable script
-# install-exec-hook:
-# 	chmod 755 $(bindir)/animate-parcels.py
-# 	chmod 755 $(bindir)/plot-parcels.py
-# 	chmod 755 $(bindir)/plot-diagnostics.py
-# 	chmod 755 $(bindir)/plot-timings.py
-# 	chmod 755 $(bindir)/merge-ellipses.py
-# 	chmod 755 $(bindir)/epic-run.py
-# 	chmod 755 $(bindir)/subgrid_2d_generalised.py
-# 	chmod 755 $(bindir)/compare_results.py
-# 	chmod 755 $(bindir)/plot_slices.py
-# endif
+if ENABLE_PYTHON
+# make verify_cluster_algorithm.py an executable script
+install-exec-hook:
+	chmod 755 $(bindir)/pytools/verify_cluster_algorithm.py
+endif

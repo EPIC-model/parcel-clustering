@@ -1,5 +1,10 @@
-AC_INIT([epic], [0.14.2], [mf248@st-andrews.ac.uk], [], [https://github.com/matt-frey/epic])
+AC_INIT([parcel-clustering],
+        [1.0.0],
+        [mf248@st-andrews.ac.uk],
+        [],
+        [https://github.com/EPIC-model/parcel-clustering])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
+AC_PREREQ([2.69])
 AC_PROG_FC([gfortran])
 AC_LANG(Fortran)
 AM_PROG_AR
@@ -19,6 +24,7 @@ AC_CONFIG_FILES([
     src/mpi/Makefile
     src/netcdf/Makefile
     src/parcels/Makefile
+    pytools/Makefile
 ])
 
 # 30 May 2023
@@ -281,7 +287,7 @@ AC_ARG_ENABLE([python],
 AM_CONDITIONAL([ENABLE_PYTHON], [test "$ENABLE_PYTHON" = "yes"])
 
 if test "x$ENABLE_PYTHON" = "xyes"; then
-    AM_PATH_PYTHON([3.0])
+    AM_PATH_PYTHON([3.11])
     #
     # argparse
     #
@@ -305,58 +311,6 @@ if test "x$ENABLE_PYTHON" = "xyes"; then
     else
         AC_MSG_RESULT([no])
         AC_MSG_NOTICE([Install numpy with "conda install -c conda-forge numpy".])
-        exit 1
-    fi
-
-    #
-    # scipy
-    #
-    AC_MSG_CHECKING([for python scipy library])
-    `${PYTHON} -c 'import scipy' 2> config.log`
-    if test "X$?" = "X0" ; then
-        AC_MSG_RESULT([yes])
-    else
-        AC_MSG_RESULT([no])
-        AC_MSG_NOTICE([Install numpy with "conda install -c conda-forge scipy".])
-        exit 1
-    fi
-
-    #
-    # pandas
-    #
-    AC_MSG_CHECKING([for python pandas library])
-    `${PYTHON} -c 'import pandas' 2> config.log`
-    if test "X$?" = "X0" ; then
-        AC_MSG_RESULT([yes])
-    else
-        AC_MSG_RESULT([no])
-        AC_MSG_NOTICE([Install numpy with "conda install -c conda-forge pandas".])
-        exit 1
-    fi
-
-    #
-    # matplotlib
-    #
-    AC_MSG_CHECKING([for python matplotlib library])
-    `${PYTHON} -c 'import matplotlib.pyplot as plt' 2> config.log`
-    if test "x$?" = "x0" ; then
-        AC_MSG_RESULT([yes])
-    else
-        AC_MSG_RESULT([no])
-        AC_MSG_NOTICE([Install matplotlib with "conda install -c conda-forge matplotlib".])
-        exit 1
-    fi
-
-    #
-    # seaborn
-    #
-    AC_MSG_CHECKING([for python seaborn library])
-    `${PYTHON} -c 'import seaborn' 2> config.log`
-    if test "X$?" = "X0" ; then
-        AC_MSG_RESULT([yes])
-    else
-        AC_MSG_RESULT([no])
-        AC_MSG_NOTICE([Install numpy with "conda install -c conda-forge seaborn".])
         exit 1
     fi
 

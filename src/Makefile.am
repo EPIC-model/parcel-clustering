@@ -39,13 +39,6 @@ verify_LDADD =						\
         $(top_builddir)/src/mpi/libepic_mpi.la          \
         $(top_builddir)/src/netcdf/libepic_netcdf.la	\
         $(top_builddir)/src/parcels/libparcels.la
-
-verify_py_PYTHON = verify_cluster_algorithm.py
-verify_pydir = $(bindir)
-
-
-install-exec-hook:
-	chmod 755 $(bindir)/verify_cluster_algorithm.py
 endif
 
 clean-local:

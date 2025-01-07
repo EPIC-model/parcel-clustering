@@ -1,5 +1,5 @@
 import numpy as np
-from tools.nc_reader import nc_reader
+from nc_reader import nc_reader
 import subprocess
 import os
 import argparse
