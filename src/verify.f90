@@ -69,7 +69,7 @@ program verify_parcel_merging
     ! -------------------------------------------------------------
     ! Set up the parcel configuration:
     if (l_setup) then
-        call setup_parcels(xlen=lx, ylen=ly, zlen=lz, l_shuffle=l_shuffle, l_variable_nppc=.true.)
+        call setup_parcels(xlen=lx, ylen=ly, zlen=lz, l_shuffle=l_shuffle, l_variable_nppc=.false.)
 
         call start_timer(allreduce_timer)
         parcels%total_num = 0

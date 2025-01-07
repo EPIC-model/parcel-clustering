@@ -80,8 +80,6 @@ class nc_reader(nc_base_reader):
         return attr
 
     def get_num_parcels(self, step):
-        if not self.is_parcel_file:
-            raise IOError("Not a parcel output file.")
         self._load_parcel_file(step)
         return self._ncfile.dimensions['n_parcels'].size
 

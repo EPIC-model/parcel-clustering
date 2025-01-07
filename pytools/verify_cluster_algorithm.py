@@ -3,10 +3,13 @@ from nc_reader import nc_reader
 import subprocess
 import os
 import argparse
+import shutil
 
 try:
     parser = argparse.ArgumentParser(
-            description="Test script to compare serial and parallel merging."
+            description="Test script to compare serial and parallel merging. " + \
+                        "You must add the path of the program 'verify' to your " + \
+                        "PATH environment variable."
         )
 
     parser.add_argument(
@@ -20,7 +23,7 @@ try:
         "--n_ranks",
         type=int,
         nargs='+',
-        default=4,
+        default=[2, 4],
         help="Number of MPI ranks for the parallel runs.",
     )
 
@@ -60,6 +63,34 @@ try:
     )
 
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="RNG seed",
+    )
+
+    parser.add_argument(
+        "--ntasks-per-node",
+        type=int,
+        default=128,
+        help="Number of tasks per node",
+    )
+
+    parser.add_argument(
+        "--graph-type",
+        type=str,
+        choices=["MPI P2P", "MPI RMA", "OpenSHMEM"],
+        default="MPI P2P",
+        help="Graph type for parallel version.",
+    )
+
+    parser.add_argument(
+        "--shuffle",
+        action='store_true',
+        help="Shuffle initial parcels locally."
+    )
+
+    parser.add_argument(
         "--verbose",
         action='store_true',
         help="Print intermediate output."
@@ -72,13 +103,14 @@ try:
         help="Run jobs with 'mpirun' or 'srun'."
     )
 
-    exec_path = os.environ.get('EXEC_PATH')
-
-    if exec_path is None:
-        raise KeyError('Missing environment variable $EXEC_PATH.')
-
-
     args = parser.parse_args()
+
+    # 7 Jan 2025
+    # https://stackoverflow.com/a/73884650
+    exe = shutil.which('verify')
+
+    if exe is None:
+        raise KeyError("Unable to find 'verify' following $PATH.")
 
     if not args.cmd == 'mpirun' and not args.cmd == 'srun':
         raise IOError("Use either 'mpirun' or 'srun'.")
@@ -97,12 +129,18 @@ try:
 
     tol = 1.0e-14
 
-    exe = os.path.join(exec_path, 'verify_parcel_merging')
-
     flags = ' --nx ' + str(nx) \
           + ' --ny ' + str(ny) \
           + ' --nz ' + str(nz) \
+          + ' --seed ' + str(args.seed) \
+          + ' --n_per_cell ' + str(args.n_parcel_per_cell) \
           + ' --min_vratio ' + str(min_vratio)
+
+    if args.shuffle:
+        flags = flags + ' --shuffle'
+
+    pflags = flags                              \
+           + ' --graph-type ' + args.graph_type
 
     ncrs = nc_reader()
     ncrp = nc_reader()
@@ -113,7 +151,7 @@ try:
     # used when running with --verbose
     modulo = 100
 
-    ntasks_per_node = 128
+    ntasks_per_node = args.ntasks_per_node
 
     for n in range(args.n_samples):
         try:
@@ -153,7 +191,7 @@ try:
                 if args.cmd == 'srun':
                     cmd = 'srun --nodes=' + str(nodes) + ' --ntasks=' + str(n_rank)
                     cmd = cmd + ' --cpus-per-task=1 --exact '
-                subprocess.run(args=cmd + exe + flags,
+                subprocess.run(args=cmd + exe + pflags,
                                shell=True,
                                check=True,
                                timeout=360,
