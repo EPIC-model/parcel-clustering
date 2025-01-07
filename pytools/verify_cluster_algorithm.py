@@ -8,8 +8,8 @@ import shutil
 try:
     parser = argparse.ArgumentParser(
             description="Test script to compare serial and parallel merging. " + \
-                        "You must add the path of the program 'verify' to your " + \
-                        "PATH environment variable."
+                        "You must add the path of the program 'benchmark_verify' " + \
+                        "to your PATH environment variable."
         )
 
     parser.add_argument(
@@ -107,10 +107,10 @@ try:
 
     # 7 Jan 2025
     # https://stackoverflow.com/a/73884650
-    exe = shutil.which('verify')
+    exe = shutil.which('benchmark_verify')
 
     if exe is None:
-        raise KeyError("Unable to find 'verify' following $PATH.")
+        raise KeyError("Unable to find 'benchmark_verify' following $PATH.")
 
     if not args.cmd == 'mpirun' and not args.cmd == 'srun':
         raise IOError("Use either 'mpirun' or 'srun'.")

@@ -8,7 +8,7 @@ AM_FCFLAGS =				\
 
 bin_PROGRAMS = benchmark_random	\
                benchmark_read	\
-               verify
+               benchmark_verify
 
 benchmark_random_SOURCES = utils.f90 benchmark_random.f90
 
@@ -28,13 +28,13 @@ benchmark_read_LDADD = 					\
 
 
 if ENABLE_PYTHON
-verify_SOURCES =				\
+benchmark_verify_SOURCES =			\
 	utils.f90	           		\
 	serial/parcel_nearest_serial.f90	\
 	serial/parcel_merge_serial.f90         	\
-	verify.f90
+	benchmark_verify.f90
 
-verify_LDADD =						\
+benchmark_verify_LDADD =				\
 	$(top_builddir)/src/utils/libepic_utils.la      \
         $(top_builddir)/src/mpi/libepic_mpi.la          \
         $(top_builddir)/src/netcdf/libepic_netcdf.la	\

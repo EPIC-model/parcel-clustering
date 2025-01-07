@@ -1,4 +1,4 @@
-program verify_parcel_merging
+program benchmark_verify
     use constants, only : pi, zero, one, f12, f23, twopi
     use parcels_mod, only : parcels
     use options, only : parcel, output
@@ -271,4 +271,4 @@ contains
 
     end subroutine parallel_merge
 
-end program verify_parcel_merging
+end program benchmark_verify
