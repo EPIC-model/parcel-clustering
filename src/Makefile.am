@@ -7,8 +7,11 @@ AM_FCFLAGS =				\
 	-I $(top_builddir)/src/parcels
 
 bin_PROGRAMS = benchmark_random	\
-               benchmark_read	\
-               benchmark_verify
+               benchmark_read
+
+if ENABLE_PYTHON
+bin_PROGRAMS += benchmark_verify
+endif
 
 benchmark_random_SOURCES = utils.f90 benchmark_random.f90
 
