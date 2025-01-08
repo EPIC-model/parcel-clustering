@@ -1,3 +1,19 @@
+module shmem
+    interface
+            type(c_ptr) function shmem_malloc(n) bind(C, name="shmem_malloc")
+                use, intrinsic :: iso_c_binding
+                integer(kind=c_size_t), value :: n
+            end function shmem_malloc
+        end interface
+
+        interface
+            subroutine shmem_free(ptr) bind(C,name="shmem_free")
+                use, intrinsic :: iso_c_binding
+                type(C_PTR), value :: ptr
+            end subroutine shmem_free
+        end interface
+end module shmem
+
 module parcel_nearest_shmem_graph
     use mpi_layout
     use mpi_utils
@@ -5,8 +21,9 @@ module parcel_nearest_shmem_graph
                         , stop_timer        &
                         , register_timer
     use parcel_nearest_graph, only : graph_t
-    use iso_c_binding, only : c_ptr, c_f_pointer
+    use iso_c_binding, only : c_ptr, c_f_pointer, c_sizeof, c_loc
     use mpi_environment, only : l_ignore_mpi_finalize
+    use shmem
     implicit none
 !     include 'shmem.fh'
 
@@ -60,7 +77,8 @@ contains
         class(shmem_graph_t), intent(inout) :: this
         integer,            intent(in)    :: num
         type(c_ptr)                       :: buf_ptr
-        integer                           :: error
+        logical                           :: l_byte
+!         integer                           :: error
 
         if (this%l_shmem_allocated) then
             return
@@ -74,13 +92,16 @@ contains
 
         call shmem_init
 
-        call shpalloc(buf_ptr, num, error, 0)
+!         call shpalloc(buf_ptr, num, error, 0)
+        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
         call c_f_pointer(buf_ptr, this%l_available, [num])
 
-        call shpalloc(buf_ptr, num, error, 0)
+!         call shpalloc(buf_ptr, num, error, 0)
+        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
         call c_f_pointer(buf_ptr, this%l_leaf, [num])
 
-        call shpalloc(buf_ptr, num, error, 0)
+!         call shpalloc(buf_ptr, num, error, 0)
+        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
         call c_f_pointer(buf_ptr, this%l_merged, [num])
 
         call this%reset
@@ -91,6 +112,7 @@ contains
 
     subroutine shmem_graph_finalise(this)
         class(shmem_graph_t), intent(inout) :: this
+        type(c_ptr)                         :: buf_ptr
 
         if (.not. this%l_shmem_allocated) then
             return
@@ -99,6 +121,18 @@ contains
         this%l_shmem_allocated = .false.
 
         call shmem_barrier_all
+
+        buf_ptr = c_loc(this%l_available)
+        call shmem_free(buf_ptr)
+        call c_f_pointer(buf_ptr, this%l_available, [0])
+
+        buf_ptr = c_loc(this%l_leaf)
+        call shmem_free(buf_ptr)
+        call c_f_pointer(buf_ptr, this%l_leaf, [0])
+
+        buf_ptr = c_loc(this%l_merged)
+        call shmem_free(buf_ptr)
+        call c_f_pointer(buf_ptr, this%l_merged, [0])
 
         call shmem_finalize
 
