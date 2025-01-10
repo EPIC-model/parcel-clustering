@@ -54,9 +54,10 @@ module parcel_nearest_rma_graph
 
 contains
 
-    subroutine rma_graph_initialise(this, num)
+    subroutine rma_graph_initialise(this, num, l_subcomm)
         class(rma_graph_t), intent(inout) :: this
         integer,            intent(in)    :: num
+        logical,            intent(in)    :: l_subcomm
         integer (KIND=MPI_ADDRESS_KIND)   :: win_size
         logical                           :: l_bytes
         integer                           :: disp_unit
@@ -66,6 +67,8 @@ contains
         if (this%l_win_allocated) then
             return
         endif
+
+        this%l_enabled_subcomm = l_subcomm
 
         if (.not. l_mpi_layout_initialised) then
             call mpi_stop("Error: The Cartesian communicator not yet initialised.")

@@ -61,9 +61,7 @@ program benchmark_random
             allocate(p2p_graph_t :: tree)
     end select
 
-    call tree%initialise(max_num_parcels)
-
-    tree%l_enabled_subcomm = l_subcomm
+    call tree%initialise(max_num_parcels, l_subcomm)
 
     call register_timer('total', epic_timer)
     call register_timer('parcel merge', merge_timer)

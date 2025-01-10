@@ -79,12 +79,13 @@ module parcel_nearest_shmem_graph
 
 contains
 
-    subroutine shmem_graph_initialise(this, num)
+    subroutine shmem_graph_initialise(this, num, l_subcomm)
         class(shmem_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: num
-        type(c_ptr)                       :: buf_ptr
-        logical                           :: l_byte
-!         integer                           :: error
+        integer,              intent(in)    :: num
+        logical,              intent(in)    :: l_subcomm
+        type(c_ptr)                         :: buf_ptr
+        logical                             :: l_byte
+!         integer                             :: error
 
         if (this%l_shmem_allocated) then
             return
@@ -98,9 +99,9 @@ contains
 
         ! Ensure we use all MPI ranks because we need to call
         ! shmem_barrier_all
-        if (this%l_enabled_subcomm) then
-            call mpi_print("We do not support the subcommunicator with OpenSHMEM.")
-            call mpi_print("Switching to the global communicator.")
+        if (l_subcomm) then
+            call mpi_print("Ignoring the request to use a subcommunicator.")
+            call mpi_print("We only support a global communicator with OpenSHMEM.")
         endif
         this%l_enabled_subcomm = .false.
 

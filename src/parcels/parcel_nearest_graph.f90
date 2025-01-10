@@ -23,10 +23,11 @@ module parcel_nearest_graph
     end type
 
     interface
-        subroutine graph_initialise(this, num)
+        subroutine graph_initialise(this, num, l_subcomm)
             import :: graph_t
             class(graph_t), intent(inout) :: this
             integer,        intent(in)    :: num
+            logical,        intent(in)    :: l_subcomm
         end subroutine graph_initialise
     end interface
 

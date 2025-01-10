@@ -176,9 +176,12 @@ contains
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine p2p_graph_initialise(this, num)
+    subroutine p2p_graph_initialise(this, num, l_subcomm)
         class(p2p_graph_t), intent(inout) :: this
         integer,            intent(in)    :: num
+        logical,            intent(in)    :: l_subcomm
+
+        this%l_enabled_subcomm = l_subcomm
 
         if (.not. allocated(this%l_merged)) then
             allocate(this%l_merged(num))

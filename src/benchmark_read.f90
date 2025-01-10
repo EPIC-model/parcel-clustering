@@ -74,9 +74,7 @@ program benchmark_read
             allocate(p2p_graph_t :: tree)
     end select
 
-    call tree%initialise(max_num_parcels)
-
-    tree%l_enabled_subcomm = l_subcomm
+    call tree%initialise(max_num_parcels, l_subcomm)
 
     call tree%register_timer
 
