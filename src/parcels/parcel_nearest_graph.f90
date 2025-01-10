@@ -1,9 +1,16 @@
 module parcel_nearest_graph
+    use mpi_environment
+    use mpi_layout, only : cart
+    use mpi_utils, only : mpi_check_for_error
     implicit none
 
     private
 
     type, abstract :: graph_t
+
+        logical :: l_enabled_subcomm = .false.
+
+        type(communicator) :: comm
 
     contains
         procedure(graph_initialise),     deferred :: initialise
@@ -11,6 +18,8 @@ module parcel_nearest_graph
         procedure(graph_reset),          deferred :: reset
         procedure(graph_resolve),        deferred :: resolve
         procedure(graph_register_timer), deferred :: register_timer
+
+        procedure :: create_comm
     end type
 
     interface
@@ -36,11 +45,10 @@ module parcel_nearest_graph
     end interface
 
     interface
-        subroutine graph_resolve(this, mpi_comm, isma, iclo, rclo, n_local_small)
+        subroutine graph_resolve(this, isma, iclo, rclo, n_local_small)
             use mpi_environment, only : communicator
             import :: graph_t
             class(graph_t),     intent(inout) :: this
-            type(communicator), intent(inout) :: mpi_comm
             integer,            intent(inout) :: isma(0:)
             integer,            intent(inout) :: iclo(:)
             integer,            intent(inout) :: rclo(:)
@@ -56,5 +64,46 @@ module parcel_nearest_graph
     end interface
 
     public :: graph_t
+
+contains
+
+    subroutine create_comm(this, l_include)
+        class(graph_t), intent(inout) :: this
+        logical,        intent(in)    :: l_include
+        integer                       :: color
+
+        if (.not. this%l_enabled_subcomm) then
+            return
+        endif
+
+        ! Ensure the communicator is freed first.
+        if (this%comm%comm /= MPI_COMM_NULL) then
+            call MPI_Comm_free(this%comm%comm, this%comm%err)
+            call mpi_check_for_error(this%comm, &
+                    "in MPI_Comm_free of parcel_nearest::find_nearest.")
+        endif
+
+        ! Each MPI process must know if it is part of the this%communicator or not.
+        ! All MPI ranks that have small parcels or received small parcels from neighbouring
+        ! MPI ranks must be part of the communicator.
+        color = MPI_UNDEFINED
+        if (.not. l_include) then
+            color = 0  ! any non-negative number is fine
+        endif
+
+        call MPI_Comm_split(comm=cart%comm,         &
+                            color=color,            &
+                            key=cart%rank,          &  ! key controls the ordering of the processes
+                            newcomm=this%comm%comm,   &
+                            ierror=cart%err)
+
+        if (this%comm%comm /= MPI_COMM_NULL) then
+            ! The following two calls are not necessary, but we do for good practice.
+            call MPI_Comm_size(this%comm%comm, this%comm%size, this%comm%err)
+            call MPI_Comm_rank(this%comm%comm, this%comm%rank, this%comm%err)
+            this%comm%root = 0
+        endif
+
+    end subroutine create_comm
 
 end module parcel_nearest_graph

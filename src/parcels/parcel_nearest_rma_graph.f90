@@ -174,9 +174,8 @@ contains
     ! https://github.com/mpi-forum/mpi-forum-historic/issues/413
     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node294.htm
     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node279.htm
-    subroutine rma_graph_resolve(this, mpi_comm, isma, iclo, rclo, n_local_small)
+    subroutine rma_graph_resolve(this, isma, iclo, rclo, n_local_small)
         class(rma_graph_t), intent(inout) :: this
-        type(communicator), intent(inout) :: mpi_comm
         integer,            intent(inout) :: isma(0:)
         integer,            intent(inout) :: iclo(:)
         integer,            intent(inout) :: rclo(:)
@@ -210,7 +209,6 @@ contains
             ! This barrier is necessary!
             call start_timer(this%sync_timer)
             call this%barrier
-!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
             ! determine leaf parcels
@@ -228,7 +226,6 @@ contains
             ! have done theirRMA operations as we modify the windows again.
             call start_timer(this%sync_timer)
             call this%barrier
-!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
             ! filter out parcels that are "unavailable" for merging
@@ -249,7 +246,6 @@ contains
             ! MPI ranks have finished above loop, we need this barrier.
             call start_timer(this%sync_timer)
             call this%barrier
-!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
 
@@ -279,10 +275,10 @@ contains
                                1,                       &
                                MPI_LOGICAL,             &
                                MPI_LOR,                 &
-                               mpi_comm%comm,           &
-                               mpi_comm%err)
+                               this%comm%comm,          &
+                               this%comm%err)
             call stop_timer(this%allreduce_timer)
-            call mpi_check_for_error(mpi_comm, &
+            call mpi_check_for_error(this%comm, &
                 "in MPI_Allreduce of parcel_nearest::resolve_tree.")
         enddo
 
@@ -305,7 +301,6 @@ contains
         ! This barrier is necessary as we modifiy l_available above and need it below.
         call start_timer(this%sync_timer)
         call this%barrier
-!         call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
         call stop_timer(this%sync_timer)
 
         ! Second stage
@@ -368,7 +363,6 @@ contains
         ! This barrier is necessary.
         call start_timer(this%sync_timer)
         call this%barrier
-!         call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
         call stop_timer(this%sync_timer)
 
         !------------------------------------------------------
@@ -649,6 +643,12 @@ contains
         type(MPI_Status)                  :: statuses(8)
         integer                           :: n
         logical                           :: l_send, l_recv(8)
+
+
+        if (.not. this%l_enabled_subcomm) then
+            call MPI_Barrier(this%comm%comm, this%comm%err)
+            return
+        endif
 
         l_send = .true.
 

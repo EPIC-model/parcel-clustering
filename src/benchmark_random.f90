@@ -27,7 +27,7 @@ program benchmark_random
 
     integer              :: k, niter, allreduce_timer, generate_timer, seed
     double precision     :: lx, ly, lz, xlen, ylen, zlen
-    logical              :: l_shuffle, l_variable_nppc
+    logical              :: l_shuffle, l_variable_nppc, l_subcomm
     character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
     character(len=1)     :: snum
     integer(kind=int64)  :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
@@ -62,6 +62,8 @@ program benchmark_random
     end select
 
     call tree%initialise(max_num_parcels)
+
+    tree%l_enabled_subcomm = l_subcomm
 
     call register_timer('total', epic_timer)
     call register_timer('parcel merge', merge_timer)
@@ -173,6 +175,7 @@ contains
         parcel%size_factor = 1.25d0
         l_shuffle = .false.
         l_variable_nppc = .false.
+        l_subcomm = .false.
         graph_type = 'MPI P2P'
         seed = 42
 
@@ -240,6 +243,8 @@ contains
                 l_shuffle = .true.
             else if (arg == '--variable-nppc') then
                 l_variable_nppc = .true.
+            else if (arg == '--subcomm') then
+                l_subcomm = .true.
             else if (arg == '--graph-type') then
                 i = i + 1
                 call get_command_argument(i, arg)
@@ -257,6 +262,7 @@ contains
                              "--niter [int] --n_per_cell [int] ",                &
                              "--min_vratio [float] --size_factor [float] ",      &
                              "--shuffle (optional) --variable-nppc (optional) ", &
+                             "--subcomm (optional, disabled for OpenhSHMEM) ",   &
                              "--seed [int] ",                                    &
                              "--graph-type [MPI P2P, MPI RMA, OpenSHMEM]"
                 endif
@@ -280,6 +286,8 @@ contains
             print *, "min_vratio", parcel%min_vratio
             print *, "size_factor", parcel%size_factor
             print *, "shuffle parcels", l_shuffle
+            print *, "seed", seed
+            print *, "enabled subcommunicator", l_subcomm
             print *, "variable number of parcels/cell:", l_variable_nppc
             print *, "graph type: " // graph_type
         endif

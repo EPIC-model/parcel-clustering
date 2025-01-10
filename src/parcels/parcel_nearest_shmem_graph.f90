@@ -96,6 +96,14 @@ contains
 
         this%l_shmem_allocated = .true.
 
+        ! Ensure we use all MPI ranks because we need to call
+        ! shmem_barrier_all
+        if (this%l_enabled_subcomm) then
+            call mpi_print("We do not support the subcommunicator with OpenSHMEM.")
+            call mpi_print("Switching to the global communicator.")
+        endif
+        this%l_enabled_subcomm = .false.
+
         call shmem_init
 
         !--------------------------------------------------
@@ -166,17 +174,16 @@ contains
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine shmem_graph_resolve(this, mpi_comm, isma, iclo, rclo, n_local_small)
+    subroutine shmem_graph_resolve(this, isma, iclo, rclo, n_local_small)
         class(shmem_graph_t), intent(inout) :: this
-        type(communicator), intent(inout) :: mpi_comm
-        integer,            intent(inout) :: isma(0:)
-        integer,            intent(inout) :: iclo(:)
-        integer,            intent(inout) :: rclo(:)
-        integer,            intent(inout) :: n_local_small
-        integer                           :: ic, rc, is, m, j
-        logical                           :: l_helper
-        logical                           :: l_continue_iteration, l_do_merge(n_local_small)
-        logical                           :: l_isolated_dual_link(n_local_small)
+        integer,              intent(inout) :: isma(0:)
+        integer,              intent(inout) :: iclo(:)
+        integer,              intent(inout) :: rclo(:)
+        integer,              intent(inout) :: n_local_small
+        integer                             :: ic, rc, is, m, j
+        logical                             :: l_helper
+        logical                             :: l_continue_iteration, l_do_merge(n_local_small)
+        logical                             :: l_isolated_dual_link(n_local_small)
 
         call start_timer(this%resolve_timer)
 
@@ -202,7 +209,6 @@ contains
             ! This barrier is necessary!
             call start_timer(this%sync_timer)
             call this%barrier
-!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
             ! determine leaf parcels
@@ -220,7 +226,6 @@ contains
             ! have done theirRMA operations as we modify the windows again.
             call start_timer(this%sync_timer)
             call this%barrier
-!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
             ! filter out parcels that are "unavailable" for merging
@@ -236,12 +241,11 @@ contains
                 endif
             enddo
 
-            ! This MPI_Barrier is necessary as MPI processes access their l_available
+            ! This sync is necessary as SHMEM processes access their l_available
             ! array which may be modified in the loop above. In order to make sure all
-            ! MPI ranks have finished above loop, we need this barrier.
+            ! SHMEM processes have finished above loop, we need this barrier.
             call start_timer(this%sync_timer)
             call this%barrier
-!             call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
             call stop_timer(this%sync_timer)
 
 
@@ -271,11 +275,11 @@ contains
                                1,                       &
                                MPI_LOGICAL,             &
                                MPI_LOR,                 &
-                               mpi_comm%comm,           &
-                               mpi_comm%err)
+                               this%comm%comm,          &
+                               this%comm%err)
             call stop_timer(this%allreduce_timer)
-            call mpi_check_for_error(mpi_comm, &
-                "in MPI_Allreduce of parcel_nearest::resolve_tree.")
+            call mpi_check_for_error(this%comm, &
+                "in MPI_Allreduce of shmem_graph_t::resolve_tree.")
         enddo
 
         ! No barrier necessary because of the blocking MPI_Allreduce that acts like
@@ -297,7 +301,6 @@ contains
         ! This barrier is necessary as we modifiy l_available above and need it below.
         call start_timer(this%sync_timer)
         call this%barrier
-!         call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
         call stop_timer(this%sync_timer)
 
         ! Second stage
@@ -319,7 +322,7 @@ contains
 
                 if (l_helper) then
                     call mpi_exit_on_error(&
-                        'in parcel_nearest::resolve_tree: First stage error')
+                        'in shmem_graph_t::resolve_tree: First stage error')
                 endif
 
                 ! end of sanity check
@@ -360,7 +363,6 @@ contains
         ! This barrier is necessary.
         call start_timer(this%sync_timer)
         call this%barrier
-!         call MPI_Barrier(mpi_comm%comm, mpi_comm%err)
         call stop_timer(this%sync_timer)
 
         !------------------------------------------------------
@@ -540,52 +542,6 @@ contains
         class(shmem_graph_t), intent(inout) :: this
 
         call shmem_barrier_all
-
-!         type(MPI_Request)                 :: requests(8)
-!         type(MPI_Status)                  :: statuses(8)
-!         integer                           :: n
-!         logical                           :: l_send, l_recv(8)
-!
-!         l_send = .true.
-!
-!         !----------------------------------------------------------------------
-!         ! Send from remote to owning rank and sync data at owning rank
-!         do n = 1, 8
-!             call MPI_Isend(l_send,                  &
-!                            1,                       &
-!                            MPI_LOGICAL,             &
-!                            neighbours(n)%rank,      &
-!                            SEND_NEIGHBOUR_TAG(n),   &
-!                            cart%comm,               &
-!                            requests(n),             &
-!                            cart%err)
-!
-!             call mpi_check_for_error(cart, &
-!                 "in MPI_Isend of shmem_graph_t::barrier.")
-!         enddo
-!
-!         do n = 1, 8
-!             call MPI_Recv(l_recv(n),                &
-!                           1,                        &
-!                           MPI_LOGICAL,              &
-!                           neighbours(n)%rank,       &
-!                           RECV_NEIGHBOUR_TAG(n),    &
-!                           cart%comm,                &
-!                           statuses(n),              &
-!                           cart%err)
-!         enddo
-!
-!         call MPI_Waitall(8,                 &
-!                         requests,           &
-!                         statuses,           &
-!                         cart%err)
-!
-!         call mpi_check_for_error(cart, &
-!                                 "in MPI_Waitall of shmem_graph_t::barrier.")
-!
-!         if (.not. all(l_recv)) then
-!             call mpi_exit_on_error("in shmem_graph_t::barrier: Not all MPI ranks finished.")
-!         endif
 
     end subroutine barrier
 

@@ -34,6 +34,7 @@ program benchmark_read
     integer          :: ncid, n, m, niter
     integer          :: ncells(3), offset, nfiles
     character(len=9) :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
+    logical          :: l_subcomm
 
     call mpi_env_initialise
 
@@ -74,6 +75,8 @@ program benchmark_read
     end select
 
     call tree%initialise(max_num_parcels)
+
+    tree%l_enabled_subcomm = l_subcomm
 
     call tree%register_timer
 
@@ -137,55 +140,76 @@ program benchmark_read
     call mpi_env_finalise
 
 
-    contains
-        subroutine parse_command_line
-            integer            :: i
-            character(len=512) :: arg
+contains
+    subroutine parse_command_line
+        integer            :: i
+        character(len=512) :: arg
 
-            niter = 10
-            i = 0
-            offset = 0
-            nfiles = 0
-            do
+        niter = 10
+        i = 0
+        offset = 0
+        nfiles = 0
+        graph_type = 'MPI P2P'
+        l_subcomm = .false.
+
+        do
+            call get_command_argument(i, arg)
+            if (len_trim(arg) == 0) then
+                exit
+            endif
+
+            if (arg == '--basename') then
+                i = i + 1
                 call get_command_argument(i, arg)
-                if (len_trim(arg) == 0) then
-                    exit
+                basename = trim(arg)
+            else if (arg == '--niter') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                read(arg,'(i6)') niter
+            else if (arg == '--offset') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                read(arg,'(i6)') offset
+            else if (arg == '--nfiles') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                read(arg,'(i6)') nfiles
+            else if (arg == '--size_factor') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                read(arg,'(f16.0)') parcel%size_factor
+            else if (arg == '--graph-type') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                graph_type = trim(arg)
+            else if (arg == '--subcomm') then
+                l_subcomm = .true.
+            else if (arg == '--help') then
+                if (world%rank == world%root) then
+                    print *, "./benchmark_read ",                               &
+                             "--basename [basename] ",                          &
+                             "--niter [int] ",                                  &
+                             "--offset [int] ",                                 &
+                             "--nfiles [int] ",                                 &
+                             "--subcomm (optional, disabled for OpenhSHMEM) ",  &
+                             "--graph-type [MPI P2P, MPI RMA, OpenSHMEM] ",     &
+                             "--size_facctor [float]"
                 endif
+                call mpi_stop
+            endif
+            i = i+1
+        enddo
 
-                if (arg == '--basename') then
-                    i = i + 1
-                    call get_command_argument(i, arg)
-                    basename = trim(arg)
-                else if (arg == '--niter') then
-                    i = i + 1
-                    call get_command_argument(i, arg)
-                    read(arg,'(i6)') niter
-                else if (arg == '--offset') then
-                    i = i + 1
-                    call get_command_argument(i, arg)
-                    read(arg,'(i6)') offset
-                else if (arg == '--nfiles') then
-                    i = i + 1
-                    call get_command_argument(i, arg)
-                    read(arg,'(i6)') nfiles
-                else if (arg == '--size_factor') then
-                    i = i + 1
-                    call get_command_argument(i, arg)
-                    read(arg,'(f16.0)') parcel%size_factor
-                else if (arg == '--help') then
-                    if (world%rank == world%root) then
-                        print *, "./benchmark_read ",               &
-                                 "--basename [basename] ",          &
-                                 "--niter [int] ",                  &
-                                 "--offset [int] ",                 &
-                                 "--nfiles [int] ",                 &
-                                 "--size_facctor [float]"
-                    endif
-                    call mpi_stop
-                endif
-                i = i+1
-            enddo
+        if (world%rank == world%root) then
+            print *, "basename", basename
+            print *, "offset", offset
+            print *, "number of files", nfiles
+            print *, "niter", niter
+            print *, "size_factor", parcel%size_factor
+            print *, "enabled subcommunicator", l_subcomm
+            print *, "graph type: " // graph_type
+        endif
 
-        end subroutine parse_command_line
+    end subroutine parse_command_line
 
 end program benchmark_read

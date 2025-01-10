@@ -27,7 +27,7 @@ program benchmark_verify
 
     integer              :: allreduce_timer, seed
     double precision     :: lx, ly, lz
-    logical              :: l_setup, l_shuffle
+    logical              :: l_setup, l_shuffle, l_subcomm
     character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
 
     call mpi_env_initialise
@@ -62,6 +62,7 @@ program benchmark_verify
     end select
 
     call tree%initialise(max_num_parcels)
+    tree%l_enabled_subcomm = l_subcomm
     call tree%register_timer
 
     call start_timer(epic_timer)
@@ -218,6 +219,8 @@ contains
                 l_setup = .true.
             else if (arg == '--shuffle') then
                 l_shuffle = .true.
+            else if (arg == '--subcomm') then
+                l_subcomm = .true.
             else if (arg == '--graph-type') then
                 i = i + 1
                 call get_command_argument(i, arg)
@@ -228,17 +231,34 @@ contains
                 read(arg,'(i6)') seed
             else if (arg == '--help') then
                 if (world%rank == world%root) then
-                    print *, "./verify --nx [int] --ny [int] --nz [int] ",  &
-                             "--n_per_cell [int] ",                         &
-                             "--min_vratio [float] ",                       &
-                             "--shuffle (optional) ",                       &
-                             "--seed [int] ",                               &
+                    print *, "./benchmark_verify --nx [int] --ny [int] --nz [int] ",  &
+                             "--n_per_cell [int] ",                                   &
+                             "--min_vratio [float] ",                                 &
+                             "--shuffle (optional) ",                                 &
+                             "--seed [int] ",                                         &
+                             "--subcomm (optional, disabled for OpenhSHMEM) ",        &
                              "--graph-type [MPI P2P, MPI RMA, OpenSHMEM]"
                 endif
                 call mpi_stop
             endif
             i = i+1
         end do
+
+        if (world%rank == world%root) then
+            print *, "nx", nx
+            print *, "ny", ny
+            print *, "nz", nz
+            print *, "lx", lx
+            print *, "ly", ly
+            print *, "lz", lz
+            print *, "n_per_cell", parcel%n_per_cell
+            print *, "min_vratio", parcel%min_vratio
+            print *, "size_factor", parcel%size_factor
+            print *, "shuffle parcels", l_shuffle
+            print *, "seed", seed
+            print *, "enabled subcommunicator", l_subcomm
+            print *, "graph type: " // graph_type
+        endif
 
     end subroutine parse_command_line
 

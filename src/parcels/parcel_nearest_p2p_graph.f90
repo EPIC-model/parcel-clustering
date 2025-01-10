@@ -220,9 +220,8 @@ contains
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine p2p_graph_resolve(this, mpi_comm, isma, iclo, rclo, n_local_small)
+    subroutine p2p_graph_resolve(this, isma, iclo, rclo, n_local_small)
         class(p2p_graph_t), intent(inout) :: this
-        type(communicator), intent(inout) :: mpi_comm
         integer,            intent(inout) :: isma(0:)
         integer,            intent(inout) :: iclo(:)
         integer,            intent(inout) :: rclo(:)
@@ -332,10 +331,10 @@ contains
                                1,                       &
                                MPI_LOGICAL,             &
                                MPI_LOR,                 &
-                               mpi_comm%comm,           &
-                               mpi_comm%err)
+                               this%comm%comm,          &
+                               this%comm%err)
             call stop_timer(this%allreduce_timer)
-            call mpi_check_for_error(mpi_comm, &
+            call mpi_check_for_error(this%comm, &
                 "in MPI_Allreduce of parcel_nearest::resolve_tree.")
         enddo
 

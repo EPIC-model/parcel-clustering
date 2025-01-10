@@ -94,13 +94,7 @@ module parcel_nearest
 !     type(rma_graph_t) :: tree
 !     type(shmem_graph_t) :: tree
 
-    integer              :: n_neighbour_small(8)  ! number of small parcels received
-
-    type(communicator) :: subcomm
-
-#ifdef ENABLE_VERBOSE
-    double precision :: simtime
-#endif
+    integer :: n_neighbour_small(8)  ! number of small parcels received
 
 #ifndef NDEBUG
     ! Small remote parcels must be sent back to the original
@@ -116,9 +110,6 @@ module parcel_nearest
             , locate_parcel_in_boundary_cell    &
             , send_small_parcel_bndry_info      &
             , find_closest_parcel_globally      &
-#ifdef ENABLE_VERBOSE
-            , simtime                           &
-#endif
             , near                              &
             , tree
 
@@ -268,7 +259,7 @@ contains
         integer, allocatable, intent(out)   :: inva(:)
         integer,              intent(out)   :: n_local_small
         integer,              intent(out)   :: n_invalid
-        integer                             :: n_global_small, color
+        integer                             :: n_global_small
         integer                             :: n_remote_small        ! sum(n_neighbour_small)
         integer                             :: n, j
         integer, allocatable                :: rclo(:)    ! MPI rank of closest parcel
@@ -361,48 +352,7 @@ contains
         ! Only MPI ranks that have small parcels or received remote small parcels
         ! must be part of the communicator.
 
-        ! Ensure the communicator is freed first.
-        if (subcomm%comm /= MPI_COMM_NULL) then
-            call MPI_Comm_free(subcomm%comm, subcomm%err)
-            call mpi_check_for_error(subcomm, &
-                    "in MPI_Comm_free of parcel_nearest::find_nearest.")
-        endif
-
-        ! Each MPI process must know if it is part of the subcommunicator or not.
-        ! All MPI ranks that have small parcels or received small parcels from neighbouring
-        ! MPI ranks must be part of the communicator.
-        color = MPI_UNDEFINED
-        if (.not. l_no_small) then
-            color = 0  ! any non-negative number is fine
-        endif
-
-        call MPI_Comm_split(comm=cart%comm,         &
-                            color=color,            &
-                            key=cart%rank,          &  ! key controls the ordering of the processes
-                            newcomm=subcomm%comm,   &
-                            ierror=cart%err)
-
-        if (subcomm%comm /= MPI_COMM_NULL) then
-            ! The following two calls are not necessary, but we do for good practice.
-            call MPI_Comm_size(subcomm%comm, subcomm%size, subcomm%err)
-            call MPI_Comm_rank(subcomm%comm, subcomm%rank, subcomm%err)
-            subcomm%root = 0
-
-#ifdef ENABLE_VERBOSE
-            if (verbose .and. (subcomm%rank == subcomm%root)) then
-                fname = trim(output%basename) // '_nearest_subcomm.asc'
-                inquire(file=trim(fname), exist=l_exist)
-                if (l_exist) then
-                    open(unit=1236, file=trim(fname), status='old', position='append')
-                else
-                    open(unit=1236, file=trim(fname), status='replace')
-                    write(1236, *) '  # time            subcomm%size    percentage (%)'
-                endif
-                write(1236, *) simtime, subcomm%size, subcomm%size / dble(world%size) * 100.d0
-                close(1236)
-            endif
-#endif
-        endif
+        call tree%create_comm(l_include=l_no_small)
 
         if (.not. l_no_small) then
             ! allocate arrays
@@ -456,8 +406,8 @@ contains
 
         !---------------------------------------------------------------------
         ! Figure out the mergers:
-        if (subcomm%comm /= MPI_COMM_NULL) then
-            call tree%resolve(subcomm, isma, iclo, rclo, n_local_small)
+        if (tree%comm%comm /= MPI_COMM_NULL) then
+            call tree%resolve(isma, iclo, rclo, n_local_small)
         endif
 
         timings(merge_nearest_timer)%n_calls = timings(merge_nearest_timer)%n_calls - 1
@@ -1254,7 +1204,7 @@ contains
         call deallocate_mpi_buffers
 
 #ifndef NDEBUG
-        if (subcomm%comm == world%comm) then
+        if (tree%comm == world%comm) then
             n_total = pcont%local_num - n_invalid
             call mpi_blocking_reduce(n_total, MPI_SUM, world)
             if ((world%rank == world%root) .and. (.not. n_total == pcont%total_num)) then
