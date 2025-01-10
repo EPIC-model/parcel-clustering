@@ -148,7 +148,7 @@ try:
     pflags = flags                              \
            + ' --graph-type ' + args.graph_type
 
-    if args.subcomm
+    if args.subcomm:
         pflags = pflags + ' --subcomm'
 
     ncrs = nc_reader()
