@@ -167,6 +167,7 @@ contains
         parcel%size_factor = 1.25d0
         l_setup = .false.
         l_shuffle = .false.
+        l_subcomm = .false.
         graph_type = 'MPI P2P'
         seed = 42
 
