@@ -14,7 +14,7 @@ module parcel_merge_serial
 
     implicit none
 
-    integer :: merge_timer
+    integer :: merge_timer = -1
 
     ! number of parcel merges (is reset in every write step)
     integer :: n_parcel_merges = 0

@@ -12,7 +12,7 @@ module parcel_container
     use mpi_timer, only : start_timer, stop_timer
     implicit none
 
-    integer :: resize_timer
+    integer :: resize_timer = -1
 
     ! Parcel container type
     type, abstract :: pc_type

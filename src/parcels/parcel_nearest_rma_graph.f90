@@ -21,11 +21,11 @@ module parcel_nearest_rma_graph
         logical, pointer :: l_available(:)
         logical, pointer :: l_merged(:)    ! indicates parcels merged in first stage
 
-        integer :: resolve_timer
-        integer :: allreduce_timer
-        integer :: rma_put_timer
-        integer :: rma_get_timer
-        integer :: sync_timer
+        integer :: resolve_timer = -1
+        integer :: allreduce_timer = -1
+        integer :: rma_put_timer = -1
+        integer :: rma_get_timer = -1
+        integer :: sync_timer = -1
 
         type(MPI_Win) :: win_merged, win_avail, win_leaf
         logical       :: l_win_allocated

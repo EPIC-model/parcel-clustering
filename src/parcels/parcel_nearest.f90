@@ -65,7 +65,7 @@ module parcel_nearest
 #endif
     implicit none
 
-    integer :: merge_nearest_timer
+    integer :: merge_nearest_timer = -1
 
     private
 

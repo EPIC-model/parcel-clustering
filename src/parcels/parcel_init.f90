@@ -17,7 +17,7 @@ module parcel_init
     use mpi_collectives, only : mpi_blocking_reduce
     implicit none
 
-    integer :: init_timer
+    integer :: init_timer = -1
 
     private :: init_refine
 

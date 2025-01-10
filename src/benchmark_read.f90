@@ -28,7 +28,7 @@ program benchmark_read
     use parcel_nearest_shmem_graph, only : shmem_graph_t
     implicit none
 
-    integer          :: allreduce_timer
+    integer          :: allreduce_timer = -1
     character(64)    :: basename
     character(512)   :: fname
     integer          :: ncid, n, m, niter

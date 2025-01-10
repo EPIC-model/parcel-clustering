@@ -20,7 +20,7 @@ module parcel_netcdf
 
     private
 
-    integer :: parcel_io_timer
+    integer :: parcel_io_timer = -1
 
     integer :: n_writes = 1
     character(len=512) :: ncbasename

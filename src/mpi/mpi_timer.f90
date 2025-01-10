@@ -61,6 +61,10 @@ contains
             call resize_timer_by(1)
         endif
 
+        if (handle /= -1) then
+            call mpi_exit_on_error("Timer " // name // " is already registered.")
+        endif
+
         handle = n_timers
 
         timings(handle)%name = name
@@ -72,6 +76,10 @@ contains
 
     subroutine start_timer(handle)
         integer, intent(in) :: handle
+
+        if (handle == -1) then
+            call mpi_exit_on_error("Trying to start unregistered timer.")
+        endif
 
         if (timings(handle)%running) then
             return
@@ -87,6 +95,10 @@ contains
 
     subroutine stop_timer(handle)
         integer, intent(in) :: handle
+
+        if (handle == -1) then
+            call mpi_exit_on_error("Trying to stop unregistered timer.")
+        endif
 
         if (.not. timings(handle)%running) then
             return

@@ -21,7 +21,7 @@ module parcel_merging
     use mpi_collectives, only : mpi_blocking_reduce
     implicit none
 
-    integer :: merge_timer
+    integer :: merge_timer = -1
 
     ! number of parcel merges (is reset in every write step)
     integer(kind=int64) :: n_parcel_merges = 0

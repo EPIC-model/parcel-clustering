@@ -25,7 +25,9 @@ program benchmark_random
     use parcel_nearest_shmem_graph, only : shmem_graph_t
     implicit none
 
-    integer              :: k, niter, allreduce_timer, generate_timer, seed
+    integer              :: k, niter, seed
+    integer              :: allreduce_timer = -1
+    integer              :: generate_timer = -1
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc, l_subcomm
     character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P

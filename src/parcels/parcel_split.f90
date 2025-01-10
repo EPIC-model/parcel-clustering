@@ -22,7 +22,7 @@ module parcel_split_mod
 
     private :: dh
 
-    integer :: split_timer
+    integer :: split_timer = -1
 
     ! number of parcel splits (is reset in every write step)
     integer(kind=int64) :: n_parcel_splits = 0

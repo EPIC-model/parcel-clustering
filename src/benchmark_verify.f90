@@ -25,7 +25,8 @@ program benchmark_verify
     use parcel_nearest, only : tree
     implicit none
 
-    integer              :: allreduce_timer, seed
+    integer              :: allreduce_timer = -1
+    integer              :: seed
     double precision     :: lx, ly, lz
     logical              :: l_setup, l_shuffle, l_subcomm
     character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
