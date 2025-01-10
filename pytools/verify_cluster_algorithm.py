@@ -253,7 +253,7 @@ try:
                 n_str = str(n_fails).zfill(10)
                 if os.path.exists('initial_0000000001_parcels.nc'):
                     os.rename('initial_0000000001_parcels.nc',
-                              'initial_' + n_str + '_parcels.nc')
+                              'initial_fail_' + n_str + '_parcels.nc')
                 if os.path.exists('serial_final_0000000001_parcels.nc'):
                     os.system('cp serial_final_0000000001_parcels.nc serial_fail_' + n_str + '_parcels.nc')
                 if os.path.exists('parallel_final_0000000001_parcels.nc'):
