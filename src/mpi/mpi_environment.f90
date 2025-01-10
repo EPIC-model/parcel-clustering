@@ -46,11 +46,13 @@ contains
         logical :: flag
         call MPI_Initialized(flag, world%err)
 
+        if (l_ignore_mpi_finalize) then
+            return
+        endif
+
         if (flag) then
-            if (.not. l_ignore_mpi_finalize) then
-                call mpi_ops_free
-                call MPI_Finalize(world%err)
-            endif
+            call mpi_ops_free
+            call MPI_Finalize(world%err)
         endif
 
         call MPI_Finalized(flag, world%err)
