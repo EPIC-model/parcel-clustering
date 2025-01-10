@@ -49,6 +49,9 @@ module parcel_nearest_shmem_graph
         type(MPI_Win) :: win_merged, win_avail, win_leaf
         logical       :: l_shmem_allocated = .false.
 
+        ! Mapping of neighbouring ranks between MPI Cartesian topology and OpenSHMEM
+        integer :: cart2shmem(8)
+
     contains
 
         procedure :: initialise => shmem_graph_initialise
@@ -66,6 +69,9 @@ module parcel_nearest_shmem_graph
         procedure, private :: get_merged
 
         procedure, private :: barrier
+
+        procedure, private :: init_cart2shmem
+        procedure, private :: get_pe
 
     end type
 
@@ -91,6 +97,13 @@ contains
         this%l_shmem_allocated = .true.
 
         call shmem_init
+
+        !--------------------------------------------------
+        ! Check mapping beteen MPI and OpenSHMEM
+
+        call this%init_cart2shmem
+
+        !--------------------------------------------------
 
 !         call shpalloc(buf_ptr, num, error, 0)
         buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
@@ -405,15 +418,17 @@ contains
 
     subroutine put_avail(this, rank, ic, val)
         class(shmem_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical,            intent(in)    :: val
+        integer,              intent(in)    :: rank
+        integer,              intent(in)    :: ic
+        logical,              intent(in)    :: val
+        integer                             :: pe
 
         if (rank == cart%rank) then
             this%l_available(ic) = val
         else
             call start_timer(this%shmem_put_timer)
-            call shmem_logical_put(this%l_available(ic), val, 1, rank)
+            pe = this%get_pe(rank)
+            call shmem_logical_put(this%l_available(ic), val, 1, pe)
             call stop_timer(this%shmem_put_timer)
         endif
 
@@ -423,16 +438,17 @@ contains
 
     subroutine put_leaf(this, rank, ic, val)
         class(shmem_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical,            intent(in)    :: val
+        integer,              intent(in)    :: rank
+        integer,              intent(in)    :: ic
+        logical,              intent(in)    :: val
+        integer                             :: pe
 
         if (rank == cart%rank) then
             this%l_leaf(ic) = val
         else
-
             call start_timer(this%shmem_put_timer)
-            call shmem_logical_put(this%l_leaf(ic), val, 1, rank)
+            pe = this%get_pe(rank)
+            call shmem_logical_put(this%l_leaf(ic), val, 1, pe)
             call stop_timer(this%shmem_put_timer)
         endif
 
@@ -442,15 +458,17 @@ contains
 
     subroutine put_merged(this, rank, ic, val)
         class(shmem_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical,            intent(in)    :: val
+        integer,              intent(in)    :: rank
+        integer,              intent(in)    :: ic
+        logical,              intent(in)    :: val
+        integer                             :: pe
 
         if (rank == cart%rank) then
             this%l_merged(ic) = val
         else
             call start_timer(this%shmem_put_timer)
-            call shmem_logical_put(this%l_merged(ic), val, 1, rank)
+            pe = this%get_pe(rank)
+            call shmem_logical_put(this%l_merged(ic), val, 1, pe)
             call stop_timer(this%shmem_put_timer)
         endif
 
@@ -460,15 +478,17 @@ contains
 
     function get_avail(this, rank, ic) result(val)
         class(shmem_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical                           :: val
+        integer,              intent(in)    :: rank
+        integer,              intent(in)    :: ic
+        logical                             :: val
+        integer                             :: pe
 
         if (rank == cart%rank) then
             val = this%l_available(ic)
         else
             call start_timer(this%shmem_get_timer)
-            call shmem_logical_get(val, this%l_available(ic), 1, rank)
+            pe = this%get_pe(rank)
+            call shmem_logical_get(val, this%l_available(ic), 1, pe)
             call stop_timer(this%shmem_get_timer)
         endif
 
@@ -478,15 +498,17 @@ contains
 
     function get_leaf(this, rank, ic) result(val)
         class(shmem_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical                           :: val
+        integer,              intent(in)    :: rank
+        integer,              intent(in)    :: ic
+        logical                             :: val
+        integer                             :: pe
 
         if (rank == cart%rank) then
             val = this%l_leaf(ic)
         else
             call start_timer(this%shmem_get_timer)
-            call shmem_logical_get(val, this%l_leaf(ic), 1, rank)
+            pe = this%get_pe(rank)
+            call shmem_logical_get(val, this%l_leaf(ic), 1, pe)
             call stop_timer(this%shmem_get_timer)
         endif
 
@@ -496,15 +518,17 @@ contains
 
     function get_merged(this, rank, ic) result(val)
         class(shmem_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical                           :: val
+        integer,              intent(in)    :: rank
+        integer,              intent(in)    :: ic
+        logical                             :: val
+        integer                             :: pe
 
         if (rank == cart%rank) then
             val = this%l_merged(ic)
         else
             call start_timer(this%shmem_get_timer)
-            call shmem_logical_get(val, this%l_merged(ic), 1, rank)
+            pe = this%get_pe(rank)
+            call shmem_logical_get(val, this%l_merged(ic), 1, pe)
             call stop_timer(this%shmem_get_timer)
         endif
 
@@ -564,5 +588,72 @@ contains
 !         endif
 
     end subroutine barrier
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine init_cart2shmem(this)
+        class(shmem_graph_t), intent(inout) :: this
+        type(MPI_Request)                   :: requests(8)
+        type(MPI_Status)                    :: statuses(8)
+        integer                             :: n
+        integer                             :: my_pe
+        integer                             :: me
+
+        ! *this* OpenSHMEM PE (= processing element)
+        me = my_pe()
+
+        this%cart2shmem = -1
+
+        do n = 1, 8
+            call MPI_Isend(me,                      &
+                           1,                       &
+                           MPI_INTEGER,             &
+                           neighbours(n)%rank,      &
+                           SEND_NEIGHBOUR_TAG(n),   &
+                           cart%comm,               &
+                           requests(n),             &
+                           cart%err)
+
+            call mpi_check_for_error(cart, &
+                "in MPI_Isend of shmem_graph_t::init_cart2shmem.")
+        enddo
+
+        do n = 1, 8
+            call MPI_Recv(this%cart2shmem(n),       &
+                          1,                        &
+                          MPI_INTEGER,              &
+                          neighbours(n)%rank,       &
+                          RECV_NEIGHBOUR_TAG(n),    &
+                          cart%comm,                &
+                          statuses(n),              &
+                          cart%err)
+        enddo
+
+        call MPI_Waitall(8,                 &
+                        requests,           &
+                        statuses,           &
+                        cart%err)
+
+        call mpi_check_for_error(cart, &
+                                "in MPI_Waitall of shmem_graph_t::init_cart2shmem.")
+
+        if (any(this%cart2shmem == -1)) then
+            call mpi_exit_on_error("in shmem_graph_t::init_cart2shmem: Not all MPI ranks finished.")
+        endif
+
+    end subroutine init_cart2shmem
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    function get_pe(this, rank) result(pe)
+        class(shmem_graph_t), intent(in) :: this
+        integer,              intent(in) :: rank
+        integer                          :: n
+        integer                          :: pe
+
+        n = get_neighbour_from_rank(rank)
+        pe = this%cart2shmem(n)
+
+    end function get_pe
 
 end module parcel_nearest_shmem_graph
