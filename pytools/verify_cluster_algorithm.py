@@ -91,6 +91,12 @@ try:
     )
 
     parser.add_argument(
+        "--subcomm",
+        action='store_true',
+        help="Use subcommunicator in resolve tree step."
+    )
+
+    parser.add_argument(
         "--verbose",
         action='store_true',
         help="Print intermediate output."
@@ -141,6 +147,9 @@ try:
 
     pflags = flags                              \
            + ' --graph-type ' + args.graph_type
+
+    if args.subcomm
+        pflags = pflags + ' --subcomm'
 
     ncrs = nc_reader()
     ncrp = nc_reader()
