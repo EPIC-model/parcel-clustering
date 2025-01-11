@@ -1204,7 +1204,7 @@ contains
         call deallocate_mpi_buffers
 
 #ifndef NDEBUG
-        if (tree%comm == world%comm) then
+        if (tree%comm%comm == world%comm) then
             n_total = pcont%local_num - n_invalid
             call mpi_blocking_reduce(n_total, MPI_SUM, world)
             if ((world%rank == world%root) .and. (.not. n_total == pcont%total_num)) then
