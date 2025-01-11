@@ -38,7 +38,7 @@ module parcel_merge_serial
 
             n_parcel_merges = n_parcel_merges + n_merge
 
-            call start_timer(merge_timer)
+            call start_timer(serial_merge_timer)
 
 #ifdef ENABLE_VERBOSE
             if (verbose) then
@@ -61,7 +61,7 @@ module parcel_merge_serial
                 deallocate(iclo)
             endif
 
-            call stop_timer(merge_timer)
+            call stop_timer(serial_merge_timer)
 
         end subroutine merge_parcels
 
