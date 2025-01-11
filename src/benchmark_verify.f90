@@ -270,7 +270,7 @@ contains
         use parcel_nearest_serial, only : serial_merge_nearest_timer       &
                                         , serial_merge_tree_resolve_timer
 
-        call register_timer('parcel merge (serial)', serial_merge_nearest_timer)
+        call register_timer('parcel merge (serial)', serial_merge_timer)
         call register_timer('merge nearest (serial)', serial_merge_nearest_timer)
         call register_timer('merge tree resolve (serial)', serial_merge_tree_resolve_timer)
 
