@@ -62,7 +62,8 @@ contains
         endif
 
         if (handle /= -1) then
-            call mpi_exit_on_error("Timer " // name // " is already registered.")
+            ! Timer already registered.
+            return
         endif
 
         handle = n_timers
