@@ -559,6 +559,11 @@ contains
         ! *this* OpenSHMEM PE (= processing element)
         me = my_pe()
 
+        ! check if MPI comm worl rank == OpenSHMEM rank
+        if (world%rank /= me) then
+            call mpi_exit_on_error("MPI rank and OpenSHMEM do not agree.")
+        endif
+
         this%cart2shmem = -1
 
         do n = 1, 8

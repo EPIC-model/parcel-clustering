@@ -74,6 +74,27 @@ contains
         integer                       :: color
 
         if (.not. this%l_enabled_subcomm) then
+            call MPI_Comm_dup(cart%comm, this%comm%comm, this%comm%err)
+            call mpi_check_for_error(this%comm, &
+                    "in MPI_Comm_dup of graph_t::create_comm.")
+
+            call MPI_Comm_size(this%comm%comm, this%comm%size, this%comm%err)
+            call mpi_check_for_error(this%comm, &
+                    "in MPI_Comm_size of graph_t::create_comm.")
+
+            if (this%comm%size /= cart%size) then
+                call mpi_exit_on_error("MPI Cartesian size not identical.")
+            endif
+
+            call MPI_Comm_rank(this%comm%comm, this%comm%rank, this%comm%err)
+            call mpi_check_for_error(this%comm, &
+                    "in MPI_Comm_rank of graph_t::create_comm.")
+
+            if (this%comm%rank /= cart%rank) then
+                call mpi_exit_on_error("MPI Cartesian rank not identical.")
+            endif
+
+            this%comm%root = cart%root
             return
         endif
 
@@ -81,7 +102,7 @@ contains
         if (this%comm%comm /= MPI_COMM_NULL) then
             call MPI_Comm_free(this%comm%comm, this%comm%err)
             call mpi_check_for_error(this%comm, &
-                    "in MPI_Comm_free of parcel_nearest::find_nearest.")
+                    "in MPI_Comm_free of graph_t::create_comm.")
         endif
 
         ! Each MPI process must know if it is part of the this%communicator or not.
@@ -101,7 +122,11 @@ contains
         if (this%comm%comm /= MPI_COMM_NULL) then
             ! The following two calls are not necessary, but we do for good practice.
             call MPI_Comm_size(this%comm%comm, this%comm%size, this%comm%err)
+            call mpi_check_for_error(this%comm, &
+                    "in MPI_Comm_size of graph_t::create_comm.")
             call MPI_Comm_rank(this%comm%comm, this%comm%rank, this%comm%err)
+            call mpi_check_for_error(this%comm, &
+                    "in MPI_Comm_rank of graph_t::create_comm.")
             this%comm%root = 0
         endif
 
