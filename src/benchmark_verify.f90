@@ -10,7 +10,7 @@ program benchmark_verify
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
-    use utils, only : epic_timer               &
+    use utils, only : total_timer              &
                     , register_timer           &
                     , register_all_timers      &
                     , print_timer              &
@@ -65,7 +65,7 @@ program benchmark_verify
     call tree%initialise(max_num_parcels, l_subcomm)
     call tree%register_timer
 
-    call start_timer(epic_timer)
+    call start_timer(total_timer)
 
     ! -------------------------------------------------------------
     ! Set up the parcel configuration:
@@ -142,7 +142,7 @@ program benchmark_verify
 
     call write_netcdf_parcels(t = 0.0d0)
 
-    call stop_timer(epic_timer)
+    call stop_timer(total_timer)
 
     call parcels%deallocate
 
@@ -267,12 +267,12 @@ contains
 
     subroutine serial_merge
         use parcel_merge_serial
-        use parcel_nearest_serial, only : merge_nearest_timer       &
-                                        , merge_tree_resolve_timer
+        use parcel_nearest_serial, only : serial_merge_nearest_timer       &
+                                        , serial_merge_tree_resolve_timer
 
-        call register_timer('parcel merge', merge_timer)
-        call register_timer('merge nearest', merge_nearest_timer)
-        call register_timer('merge tree resolve', merge_tree_resolve_timer)
+        call register_timer('parcel merge (serial)', serial_merge_nearest_timer)
+        call register_timer('merge nearest (serial)', serial_merge_nearest_timer)
+        call register_timer('merge tree resolve (serial)', serial_merge_tree_resolve_timer)
 
         call merge_parcels
 
@@ -282,9 +282,6 @@ contains
 
     subroutine parallel_merge
         use parcel_merging
-
-        call register_timer('parcel merge', merge_timer)
-        call register_timer('merge nearest', merge_nearest_timer)
 
         call tree%reset
 

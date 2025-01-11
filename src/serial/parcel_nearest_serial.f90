@@ -11,8 +11,8 @@ module parcel_nearest_serial
 
     implicit none
 
-    integer :: merge_nearest_timer = -1
-    integer :: merge_tree_resolve_timer = -1
+    integer :: serial_merge_nearest_timer = -1
+    integer :: serial_merge_tree_resolve_timer = -1
 
     private
 

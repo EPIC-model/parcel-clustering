@@ -11,7 +11,7 @@ program benchmark_random
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
-    use utils, only : epic_timer               &
+    use utils, only : total_timer              &
                     , merge_timer              &
                     , merge_nearest_timer      &
                     , register_timer           &
@@ -65,7 +65,7 @@ program benchmark_random
 
     call tree%initialise(max_num_parcels, l_subcomm)
 
-    call register_timer('total', epic_timer)
+    call register_timer('total', total_timer)
     call register_timer('parcel merge', merge_timer)
     call register_timer('merge nearest', merge_nearest_timer)
     call register_timer('MPI allreduce', allreduce_timer)
@@ -73,7 +73,7 @@ program benchmark_random
 
     call tree%register_timer
 
-    call start_timer(epic_timer)
+    call start_timer(total_timer)
 
     do k = 1, niter
 
@@ -125,7 +125,7 @@ program benchmark_random
         call stop_timer(allreduce_timer)
     enddo
 
-    call stop_timer(epic_timer)
+    call stop_timer(total_timer)
 
     call parcels%deallocate
 

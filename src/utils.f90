@@ -17,10 +17,10 @@ module utils
 
     private
 
-    integer :: epic_timer
+    integer :: total_timer
     integer, allocatable :: seed(:)
 
-    public :: epic_timer            &
+    public :: total_timer           &
             , merge_timer           &
             , merge_nearest_timer   &
             , register_timer        &
@@ -34,7 +34,7 @@ module utils
 contains
 
     subroutine register_all_timers
-        call register_timer('total', epic_timer)
+        call register_timer('total', total_timer)
         call register_timer('parcel container resize', resize_timer)
         call register_timer('parcel split', split_timer)
         call register_timer('parcel merge', merge_timer)

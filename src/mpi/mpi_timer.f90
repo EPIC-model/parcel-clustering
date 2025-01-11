@@ -54,16 +54,16 @@ contains
         character(*), intent(in)  :: name
         integer,      intent(out) :: handle
 
+        if (handle /= -1) then
+            ! Timer already registered.
+            return
+        endif
+
         if (.not. allocated(timings)) then
             allocate(timings(1))
             n_timers = 1
         else
             call resize_timer_by(1)
-        endif
-
-        if (handle /= -1) then
-            ! Timer already registered.
-            return
         endif
 
         handle = n_timers

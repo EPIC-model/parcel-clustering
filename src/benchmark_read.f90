@@ -11,7 +11,7 @@ program benchmark_read
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
-    use utils, only : epic_timer               &
+    use utils, only : total_timer              &
                     , register_timer           &
                     , register_all_timers      &
                     , print_timer              &
@@ -78,7 +78,7 @@ program benchmark_read
 
     call tree%register_timer
 
-    call start_timer(epic_timer)
+    call start_timer(total_timer)
 
     do n = 0, niter - 1
 
@@ -127,7 +127,7 @@ program benchmark_read
         call stop_timer(allreduce_timer)
     enddo
 
-    call stop_timer(epic_timer)
+    call stop_timer(total_timer)
 
     call parcels%deallocate
 
