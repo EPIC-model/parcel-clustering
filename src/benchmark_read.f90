@@ -18,7 +18,6 @@ program benchmark_read
                     , start_timer              &
                     , stop_timer
     use parcel_merging
-    use utils, only : merge_nearest_timer
     use parcel_netcdf
     use netcdf_utils
     use netcdf_reader
