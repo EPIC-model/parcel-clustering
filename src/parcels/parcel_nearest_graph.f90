@@ -1,7 +1,8 @@
 module parcel_nearest_graph
     use mpi_environment
     use mpi_layout, only : cart
-    use mpi_utils, only : mpi_check_for_error
+    use mpi_utils, only : mpi_check_for_error   &
+                        , mpi_exit_on_error
     implicit none
 
     private
