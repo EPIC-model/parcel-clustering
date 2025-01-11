@@ -17,7 +17,7 @@ module utils
 
     private
 
-    integer :: total_timer
+    integer :: total_timer = -1
     integer, allocatable :: seed(:)
 
     public :: total_timer           &
