@@ -138,7 +138,6 @@ try:
     flags = ' --nx ' + str(nx) \
           + ' --ny ' + str(ny) \
           + ' --nz ' + str(nz) \
-          + ' --seed ' + str(args.seed) \
           + ' --n_per_cell ' + str(args.n_parcel_per_cell) \
           + ' --min_vratio ' + str(min_vratio)
 
@@ -163,11 +162,14 @@ try:
     ntasks_per_node = args.ntasks_per_node
 
     for n in range(args.n_samples):
+
+        seed = 5 + n + args.seed
+
         try:
             cmd = 'mpirun -np 1 '
             if args.cmd == 'srun':
                 cmd = 'srun --nodes=1 --ntasks=1 --ntasks-per-node=1 --exact '
-            subprocess.run(args=cmd + exe + flags + ' --setup-parcels',
+            subprocess.run(args=cmd + exe + flags + ' --seed ' + str(seed) + ' --setup-parcels',
                            shell=True,
                            check=True,
                            timeout=360,

@@ -49,8 +49,6 @@ program benchmark_verify
 
     call parcels%allocate(max_num_parcels)
 
-    call init_rng(seed)
-
     select case(graph_type)
         case ('MPI P2P')
             allocate(p2p_graph_t :: tree)
@@ -70,6 +68,8 @@ program benchmark_verify
     ! -------------------------------------------------------------
     ! Set up the parcel configuration:
     if (l_setup) then
+        call init_rng(seed)
+
         call setup_parcels(xlen=lx, ylen=ly, zlen=lz, l_shuffle=l_shuffle, l_variable_nppc=.false.)
 
         call start_timer(allreduce_timer)
