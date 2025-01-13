@@ -6,7 +6,17 @@ module mpi_datatypes
     ! https://www.open-mpi.org/doc/v4.0/man3/MPI_Type_create_f90_integer.3.php
     ! 13 Dec 2024
     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node425.htm
-    use mpi_f08
+    use mpi_f08, only : MPI_Datatype            &
+                      , MPI_GET_ADDRESS         &
+                      , MPI_ADDRESS_KIND        &
+                      , MPI_TYPE_CREATE_RESIZED &
+                      , MPI_TYPE_COMMIT         &
+                      , MPI_Abort               &
+                      , MPI_SUCCESS             &
+                      , MPI_COMM_WORLD          &
+                      , MPI_INTEGER             &
+                      , MPI_LOGICAL
+
     use datatypes
     implicit none
 

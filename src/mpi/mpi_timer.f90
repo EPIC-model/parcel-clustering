@@ -51,8 +51,8 @@ contains
     end subroutine resize_timer_by
 
     subroutine register_timer(name, handle)
-        character(*), intent(in)  :: name
-        integer,      intent(out) :: handle
+        character(*), intent(in)    :: name
+        integer,      intent(inout) :: handle
 
         if (handle /= -1) then
             ! Timer already registered.

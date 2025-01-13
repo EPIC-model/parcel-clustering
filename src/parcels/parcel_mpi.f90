@@ -1,5 +1,11 @@
 module parcel_mpi
     use dimensions
+    use mpi_f08, only : MPI_Request             &
+                      , MPI_Status              &
+                      , MPI_Isend               &
+                      , MPI_Recv                &
+                      , MPI_DOUBLE_PRECISION    &
+                      , MPI_INTEGER
     use mpi_layout
     use mpi_utils, only : mpi_exit_on_error     &
                         , mpi_check_for_message &

@@ -1,7 +1,7 @@
 module mpi_layout
     use datatypes, only : int64
-    use mpi_f08
     use mpi_environment, only : communicator, world
+    use mpi_f08, only : MPI_Cart_coords
     use mpi_tags
     use mpi_utils, only : mpi_exit_on_error
     implicit none
@@ -183,15 +183,15 @@ contains
         ! Obtain limits of neighbours:
         call MPI_Cart_coords(cart%comm, neighbours(MPI_WEST)%rank, 2, coords, cart%err)
         call get_local_bounds(nx, coords(1), dims(1),       &
-                                neighbours(MPI_WEST)%lo(1),   &
-                                neighbours(MPI_WEST)%hi(1))
+                              neighbours(MPI_WEST)%lo(1),   &
+                              neighbours(MPI_WEST)%hi(1))
         neighbours(MPI_WEST)%lo(2) = box%lo(2)
         neighbours(MPI_WEST)%hi(2) = box%hi(2)
 
         call MPI_Cart_coords(cart%comm, neighbours(MPI_EAST)%rank, 2, coords, cart%err)
         call get_local_bounds(nx, coords(1), dims(1),       &
-                                neighbours(MPI_EAST)%lo(1),   &
-                                neighbours(MPI_EAST)%hi(1))
+                              neighbours(MPI_EAST)%lo(1),   &
+                              neighbours(MPI_EAST)%hi(1))
         neighbours(MPI_EAST)%lo(2) = box%lo(2)
         neighbours(MPI_EAST)%hi(2) = box%hi(2)
 
@@ -199,15 +199,15 @@ contains
         neighbours(MPI_SOUTH)%hi(1) = box%hi(1)
         call MPI_Cart_coords(cart%comm, neighbours(MPI_SOUTH)%rank, 2, coords, cart%err)
         call get_local_bounds(ny, coords(2), dims(2),       &
-                                neighbours(MPI_SOUTH)%lo(2),  &
-                                neighbours(MPI_SOUTH)%hi(2))
+                              neighbours(MPI_SOUTH)%lo(2),  &
+                              neighbours(MPI_SOUTH)%hi(2))
 
         neighbours(MPI_NORTH)%lo(1) = box%lo(1)
         neighbours(MPI_NORTH)%hi(1) = box%hi(1)
         call MPI_Cart_coords(cart%comm, neighbours(MPI_NORTH)%rank, 2, coords, cart%err)
         call get_local_bounds(ny, coords(2), dims(2),       &
-                                neighbours(MPI_NORTH)%lo(2),  &
-                                neighbours(MPI_NORTH)%hi(2))
+                              neighbours(MPI_NORTH)%lo(2),  &
+                              neighbours(MPI_NORTH)%hi(2))
 
         neighbours(MPI_SOUTHWEST)%lo(1) = neighbours(MPI_WEST)%lo(1)
         neighbours(MPI_SOUTHWEST)%hi(1) = neighbours(MPI_WEST)%hi(1)
@@ -291,7 +291,6 @@ contains
         if (coords < remaining) then
             nlocal = nlocal + 1
             first = first + coords
-            last = last + coords
         else
             first = first + remaining
         endif
