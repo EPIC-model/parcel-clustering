@@ -46,8 +46,7 @@ module parcel_nearest_shmem_graph
         integer :: shmem_get_timer = -1
         integer :: sync_timer = -1
 
-        type(MPI_Win) :: win_merged, win_avail, win_leaf
-        logical       :: l_shmem_allocated = .false.
+        logical :: l_shmem_allocated = .false.
 
         ! Mapping of neighbouring ranks between MPI Cartesian topology and OpenSHMEM
         integer :: cart2shmem(8)
