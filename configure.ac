@@ -5,7 +5,8 @@ AC_INIT([parcel-clustering],
         [https://github.com/EPIC-model/parcel-clustering])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_PREREQ([2.69])
-AC_PROG_FC([gfortran])
+AC_PROG_FC([ftn gfortran])
+AC_PROG_CC([cc gcc])
 AC_LANG(Fortran)
 AM_PROG_AR
 LT_INIT
@@ -21,9 +22,6 @@ AC_CONFIG_FILES([
     Makefile
     src/Makefile
     src/utils/Makefile
-    src/mpi/Makefile
-    src/netcdf/Makefile
-    src/parcels/Makefile
     pytools/Makefile
 ])
 
@@ -32,28 +30,41 @@ AC_CONFIG_FILES([
 # https://www.gnu.org/software/autoconf-archive/ax_check_compile_flag.html
 AX_COMPILER_VENDOR
 
+# 16 Jan 2025
+# https://stackoverflow.com/a/68125949
+if ftn --version | grep "Cray Fortran" >/dev/null 2>/dev/null; then
+    AC_SUBST(ax_cv_fc_compiler_vendor, ["cray"])
+fi
+
 if test "$ax_cv_fc_compiler_vendor" = "unknown"; then
     AC_MSG_ERROR([Could not deduce compiler vendor.])
 fi
 
-AX_CHECK_COMPILE_FLAG([-cpp], [FCFLAGS="$FCFLAGS -cpp"])
-AX_CHECK_COMPILE_FLAG([-mcmodel=large], [FCFLAGS="$FCFLAGS -mcmodel=large"])
-
 # gfortran compiler flags
-AX_CHECK_COMPILE_FLAG([-std=f2018], [FCFLAGS="$FCFLAGS -std=f2018"])
-AX_CHECK_COMPILE_FLAG([-fall-intrinsics], [FCFLAGS="$FCFLAGS -fall-intrinsics"])
-AX_CHECK_COMPILE_FLAG([-fdefault-real-8], [FCFLAGS="$FCFLAGS -fdefault-real-8"])
-AX_CHECK_COMPILE_FLAG([-fdefault-double-8], [FCFLAGS="$FCFLAGS -fdefault-double-8"])
-AX_CHECK_COMPILE_FLAG([-Wno-unused-dummy-argument], [FCFLAGS="$FCFLAGS -Wno-unused-dummy-argument"])
+if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
+    AX_CHECK_COMPILE_FLAG([-cpp], [FCFLAGS="$FCFLAGS -cpp"])
+    AX_CHECK_COMPILE_FLAG([-mcmodel=large], [FCFLAGS="$FCFLAGS -mcmodel=large"])
+    AX_CHECK_COMPILE_FLAG([-std=f2018], [FCFLAGS="$FCFLAGS -std=f2018"])
+    AX_CHECK_COMPILE_FLAG([-fall-intrinsics], [FCFLAGS="$FCFLAGS -fall-intrinsics"])
+    AX_CHECK_COMPILE_FLAG([-fdefault-real-8], [FCFLAGS="$FCFLAGS -fdefault-real-8"])
+    AX_CHECK_COMPILE_FLAG([-fdefault-double-8], [FCFLAGS="$FCFLAGS -fdefault-double-8"])
+    AX_CHECK_COMPILE_FLAG([-Wno-unused-dummy-argument], [FCFLAGS="$FCFLAGS -Wno-unused-dummy-argument"])
+    AX_CHECK_COMPILE_FLAG([-fcray-pointer], [FCFLAGS="$FCFLAGS -fcray-pointer"])
+fi
 
 # intel compiler flags
-AX_CHECK_COMPILE_FLAG([-std18], [FCFLAGS="$FCFLAGS -std18"])
-AX_CHECK_COMPILE_FLAG([-fp-model=source], [FCFLAGS="$FCFLAGS -fp-model=source"])
-AX_CHECK_COMPILE_FLAG([-real-size 8], [FCFLAGS="$FCFLAGS -real-size 8"])
-AX_CHECK_COMPILE_FLAG([-double-size 64], [FCFLAGS="$FCFLAGS -double-size 64"])
+if test "$ax_cv_fc_compiler_vendor" = "intel"; then
+    AX_CHECK_COMPILE_FLAG([-std18], [FCFLAGS="$FCFLAGS -std18"])
+    AX_CHECK_COMPILE_FLAG([-fp-model=source], [FCFLAGS="$FCFLAGS -fp-model=source"])
+    AX_CHECK_COMPILE_FLAG([-real-size 8], [FCFLAGS="$FCFLAGS -real-size 8"])
+    AX_CHECK_COMPILE_FLAG([-double-size 64], [FCFLAGS="$FCFLAGS -double-size 64"])
+fi
 
-AX_CHECK_COMPILE_FLAG([-fcray-pointer], [FCFLAGS="$FCFLAGS -fcray-pointer"])
-
+# Cray Fortran compiler:
+if test "$ax_cv_fc_compiler_vendor" = "cray"; then
+    AX_CHECK_COMPILE_FLAG([-s integer32], [FCFLAGS="$FCFLAGS -s integer32"])
+    AX_CHECK_COMPILE_FLAG([-s real64], [FCFLAGS="$FCFLAGS -s real64"])
+fi
 
 #######################################################################################
 ##
@@ -161,6 +172,7 @@ AC_ARG_WITH([mpi],
             [MPI_DIR=$withval],
             [])
 
+if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
 if test -n "${MPI_DIR}"; then
     # mod file may also be in $MPI_DIR/lib
     FCFLAGS="$FCFLAGS -I$MPI_DIR/include -I$MPI_DIR/lib"
@@ -168,18 +180,20 @@ if test -n "${MPI_DIR}"; then
 else
     AC_MSG_ERROR([No MPI_DIR environment variable.])
 fi
+fi
 
 AC_SEARCH_LIBS([MPI_Init],
-               [mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90],
+               [mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
                [],
                [])
 
 AC_SEARCH_LIBS([MPI_Win_lock],
-               [mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90],
+               [mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
                [],
                [])
 
-for lib in NONE mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90; do
+if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
+for lib in NONE mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort; do
     save_LIBS=$LIBS
     if test x"$lib" = xNONE; then
     AC_MSG_CHECKING([for module mpi_f08])
@@ -203,7 +217,7 @@ for lib in NONE mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90; do
     fi
     LIBS=$save_LIBS
 done
-
+fi
 
 AC_MSG_CHECKING([for MPI Fortran library])
 AC_LINK_IFELSE(
@@ -374,7 +388,9 @@ if test "x$ENABLE_DEBUG" = "xyes"; then
     AX_CHECK_COMPILE_FLAG([-debug full], [FCFLAGS="$FCFLAGS -debug full"])
 else
     AC_MSG_RESULT([no])
-    AX_CHECK_COMPILE_FLAG([-O3], [FCFLAGS="$FCFLAGS -O3"])
+    if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
+        AX_CHECK_COMPILE_FLAG([-O3], [FCFLAGS="$FCFLAGS -O3"])
+    fi
     AX_CHECK_COMPILE_FLAG([-DNDEBUG], [FCFLAGS="$FCFLAGS -DNDEBUG"])
 
     # gfortran compiler flags
