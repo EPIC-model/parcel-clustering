@@ -285,6 +285,22 @@ done
 ## "--enable" flags
 ##
 
+ENABLE_COARRAY='no'
+AC_ARG_ENABLE([coarray],
+              [AS_HELP_STRING([--enable-coarray], [enable coarray mode (default=no)])],
+              [ENABLE_COARRAY=$enableval])
+
+AM_CONDITIONAL([ENABLE_COARRAY], [test "$ENABLE_COARRAY" = "yes"])
+
+AC_MSG_CHECKING([whether we are enabling Fortran Coarray])
+if test "x$ENABLE_COARRAY" = "xyes"; then
+    AC_MSG_RESULT([yes])
+    FCFLAGS="$FCFLAGS -DENABLE_COARRAY"
+else
+    AC_MSG_RESULT([no])
+fi
+
+
 ##
 ## Python
 ##

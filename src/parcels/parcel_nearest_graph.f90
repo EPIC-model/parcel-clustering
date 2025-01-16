@@ -13,6 +13,14 @@ module parcel_nearest_graph
 
         type(communicator) :: comm
 
+#ifdef ENABLE_COARRAY
+        ! Because the extending type caf_graph_t has a coarray component, the
+        ! parent type ‘graph_t’ must have one as well
+        ! (see als, https://fortran-lang.discourse.group/t/extensible-derived-type-that-contains-a-coarray/1691
+        ! [16 Jan 2025]
+        logical, codimension[:], allocatable :: l_dummy
+#endif
+
     contains
         procedure(graph_initialise),     deferred :: initialise
         procedure(graph_finalise),       deferred :: finalise
