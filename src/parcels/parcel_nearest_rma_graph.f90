@@ -22,7 +22,7 @@ module parcel_nearest_rma_graph
         logical, pointer :: l_merged(:)    ! indicates parcels merged in first stage
 
         type(MPI_Win) :: win_merged, win_avail, win_leaf
-        logical       :: l_win_allocated
+        logical       :: l_win_allocated = .false.
 
     contains
 
