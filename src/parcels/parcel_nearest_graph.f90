@@ -13,6 +13,12 @@ module parcel_nearest_graph
 
         type(communicator) :: comm
 
+        integer :: resolve_timer = -1
+        integer :: allreduce_timer = -1
+        integer :: put_timer = -1
+        integer :: get_timer = -1
+        integer :: sync_timer = -1
+
     contains
         procedure(graph_initialise),     deferred :: initialise
         procedure(graph_finalise),       deferred :: finalise

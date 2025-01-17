@@ -21,12 +21,6 @@ module parcel_nearest_rma_graph
         logical, pointer :: l_available(:)
         logical, pointer :: l_merged(:)    ! indicates parcels merged in first stage
 
-        integer :: resolve_timer = -1
-        integer :: allreduce_timer = -1
-        integer :: rma_put_timer = -1
-        integer :: rma_get_timer = -1
-        integer :: sync_timer = -1
-
         type(MPI_Win) :: win_merged, win_avail, win_leaf
         logical       :: l_win_allocated
 
@@ -413,8 +407,8 @@ contains
 
         call register_timer('graph resolve', this%resolve_timer)
         call register_timer('MPI graph allreduce', this%allreduce_timer)
-        call register_timer('MPI RMA put', this%rma_put_timer)
-        call register_timer('MPI RMA get', this%rma_get_timer)
+        call register_timer('MPI RMA put', this%put_timer)
+        call register_timer('MPI RMA get', this%get_timer)
         call register_timer('MPI graph sync', this%sync_timer)
 
     end subroutine rma_graph_register_timer
@@ -431,7 +425,7 @@ contains
         if (rank == cart%rank) then
             this%l_available(ic) = val
         else
-            call start_timer(this%rma_put_timer)
+            call start_timer(this%put_timer)
             call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_avail, cart%err)
             !     MPI_Put(origin_addr, origin_count, origin_datatype, target_rank,
             !         target_disp, target_count, target_datatype, win, ierror)
@@ -456,7 +450,7 @@ contains
 
             ! After MPI_Win_unlock, the RMA operation is completed at the origin and target.
             call MPI_Win_unlock(rank, this%win_avail, cart%err)
-            call stop_timer(this%rma_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_avail
@@ -473,7 +467,7 @@ contains
         if (rank == cart%rank) then
             this%l_leaf(ic) = val
         else
-            call start_timer(this%rma_put_timer)
+            call start_timer(this%put_timer)
             call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_leaf, cart%err)
             offset = ic - 1
             call MPI_Put(val,              &
@@ -488,7 +482,7 @@ contains
             call mpi_check_for_error(cart, &
                 "in MPI_Put of parcel_nearest::resolve_tree.")
             call MPI_Win_unlock(rank, this%win_leaf, cart%err)
-            call stop_timer(this%rma_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_leaf
@@ -505,7 +499,7 @@ contains
         if (rank == cart%rank) then
             this%l_merged(ic) = val
         else
-            call start_timer(this%rma_put_timer)
+            call start_timer(this%put_timer)
             call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_merged, cart%err)
 
             offset = ic - 1
@@ -521,7 +515,7 @@ contains
             call mpi_check_for_error(cart, &
                 "in MPI_Put of parcel_nearest::resolve_tree.")
             call MPI_Win_unlock(rank, this%win_merged, cart%err)
-            call stop_timer(this%rma_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_merged
@@ -539,7 +533,7 @@ contains
         if (rank == cart%rank) then
             val = this%l_available(ic)
         else
-            call start_timer(this%rma_get_timer)
+            call start_timer(this%get_timer)
             call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_avail, cart%err)
             ! Note: The OpenMPI specification says that processes must be on the same node
             !       in order MPI_Get to work. However, I tested a simple MPI_Get on Archer2
@@ -567,7 +561,7 @@ contains
                     "in MPI_Get of parcel_nearest::resolve_tree.")
 
             call MPI_Win_unlock(rank, this%win_avail, cart%err)
-            call stop_timer(this%rma_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_avail
@@ -584,7 +578,7 @@ contains
         if (rank == cart%rank) then
             val = this%l_leaf(ic)
         else
-            call start_timer(this%rma_get_timer)
+            call start_timer(this%get_timer)
             call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_leaf, cart%err)
             offset = ic - 1
             call MPI_Get(val,              &
@@ -600,7 +594,7 @@ contains
                 "in MPI_Get of parcel_nearest::resolve_tree.")
 
             call MPI_Win_unlock(rank, this%win_leaf, cart%err)
-            call stop_timer(this%rma_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_leaf
@@ -617,7 +611,7 @@ contains
         if (rank == cart%rank) then
             val = this%l_merged(ic)
         else
-            call start_timer(this%rma_get_timer)
+            call start_timer(this%get_timer)
             call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_merged, cart%err)
             offset = ic - 1
             call MPI_Get(val,              &
@@ -633,7 +627,7 @@ contains
                 "in MPI_Get of parcel_nearest::resolve_tree.")
 
             call MPI_Win_unlock(rank, this%win_merged, cart%err)
-            call stop_timer(this%rma_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_merged

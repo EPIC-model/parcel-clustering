@@ -55,12 +55,7 @@ module parcel_nearest_p2p_graph
 
         type(remote_t) :: remote(8)
 
-        integer :: resolve_timer = -1
-        integer :: allreduce_timer = -1
         integer :: info_timer = -1
-        integer :: put_timer = -1
-        integer :: get_timer = -1
-        integer :: sync_timer = -1
 
     contains
 

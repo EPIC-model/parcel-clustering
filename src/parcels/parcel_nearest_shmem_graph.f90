@@ -40,12 +40,6 @@ module parcel_nearest_shmem_graph
         logical, pointer :: l_available(:)
         logical, pointer :: l_merged(:)    ! indicates parcels merged in first stage
 
-        integer :: resolve_timer = -1
-        integer :: allreduce_timer = -1
-        integer :: shmem_put_timer = -1
-        integer :: shmem_get_timer = -1
-        integer :: sync_timer = -1
-
         logical :: l_shmem_allocated = .false.
 
         ! Mapping of neighbouring ranks between MPI Cartesian topology and OpenSHMEM
@@ -410,8 +404,8 @@ contains
 
         call register_timer('graph resolve', this%resolve_timer)
         call register_timer('MPI graph allreduce', this%allreduce_timer)
-        call register_timer('OpenSHMEM put', this%shmem_put_timer)
-        call register_timer('OpenSHMEM get', this%shmem_get_timer)
+        call register_timer('OpenSHMEM put', this%put_timer)
+        call register_timer('OpenSHMEM get', this%get_timer)
         call register_timer('OpenSHMEM sync', this%sync_timer)
 
     end subroutine shmem_graph_register_timer
@@ -428,10 +422,10 @@ contains
         if (rank == cart%rank) then
             this%l_available(ic) = val
         else
-            call start_timer(this%shmem_put_timer)
+            call start_timer(this%put_timer)
             pe = this%get_pe(rank)
             call shmem_logical_put(this%l_available(ic), val, 1, pe)
-            call stop_timer(this%shmem_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_avail
@@ -448,10 +442,10 @@ contains
         if (rank == cart%rank) then
             this%l_leaf(ic) = val
         else
-            call start_timer(this%shmem_put_timer)
+            call start_timer(this%put_timer)
             pe = this%get_pe(rank)
             call shmem_logical_put(this%l_leaf(ic), val, 1, pe)
-            call stop_timer(this%shmem_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_leaf
@@ -468,10 +462,10 @@ contains
         if (rank == cart%rank) then
             this%l_merged(ic) = val
         else
-            call start_timer(this%shmem_put_timer)
+            call start_timer(this%put_timer)
             pe = this%get_pe(rank)
             call shmem_logical_put(this%l_merged(ic), val, 1, pe)
-            call stop_timer(this%shmem_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_merged
@@ -488,10 +482,10 @@ contains
         if (rank == cart%rank) then
             val = this%l_available(ic)
         else
-            call start_timer(this%shmem_get_timer)
+            call start_timer(this%get_timer)
             pe = this%get_pe(rank)
             call shmem_logical_get(val, this%l_available(ic), 1, pe)
-            call stop_timer(this%shmem_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_avail
@@ -508,10 +502,10 @@ contains
         if (rank == cart%rank) then
             val = this%l_leaf(ic)
         else
-            call start_timer(this%shmem_get_timer)
+            call start_timer(this%get_timer)
             pe = this%get_pe(rank)
             call shmem_logical_get(val, this%l_leaf(ic), 1, pe)
-            call stop_timer(this%shmem_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_leaf
@@ -528,10 +522,10 @@ contains
         if (rank == cart%rank) then
             val = this%l_merged(ic)
         else
-            call start_timer(this%shmem_get_timer)
+            call start_timer(this%get_timer)
             pe = this%get_pe(rank)
             call shmem_logical_get(val, this%l_merged(ic), 1, pe)
-            call stop_timer(this%shmem_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_merged
