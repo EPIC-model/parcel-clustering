@@ -29,7 +29,7 @@ program benchmark_verify
     integer              :: seed
     double precision     :: lx, ly, lz
     logical              :: l_setup, l_shuffle, l_subcomm
-    character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
+    character(len=5)     :: graph_type ! shmem, rma, p2p
 
     call mpi_env_initialise
 
@@ -50,11 +50,11 @@ program benchmark_verify
     call parcels%allocate(max_num_parcels)
 
     select case(graph_type)
-        case ('MPI P2P')
+        case ('p2p')
             allocate(p2p_graph_t :: tree)
-        case ('MPI RMA')
+        case ('rma')
             allocate(rma_graph_t :: tree)
-        case ('OpenSHMEM')
+        case ('shmem')
             allocate(shmem_graph_t :: tree)
         case default
             allocate(p2p_graph_t :: tree)
@@ -169,7 +169,7 @@ contains
         l_setup = .false.
         l_shuffle = .false.
         l_subcomm = .false.
-        graph_type = 'MPI P2P'
+        graph_type = 'p2p'
         seed = 42
 
 
@@ -237,8 +237,8 @@ contains
                              "--min_vratio [float] ",                                 &
                              "--shuffle (optional) ",                                 &
                              "--seed [int] ",                                         &
-                             "--subcomm (optional, disabled for OpenhSHMEM) ",        &
-                             "--graph-type [MPI P2P, MPI RMA, OpenSHMEM]"
+                             "--subcomm (optional, disabled for shmem) ",             &
+                             "--graph-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
             endif

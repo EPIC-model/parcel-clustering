@@ -30,7 +30,7 @@ program benchmark_random
     integer              :: generate_timer = -1
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc, l_subcomm
-    character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
+    character(len=5)     :: graph_type ! shmem, rma, p2p
     character(len=1)     :: snum
     integer(kind=int64)  :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
 
@@ -53,11 +53,11 @@ program benchmark_random
     call init_rng(seed)
 
     select case(graph_type)
-        case ('MPI P2P')
+        case ('p2p')
             allocate(p2p_graph_t :: tree)
-        case ('MPI RMA')
+        case ('rma')
             allocate(rma_graph_t :: tree)
-        case ('OpenSHMEM')
+        case ('shmem')
             allocate(shmem_graph_t :: tree)
         case default
             allocate(p2p_graph_t :: tree)
@@ -176,7 +176,7 @@ contains
         l_shuffle = .false.
         l_variable_nppc = .false.
         l_subcomm = .false.
-        graph_type = 'MPI P2P'
+        graph_type = 'p2p'
         seed = 42
 
 
@@ -262,9 +262,9 @@ contains
                              "--niter [int] --n_per_cell [int] ",                &
                              "--min_vratio [float] --size_factor [float] ",      &
                              "--shuffle (optional) --variable-nppc (optional) ", &
-                             "--subcomm (optional, disabled for OpenhSHMEM) ",   &
+                             "--subcomm (optional, disabled for shmem) ",        &
                              "--seed [int] ",                                    &
-                             "--graph-type [MPI P2P, MPI RMA, OpenSHMEM]"
+                             "--graph-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
             endif

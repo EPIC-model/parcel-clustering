@@ -32,7 +32,7 @@ program benchmark_read
     character(512)   :: fname
     integer          :: ncid, n, m, niter
     integer          :: ncells(3), offset, nfiles
-    character(len=9) :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
+    character(len=5) :: graph_type ! p2p, rma or shmem
     logical          :: l_subcomm
 
     call mpi_env_initialise
@@ -63,11 +63,11 @@ program benchmark_read
     call parcels%allocate(max_num_parcels)
 
     select case(graph_type)
-        case ('MPI P2P')
+        case ('p2p')
             allocate(p2p_graph_t :: tree)
-        case ('MPI RMA')
+        case ('rma')
             allocate(rma_graph_t :: tree)
-        case ('OpenSHMEM')
+        case ('shmem')
             allocate(shmem_graph_t :: tree)
         case default
             allocate(p2p_graph_t :: tree)
@@ -146,7 +146,7 @@ contains
         i = 0
         offset = 0
         nfiles = 0
-        graph_type = 'MPI P2P'
+        graph_type = 'p2p'
         l_subcomm = .false.
 
         do
@@ -188,9 +188,9 @@ contains
                              "--niter [int] ",                                  &
                              "--offset [int] ",                                 &
                              "--nfiles [int] ",                                 &
-                             "--subcomm (optional, disabled for OpenhSHMEM) ",  &
-                             "--graph-type [MPI P2P, MPI RMA, OpenSHMEM] ",     &
-                             "--size_facctor [float]"
+                             "--subcomm (optional, disabled for shmem) ",       &
+                             "--graph-type [p2p, rma, shmem] ",                 &
+                             "--size_factor [float]"
                 endif
                 call mpi_stop
             endif

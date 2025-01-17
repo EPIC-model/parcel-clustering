@@ -79,8 +79,8 @@ try:
     parser.add_argument(
         "--graph-type",
         type=str,
-        choices=["MPI P2P", "MPI RMA", "OpenSHMEM"],
-        default="MPI P2P",
+        choices=["p2p", "rma", "shmem"],
+        default="p2p",
         help="Graph type for parallel version.",
     )
 
