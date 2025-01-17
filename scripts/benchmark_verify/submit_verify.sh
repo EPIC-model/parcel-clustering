@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=JOBNAME
 #SBATCH --output=%x.o%j
-#SBATCH --time=00:10:00
+#SBATCH --time=96:00:00
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
@@ -27,9 +27,9 @@ if test "COMPILER" = "gnu"; then
     module load PrgEnv-gnu
     module load cray-hdf5-parallel/1.12.2.7
     module load cray-netcdf-hdf5parallel/4.9.0.1
-    export MPI_DIR=$MPICH_DIR
     export NETCDF_C_DIR=$NETCDF_DIR
     export NETCDF_FORTRAN_DIR=$NETCDF_DIR
+    export FC=ftn
 elif test "COMPILER" = "cray"; then
     echo "Loading the Cray Compiling Environment (CCE)"
     module load PrgEnv-cray/8.3.3
@@ -40,14 +40,12 @@ elif test "COMPILER" = "cray"; then
     module load cray-netcdf-hdf5parallel/4.9.0.1
     export NETCDF_C_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
     export NETCDF_FORTRAN_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
-    export MPI_DIR=$MPICH_DIR
+    export FC=ftn
 fi
 
 module load cray-dsmml/0.2.2
 module load cray-openshmemx/11.6.1
 # module load cray-pmi/6.1.12
-#
-export FC=ftn
 
 if test "GRAPH_TYPE" = "shmem"; then
     echo "Setting SHMEM symmetric size"
@@ -68,28 +66,28 @@ PATH=/work/e710/e710/mf248/COMPILER/clustering/bin:$PATH
 if test "GRAPH_TYPE" = "shmem"; then
     echo "Run OpenSHMEM"
     python ${EXEC_PATH}/verify_cluster_algorithm.py \
-	    ---n_ranks 16 32 64 128 256 \
+	    --n_ranks 16 32 64 128 256 \
 	    --n_parcel_per_cell 40 \
 	    --nx 32 \
 	    --ny 32 \
 	    --nz 32 \
 	    --min_vratio 40.0 \
 	    --verbose \
- 	    --n_samples 1 \
+ 	    --n_samples 4000 \
 	    --cmd srun \
 	    --seed 43 \
     	    --graph-type "GRAPH_TYPE"
 else
     echo "Run GRAPH_TYPE"
     python ${EXEC_PATH}/verify_cluster_algorithm.py \
-            ---n_ranks 16 32 64 128 256 \
+            --n_ranks 16 32 64 128 256 \
             --n_parcel_per_cell 40 \
             --nx 32 \
             --ny 32 \
             --nz 32 \
             --min_vratio 40.0 \
             --verbose \
-            --n_samples 1 \
+            --n_samples 4000 \
             --cmd srun \
             --seed 43 \
             --graph-type "GRAPH_TYPE" \

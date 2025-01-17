@@ -172,14 +172,11 @@ AC_ARG_WITH([mpi],
             [MPI_DIR=$withval],
             [])
 
-if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
 if test -n "${MPI_DIR}"; then
     # mod file may also be in $MPI_DIR/lib
+    AC_MSG_NOTICE([Found MPI_DIR environment. Appending include and lib path to FCFLAGS and LDFLAGS.])
     FCFLAGS="$FCFLAGS -I$MPI_DIR/include -I$MPI_DIR/lib"
     LDFLAGS="$LDFLAGS -L$MPI_DIR/lib"
-else
-    AC_MSG_ERROR([No MPI_DIR environment variable.])
-fi
 fi
 
 AC_SEARCH_LIBS([MPI_Init],
