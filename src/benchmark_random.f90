@@ -23,6 +23,7 @@ program benchmark_random
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
     use parcel_nearest_shmem_graph, only : shmem_graph_t
+    use netcdf_timings
     implicit none
 
     integer              :: k, niter, seed
@@ -150,6 +151,8 @@ program benchmark_random
     endif
 
     call print_timer
+
+    call write_netcdf_timings("timer_test.nc")
 
     call tree%finalise
 

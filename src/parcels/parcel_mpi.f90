@@ -5,7 +5,8 @@ module parcel_mpi
                       , MPI_Isend               &
                       , MPI_Recv                &
                       , MPI_DOUBLE_PRECISION    &
-                      , MPI_INTEGER
+                      , MPI_INTEGER             &
+                      , MPI_SUM
     use mpi_layout
     use mpi_utils, only : mpi_exit_on_error     &
                         , mpi_check_for_message &
