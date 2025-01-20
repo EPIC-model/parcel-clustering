@@ -12,8 +12,6 @@ program benchmark_random
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
     use utils, only : total_timer              &
-                    , merge_timer              &
-                    , merge_nearest_timer      &
                     , register_timer           &
                     , print_timer              &
                     , start_timer              &
@@ -66,9 +64,7 @@ program benchmark_random
 
     call tree%initialise(max_num_parcels, l_subcomm)
 
-    call register_timer('total', total_timer)
-    call register_timer('parcel merge', merge_timer)
-    call register_timer('merge nearest', merge_nearest_timer)
+    call register_all_timers
     call register_timer('MPI allreduce', allreduce_timer)
     call register_timer('generate data', generate_timer)
 
