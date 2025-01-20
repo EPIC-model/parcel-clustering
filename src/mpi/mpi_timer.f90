@@ -10,7 +10,7 @@ module mpi_timer
 
     type timer_type
         character(len=32)   :: name
-        integer             :: handle
+        integer             :: handle = -1
         double precision    :: wall_time
         logical             :: running
         integer(kind=int64) :: n_calls
@@ -110,8 +110,8 @@ contains
         timings(handle)%end_time = MPI_Wtime()
 
         timings(handle)%wall_time = timings(handle)%wall_time &
-                                    + timings(handle)%end_time  &
-                                    - timings(handle)%start_time
+                                  + timings(handle)%end_time  &
+                                  - timings(handle)%start_time
     end subroutine stop_timer
 
     subroutine print_timer

@@ -24,6 +24,7 @@ benchmark_random_SOURCES = 			\
         netcdf/netcdf_utils.f90                 \
         netcdf/netcdf_writer.f90                \
         netcdf/netcdf_reader.f90                \
+        netcdf/netcdf_timings.f90		\
         options.f90                             \
         parameters.f90                          \
         armanip.f90                             \
@@ -62,6 +63,7 @@ benchmark_read_SOURCES = 			\
         netcdf/netcdf_utils.f90                 \
         netcdf/netcdf_writer.f90                \
         netcdf/netcdf_reader.f90                \
+        netcdf/netcdf_timings.f90		\
         options.f90                             \
         parameters.f90                          \
         armanip.f90                             \
