@@ -9,7 +9,7 @@
 #SBATCH --switches=1
 #SBATCH --account=e710 
 #SBATCH --partition=standard
-#SBATCH --qos=standard
+#SBATCH --qos=long
 
 # Set the number of threads to 1
 #   This prevents any threaded system libraries from automatically 
