@@ -12,8 +12,8 @@ program benchmark_random
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
     use utils, only : total_timer              &
+                    , register_all_timers      &
                     , register_timer           &
-                    , print_timer              &
                     , start_timer              &
                     , stop_timer               &
                     , setup_parcels            &
@@ -29,6 +29,7 @@ program benchmark_random
     integer              :: generate_timer = -1
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc, l_subcomm
+    character(len=512)   :: ncfname
     character(len=5)     :: graph_type ! shmem, rma, p2p
     character(len=1)     :: snum
     integer(kind=int64)  :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
@@ -146,9 +147,7 @@ program benchmark_random
         enddo
     endif
 
-    call print_timer
-
-    call write_netcdf_timings("timer_test.nc")
+    call write_netcdf_timings(trim(ncfname))
 
     call tree%finalise
 
@@ -177,6 +176,7 @@ contains
         l_subcomm = .false.
         graph_type = 'p2p'
         seed = 42
+        ncfname = ''
 
 
         i = 0
@@ -252,6 +252,10 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(i6)') seed
+            else if (arg == '--ncfname') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                ncfname = trim(arg)
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_random ",                              &
@@ -263,12 +267,17 @@ contains
                              "--shuffle (optional) --variable-nppc (optional) ", &
                              "--subcomm (optional, disabled for shmem) ",        &
                              "--seed [int] ",                                    &
+                             "--ncfname [string]",                               &
                              "--graph-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
             endif
             i = i+1
         end do
+
+        if (ncfname == '') then
+            call mpi_stop("No netCDF output file name provided.")
+        endif
 
         if (world%rank == world%root) then
             print *, "nx", nx
@@ -289,6 +298,7 @@ contains
             print *, "enabled subcommunicator", l_subcomm
             print *, "variable number of parcels/cell:", l_variable_nppc
             print *, "graph type: " // graph_type
+            print *, "netCDF file name: " // trim(ncfname)
         endif
 
     end subroutine parse_command_line

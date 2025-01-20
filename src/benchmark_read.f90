@@ -14,7 +14,6 @@ program benchmark_read
     use utils, only : total_timer              &
                     , register_timer           &
                     , register_all_timers      &
-                    , print_timer              &
                     , start_timer              &
                     , stop_timer
     use parcel_merging
@@ -25,11 +24,12 @@ program benchmark_read
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
     use parcel_nearest_shmem_graph, only : shmem_graph_t
+    use netcdf_timings
     implicit none
 
     integer          :: allreduce_timer = -1
     character(64)    :: basename
-    character(512)   :: fname
+    character(512)   :: fname, ncfname
     integer          :: ncid, n, m, niter
     integer          :: ncells(3), offset, nfiles
     character(len=5) :: graph_type ! p2p, rma or shmem
@@ -130,7 +130,7 @@ program benchmark_read
 
     call parcels%deallocate
 
-    call print_timer
+    call write_netcdf_timings(trim(ncfname))
 
     call tree%finalise
 
@@ -148,6 +148,7 @@ contains
         nfiles = 0
         graph_type = 'p2p'
         l_subcomm = .false.
+        ncfname = ''
 
         do
             call get_command_argument(i, arg)
@@ -181,6 +182,10 @@ contains
                 graph_type = trim(arg)
             else if (arg == '--subcomm') then
                 l_subcomm = .true.
+            else if (arg == '--ncfname') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                ncfname = trim(arg)
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_read ",                               &
@@ -190,12 +195,17 @@ contains
                              "--nfiles [int] ",                                 &
                              "--subcomm (optional, disabled for shmem) ",       &
                              "--graph-type [p2p, rma, shmem] ",                 &
+                             "--ncfname [string]",                              &
                              "--size_factor [float]"
                 endif
                 call mpi_stop
             endif
             i = i+1
         enddo
+
+        if (ncfname == '') then
+            call mpi_stop("No netCDF output file name provided.")
+        endif
 
         if (world%rank == world%root) then
             print *, "basename", basename
@@ -205,6 +215,7 @@ contains
             print *, "size_factor", parcel%size_factor
             print *, "enabled subcommunicator", l_subcomm
             print *, "graph type: " // graph_type
+            print *, "netCDF output file name: " // trim(ncfname)
         endif
 
     end subroutine parse_command_line
