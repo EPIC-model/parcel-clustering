@@ -402,17 +402,11 @@ contains
             enddo
         endif
 
-        call stop_timer(merge_nearest_timer)
-
         !---------------------------------------------------------------------
         ! Figure out the mergers:
         if (tree%comm%comm /= MPI_COMM_NULL) then
             call tree%resolve(isma, iclo, rclo, n_local_small)
         endif
-
-        timings(merge_nearest_timer)%n_calls = timings(merge_nearest_timer)%n_calls - 1
-
-        call start_timer(merge_nearest_timer)
 
         if (.not. l_no_small) then
             !---------------------------------------------------------------------
