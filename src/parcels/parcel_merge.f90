@@ -56,10 +56,11 @@ contains
         orig_num = parcels%total_num
 #endif
 
+        call start_timer(merge_timer)
+
         ! find parcels to merge
         call find_nearest(parcels, isma, iclo, inva, n_merge, n_invalid)
 
-        call start_timer(merge_timer)
 
         n_parcel_merges = n_parcel_merges + n_merge
 
