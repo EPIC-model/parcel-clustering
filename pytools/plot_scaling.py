@@ -170,12 +170,38 @@ try:
                         timings=args.timings,
                         cmap=cmap,
                         marker=markers[i],
-                        add_label=found)
+                        add_label=True)
 
             i = i + 1
             found = False
 
-        ax.legend(loc='lower left')
+        # -----------------------------------------------------------
+        # Create legend where markers share a single legend entry:
+        handles, labels = ax.get_legend_handles_labels()
+
+        arg = {}
+        arg['ideal scaling'] = None
+        for t in args.timings:
+            arg[t] = []
+
+        for i in range(len(labels)):
+            if labels[i] == 'ideal scaling':
+                arg['ideal scaling'] = handles[i]
+            else:
+                arg[labels[i]].append(handles[i])
+
+        h_ = []
+        for l in arg.keys():
+            h_.append(arg[l])
+
+        # 22 Jan 2025
+        # https://stackoverflow.com/a/54980605
+        from matplotlib.legend_handler import HandlerTuple
+        ax.legend(loc='lower left', handles=h_, labels=arg.keys(),
+                  handler_map={list: HandlerTuple(ndivide=None)})
+
+        # -----------------------------------------------------------
+        # Save figure:
         plt.tight_layout()
         plt.savefig(tag + '.pdf', bbox_inches='tight')
         plt.close()
