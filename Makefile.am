@@ -6,21 +6,9 @@ endif
 
 ACLOCAL_AMFLAGS = -I m4
 
-# dist_doc_DATA = README.md
-
-# dataroot_DATA =
-# 	examples/taylor_green.config
-# 	examples/robert.config
-# 	examples/straka.config
-# 	examples/robert2d-one-gaussian.nml
-# 	examples/robert2d-one-uniform.nml
-# 	examples/robert2d-two-gaussians.nml
-# 	examples/straka2d.nml
-# 	examples/taylorgreen2d.nml
-
-
 if ENABLE_PYTHON
 # make verify_cluster_algorithm.py an executable script
 install-exec-hook:
 	chmod 755 $(bindir)/pytools/verify_cluster_algorithm.py
+	chmod 755 $(bindir)/pytools/plot_scaling.py
 endif
