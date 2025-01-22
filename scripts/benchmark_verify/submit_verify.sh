@@ -27,6 +27,11 @@ if test "COMPILER" = "gnu"; then
     module load PrgEnv-gnu
     module load cray-hdf5-parallel/1.12.2.7
     module load cray-netcdf-hdf5parallel/4.9.0.1
+	module load cray-dsmml/0.2.2
+    module load cray-openshmemx/11.5.7
+
+	module load cpe/23.09
+
     export NETCDF_C_DIR=$NETCDF_DIR
     export NETCDF_FORTRAN_DIR=$NETCDF_DIR
     export FC=ftn
@@ -36,16 +41,16 @@ elif test "COMPILER" = "cray"; then
     module load cce/15.0.0
     module load cray-mpich/8.1.23
     module load cray-hdf5-parallel/1.12.2.7
-    module load cray-openshmemx/11.6.1
+	module load cray-dsmml/0.2.2
+    module load cray-openshmemx/11.5.7
     module load cray-netcdf-hdf5parallel/4.9.0.1
+
+    module load cpe/23.09
+
     export NETCDF_C_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
     export NETCDF_FORTRAN_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
     export FC=ftn
 fi
-
-module load cray-dsmml/0.2.2
-module load cray-openshmemx/11.6.1
-# module load cray-pmi/6.1.12
 
 if test "GRAPH_TYPE" = "shmem"; then
     echo "Setting SHMEM symmetric size"
