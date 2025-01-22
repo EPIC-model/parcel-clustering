@@ -7,10 +7,12 @@ compiler="cray"
 
 mkdir -p $compiler; cd $compiler
 
-nx=1024
-ny=1024
-lx=320
-ly=320
+nrepeat=10
+niter=50
+nx=512
+ny=512
+lx=160
+ly=160
 
 for i in $(seq 7 1 14); do
 	ntasks=$((2**i))
@@ -26,8 +28,10 @@ for i in $(seq 7 1 14); do
 	sed -i "s:JOBNAME:$compiler-random:g" $fn
 	sed -i "s:COMPILER:$compiler:g" $fn
 	
+	sed -i "s:NREPEAT:$nrepeat:g" $fn
 	sed -i "s:NODES:$nodes:g" $fn
 	sed -i "s:NTASKS:$ntasks:g" $fn
+	sed -i "s:--niter NITER:--niter $niter:g" $fn
 	sed -i "s:--nx NX:--nx $nx:g" $fn
     sed -i "s:--ny NY:--ny $ny:g" $fn
     sed -i "s:--lx LX:--lx $lx:g" $fn
