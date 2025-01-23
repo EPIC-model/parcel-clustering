@@ -30,12 +30,6 @@ AC_CONFIG_FILES([
 # https://www.gnu.org/software/autoconf-archive/ax_check_compile_flag.html
 AX_COMPILER_VENDOR
 
-# 16 Jan 2025
-# https://stackoverflow.com/a/68125949
-if ftn --version | grep "Cray Fortran" >/dev/null 2>/dev/null; then
-    AC_SUBST(ax_cv_fc_compiler_vendor, ["cray"])
-fi
-
 if test "$ax_cv_fc_compiler_vendor" = "unknown"; then
     AC_MSG_ERROR([Could not deduce compiler vendor.])
 fi
@@ -392,7 +386,7 @@ else
 
     # gfortran compiler flags
     AX_CHECK_COMPILE_FLAG([-funroll-all-loops], [FCFLAGS="$FCFLAGS -funroll-all-loops"])
-    AX_CHECK_COMPILE_FLAG([-flto], [FCFLAGS="$FCFLAGS -flto"])
+    #AX_CHECK_COMPILE_FLAG([-flto], [FCFLAGS="$FCFLAGS -flto"])
 
     # intel compiler flags
     AX_CHECK_COMPILE_FLAG([-funroll-loops], [FCFLAGS="$FCFLAGS -funroll-loops"])
