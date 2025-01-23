@@ -204,9 +204,7 @@ contains
             enddo
 
             ! This barrier is necessary!
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
 
             ! determine leaf parcels
             do m = 1, n_local_small
@@ -221,9 +219,7 @@ contains
 
             ! We must synchronise all MPI processes here to ensure all MPI processes
             ! have done theirRMA operations as we modify the windows again.
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
 
             ! filter out parcels that are "unavailable" for merging
             do m = 1, n_local_small
@@ -241,9 +237,7 @@ contains
             ! This MPI_Barrier is necessary as MPI processes access their l_available
             ! array which may be modified in the loop above. In order to make sure all
             ! MPI ranks have finished above loop, we need this barrier.
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
 
 
             ! identify mergers in this iteration
@@ -296,9 +290,7 @@ contains
         enddo
 
         ! This barrier is necessary as we modifiy l_available above and need it below.
-        call start_timer(this%sync_timer)
         call this%barrier
-        call stop_timer(this%sync_timer)
 
         ! Second stage
         do m = 1, n_local_small
@@ -358,9 +350,7 @@ contains
 
 
         ! This barrier is necessary.
-        call start_timer(this%sync_timer)
         call this%barrier
-        call stop_timer(this%sync_timer)
 
         !------------------------------------------------------
         do m = 1, n_local_small
@@ -405,11 +395,11 @@ contains
     subroutine rma_graph_register_timer(this)
         class(rma_graph_t), intent(inout) :: this
 
-        call register_timer('graph resolve', this%resolve_timer)
-        call register_timer('MPI graph allreduce', this%allreduce_timer)
+        call register_timer('resolve graphs', this%resolve_timer)
+        call register_timer('MPI allreduce', this%allreduce_timer)
         call register_timer('MPI RMA put', this%put_timer)
         call register_timer('MPI RMA get', this%get_timer)
-        call register_timer('MPI graph sync', this%sync_timer)
+        call register_timer('MPI sync', this%sync_timer)
 
     end subroutine rma_graph_register_timer
 
@@ -641,9 +631,12 @@ contains
         integer                           :: n
         logical                           :: l_send, l_recv(8)
 
+        call start_timer(this%sync_timer)
+
 
         if (.not. this%l_enabled_subcomm) then
             call MPI_Barrier(this%comm%comm, this%comm%err)
+            call stop_timer(this%sync_timer)
             return
         endif
 
@@ -687,6 +680,8 @@ contains
         if (.not. all(l_recv)) then
             call mpi_exit_on_error("in rma_graph_t::barrier: Not all MPI ranks finished.")
         endif
+
+        call stop_timer(this%sync_timer)
 
     end subroutine barrier
 

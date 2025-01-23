@@ -65,7 +65,8 @@ module parcel_nearest
 #endif
     implicit none
 
-    integer :: merge_nearest_timer = -1
+    integer :: find_nearest_timer = -1
+    integer :: build_graphs_timer = -1
 
     private
 
@@ -105,7 +106,8 @@ module parcel_nearest
 #endif
 
     public :: find_nearest                      &
-            , merge_nearest_timer               &
+            , find_nearest_timer                &
+            , build_graphs_timer                &
             , update_remote_indices             &
             , locate_parcel_in_boundary_cell    &
             , send_small_parcel_bndry_info      &
@@ -271,7 +273,9 @@ contains
         character(512)                    :: fname
 #endif
 
-        call start_timer(merge_nearest_timer)
+        call start_timer(find_nearest_timer)
+
+        call start_timer(build_graphs_timer)
 
         call near%alloc(pcont%max_num)
 
@@ -324,7 +328,8 @@ contains
         if (n_global_small == 0) then
             call near%dealloc
             call deallocate_parcel_id_buffers
-            call stop_timer(merge_nearest_timer)
+            call stop_timer(build_graphs_timer)
+            call stop_timer(find_nearest_timer)
             return
         endif
 
@@ -402,6 +407,8 @@ contains
             enddo
         endif
 
+        call stop_timer(build_graphs_timer)
+
         !---------------------------------------------------------------------
         ! Figure out the mergers:
         if (tree%comm%comm /= MPI_COMM_NULL) then
@@ -452,7 +459,7 @@ contains
 
         call near%dealloc
 
-        call stop_timer(merge_nearest_timer)
+        call stop_timer(find_nearest_timer)
 
     end subroutine find_nearest
 

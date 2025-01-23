@@ -10,12 +10,8 @@ program benchmark_verify
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
-    use utils, only : total_timer              &
-                    , register_timer           &
+    use utils, only : register_timer           &
                     , register_all_timers      &
-                    , print_timer              &
-                    , start_timer              &
-                    , stop_timer               &
                     , setup_parcels            &
                     , init_rng
     use parcel_netcdf
@@ -25,7 +21,6 @@ program benchmark_verify
     use parcel_nearest, only : tree
     implicit none
 
-    integer              :: allreduce_timer = -1
     integer              :: seed
     double precision     :: lx, ly, lz
     logical              :: l_setup, l_shuffle, l_subcomm
@@ -34,7 +29,6 @@ program benchmark_verify
     call mpi_env_initialise
 
     call register_all_timers
-    call register_timer('MPI allreduce', allreduce_timer)
 
     call parse_command_line
 
@@ -63,8 +57,6 @@ program benchmark_verify
     call tree%initialise(max_num_parcels, l_subcomm)
     call tree%register_timer
 
-    call start_timer(total_timer)
-
     ! -------------------------------------------------------------
     ! Set up the parcel configuration:
     if (l_setup) then
@@ -72,7 +64,6 @@ program benchmark_verify
 
         call setup_parcels(xlen=lx, ylen=ly, zlen=lz, l_shuffle=l_shuffle, l_variable_nppc=.false.)
 
-        call start_timer(allreduce_timer)
         parcels%total_num = 0
         call MPI_Allreduce(parcels%local_num, &
                            parcels%total_num, &
@@ -81,7 +72,6 @@ program benchmark_verify
                            MPI_SUM_64BIT,     &
                            world%comm,        &
                            world%err)
-        call stop_timer(allreduce_timer)
 
         output%parcel_list(1)  = 'volume'
         output%parcel_list(2)  = 'x_position'
@@ -105,7 +95,6 @@ program benchmark_verify
 
     parcels%total_num = 0
 
-    call start_timer(allreduce_timer)
     call MPI_Allreduce(parcels%local_num, &
                        parcels%total_num, &
                        1,                 &
@@ -113,8 +102,6 @@ program benchmark_verify
                        MPI_SUM_64BIT,     &
                        world%comm,        &
                        world%err)
-
-    call stop_timer(allreduce_timer)
 
     if (world%size == 1) then
         call serial_merge
@@ -123,7 +110,6 @@ program benchmark_verify
     endif
 
     parcels%total_num = 0
-    call start_timer(allreduce_timer)
     call MPI_Allreduce(parcels%local_num, &
                        parcels%total_num, &
                        1,                 &
@@ -131,7 +117,6 @@ program benchmark_verify
                        MPI_SUM_64BIT,     &
                        world%comm,        &
                        world%err)
-    call stop_timer(allreduce_timer)
 
 
     if (world%size == 1) then
@@ -142,11 +127,7 @@ program benchmark_verify
 
     call write_netcdf_parcels(t = 0.0d0)
 
-    call stop_timer(total_timer)
-
     call parcels%deallocate
-
-    call print_timer
 
     call tree%finalise
 

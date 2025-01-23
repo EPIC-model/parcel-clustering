@@ -11,11 +11,7 @@ program benchmark_random
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
-    use utils, only : total_timer              &
-                    , register_all_timers      &
-                    , register_timer           &
-                    , start_timer              &
-                    , stop_timer               &
+    use utils, only : register_all_timers      &
                     , setup_parcels            &
                     , init_rng
     use parcel_nearest_p2p_graph, only : p2p_graph_t
@@ -25,8 +21,6 @@ program benchmark_random
     implicit none
 
     integer              :: k, niter, seed
-    integer              :: allreduce_timer = -1
-    integer              :: generate_timer = -1
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc, l_subcomm
     character(len=512)   :: ncfname
@@ -66,26 +60,17 @@ program benchmark_random
     call tree%initialise(max_num_parcels, l_subcomm)
 
     call register_all_timers
-    call register_timer('MPI allreduce', allreduce_timer)
-    call register_timer('generate data', generate_timer)
 
     call tree%register_timer
-
-    call start_timer(total_timer)
 
     do k = 1, niter
 
         ! -------------------------------------------------------------
         ! Set up the parcel configuration:
-        call start_timer(generate_timer)
-
         call setup_parcels(xlen, ylen, zlen, l_shuffle, l_variable_nppc)
-
-        call stop_timer(generate_timer)
 
         parcels%total_num = 0
 
-        call start_timer(allreduce_timer)
         call MPI_Allreduce(parcels%local_num, &
                            parcels%total_num, &
                            1,                 &
@@ -96,18 +81,13 @@ program benchmark_random
 
         call parcel_communicate(parcels)
 
-        call stop_timer(allreduce_timer)
-
         if (world%rank == world%root) then
             print *, "Number of parcels before merging:", parcels%total_num
         endif
 
-        call stop_timer(allreduce_timer)
-
         call parcel_merge
 
         parcels%total_num = 0
-        call start_timer(allreduce_timer)
         call MPI_Allreduce(parcels%local_num, &
                            parcels%total_num, &
                            1,                 &
@@ -119,11 +99,7 @@ program benchmark_random
         if (world%rank == world%root) then
             print *, "Number of parcels after merging:", parcels%total_num
         endif
-
-        call stop_timer(allreduce_timer)
     enddo
-
-    call stop_timer(total_timer)
 
     call parcels%deallocate
 

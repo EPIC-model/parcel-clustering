@@ -11,11 +11,7 @@ program benchmark_read
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
-    use utils, only : total_timer              &
-                    , register_timer           &
-                    , register_all_timers      &
-                    , start_timer              &
-                    , stop_timer
+    use utils, only : register_all_timers
     use parcel_merging
     use parcel_netcdf
     use netcdf_utils
@@ -27,7 +23,6 @@ program benchmark_read
     use netcdf_timings
     implicit none
 
-    integer          :: allreduce_timer = -1
     character(64)    :: basename
     character(512)   :: fname, ncfname
     integer          :: ncid, n, m, niter
@@ -38,7 +33,6 @@ program benchmark_read
     call mpi_env_initialise
 
     call register_all_timers
-    call register_timer('MPI allreduce', allreduce_timer)
 
     parcel%lambda_max = 4.0d0
     parcel%min_vratio = 20.0d0
@@ -77,8 +71,6 @@ program benchmark_read
 
     call tree%register_timer
 
-    call start_timer(total_timer)
-
     do n = 0, niter - 1
 
         m = mod(n, nfiles) + offset
@@ -91,7 +83,6 @@ program benchmark_read
 
         parcels%total_num = 0
 
-        call start_timer(allreduce_timer)
         call MPI_Allreduce(parcels%local_num, &
                            parcels%total_num, &
                            1,                 &
@@ -104,12 +95,9 @@ program benchmark_read
             print *, "Number of parcels before merging:", parcels%total_num
         endif
 
-        call stop_timer(allreduce_timer)
-
         call parcel_merge
 
         parcels%total_num = 0
-        call start_timer(allreduce_timer)
         call MPI_Allreduce(parcels%local_num, &
                            parcels%total_num, &
                            1,                 &
@@ -122,11 +110,7 @@ program benchmark_read
         if (world%rank == world%root) then
             print *, "Number of parcels after merging:", parcels%total_num
         endif
-
-        call stop_timer(allreduce_timer)
     enddo
-
-    call stop_timer(total_timer)
 
     call parcels%deallocate
 

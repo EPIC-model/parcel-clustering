@@ -234,9 +234,7 @@ contains
 
         !------------------------------------------------------------------
         ! Exchange information:
-        call start_timer(this%info_timer)
         call this%gather_info(iclo, rclo, n_local_small)
-        call stop_timer(this%info_timer)
 
         !------------------------------------------------------------------
         ! Resolve tree now:
@@ -261,9 +259,7 @@ contains
             enddo
 
             ! Exchange information:
-            call start_timer(this%sync_timer)
             call this%sync_avail
-            call stop_timer(this%sync_timer)
 
             ! determine leaf parcels
             do m = 1, n_local_small
@@ -277,9 +273,7 @@ contains
             enddo
 
             ! Exchange information:
-            call start_timer(this%sync_timer)
             call this%sync_leaf
-            call stop_timer(this%sync_timer)
 
             ! filter out parcels that are "unavailable" for merging
             do m = 1, n_local_small
@@ -295,9 +289,7 @@ contains
             enddo
 
             ! Exchange information:
-            call start_timer(this%sync_timer)
             call this%sync_avail
-            call stop_timer(this%sync_timer)
 
             ! identify mergers in this iteration
             do m = 1, n_local_small
@@ -318,9 +310,7 @@ contains
             enddo
 
             ! Exchange information:
-            call start_timer(this%sync_timer)
             call this%sync_merged
-            call stop_timer(this%sync_timer)
 
             call start_timer(this%allreduce_timer)
             ! Performance improvement: We actually only need to synchronize with neighbours
@@ -353,9 +343,7 @@ contains
         enddo
 
         ! Exchange information:
-        call start_timer(this%sync_timer)
         call this%sync_avail
-        call stop_timer(this%sync_timer)
 
         ! Second stage
         do m = 1, n_local_small
@@ -414,9 +402,7 @@ contains
         enddo
 
         ! Exchange information:
-        call start_timer(this%sync_timer)
         call this%sync_avail
-        call stop_timer(this%sync_timer)
 
         !------------------------------------------------------
         do m = 1, n_local_small
@@ -464,12 +450,12 @@ contains
     subroutine p2p_graph_register_timer(this)
         class(p2p_graph_t), intent(inout) :: this
 
-        call register_timer('graph resolve', this%resolve_timer)
-        call register_timer('MPI graph allreduce', this%allreduce_timer)
+        call register_timer('resolve graphs', this%resolve_timer)
+        call register_timer('MPI allreduce', this%allreduce_timer)
         call register_timer('MPI graph info', this%info_timer)
         call register_timer('MPI P2P put', this%put_timer)
         call register_timer('MPI P2P get', this%get_timer)
-        call register_timer('MPI graph sync', this%sync_timer)
+        call register_timer('MPI sync', this%sync_timer)
 
     end subroutine p2p_graph_register_timer
 
@@ -667,6 +653,8 @@ contains
         integer                           :: n_sends(8), n_recvs(8)
         integer                           :: n, m, send_size, recv_size, rc, l
 
+        call start_timer(this%info_timer)
+
         n_recvs = 0
         n_sends = 0
 
@@ -785,6 +773,8 @@ contains
         call mpi_check_for_error(cart, &
             "in MPI_Waitall of p2p_graph_t::gather_info.")
 
+        call stop_timer(this%info_timer)
+
     end subroutine gather_info
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -815,6 +805,8 @@ contains
         type(MPI_Request)                 :: requests(8)
         type(MPI_Status)                  :: statuses(8)
         integer                           :: n
+
+        call start_timer(this%sync_timer)
 
         !----------------------------------------------------------------------
         ! Send from remote to owning rank and sync data at owning rank
@@ -862,6 +854,7 @@ contains
 
         call free_buffers
 
+        call stop_timer(this%sync_timer)
 
     end subroutine sync_avail
 
@@ -872,6 +865,8 @@ contains
         type(MPI_Request)                 :: requests(8)
         type(MPI_Status)                  :: statuses(8)
         integer                           :: n
+
+        call start_timer(this%sync_timer)
 
         !----------------------------------------------------------------------
         ! Send from remote to owning rank and sync data at owning rank
@@ -919,6 +914,7 @@ contains
 
         call free_buffers
 
+        call stop_timer(this%sync_timer)
 
     end subroutine sync_leaf
 
@@ -929,6 +925,8 @@ contains
         type(MPI_Request)                 :: requests(8)
         type(MPI_Status)                  :: statuses(8)
         integer                           :: n
+
+        call start_timer(this%sync_timer)
 
         !----------------------------------------------------------------------
         ! Send from remote to owning rank and sync data at owning rank
@@ -976,6 +974,7 @@ contains
 
         call free_buffers
 
+        call stop_timer(this%sync_timer)
 
     end subroutine sync_merged
 
