@@ -769,19 +769,6 @@ contains
 
     end subroutine find_closest_parcel_globally
 
-!     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-!
-!     ! https://github.com/mpi-forum/mpi-forum-historic/issues/413
-!     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node294.htm
-!     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node279.htm
-!     subroutine resolve_tree(isma, iclo, rclo, n_local_small)
-!         integer, intent(inout) :: isma(0:)
-!         integer, intent(inout) :: iclo(:)
-!         integer, intent(inout) :: rclo(:)
-!         integer, intent(inout) :: n_local_small
-!
-!     end subroutine resolve_tree
-
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     ! This routine fills the *pid* buffers with 2 entries per small parcel.
