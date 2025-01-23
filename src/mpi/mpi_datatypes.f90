@@ -90,10 +90,10 @@ contains
         extent = disp(2) - disp(1)
         lb = 0
         call MPI_TYPE_CREATE_RESIZED(MPI_INTEGER_LOGICAL,       &
-                                        lb,                        &
-                                        extent,                    &
-                                        MPI_INTEGER_LOGICAL_ARRAY, &
-                                        err)
+                                     lb,                        &
+                                     extent,                    &
+                                     MPI_INTEGER_LOGICAL_ARRAY, &
+                                     err)
 
         call MPI_TYPE_COMMIT(MPI_INTEGER_LOGICAL_ARRAY, err)
 
