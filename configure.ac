@@ -58,6 +58,42 @@ fi
 if test "$ax_cv_fc_compiler_vendor" = "cray"; then
     AX_CHECK_COMPILE_FLAG([-s integer32], [FCFLAGS="$FCFLAGS -s integer32"])
     AX_CHECK_COMPILE_FLAG([-s real64], [FCFLAGS="$FCFLAGS -s real64"])
+    # Suppress harmless warnings:
+    #
+    # The following text is output from 'explain ftn-878':
+    # > Warning : A module named "%s" has already been directly or indirectly use
+    # > associated into this scope.
+    # >
+    # > A module name is a global name and by definition, all global names must be
+    # > unique.  The compiler detected more than one module with the same name in
+    # > this scope and assumes that they are the same module.  This can happen
+    # > because a module can be directly or indirectly use associated into a scoping
+    # > unit.  An example would be:
+    # >
+    # >    MODULE ABC
+    # >    INTEGER I
+    # >    END MODULE
+    # >
+    # >    MODULE CDE
+    # >    USE ABC
+    # >    END MODULE
+    # >
+    # >    PROGRAM BBB
+    # >    USE CDE
+    # >    USE ABC  ! ABC is already in this scope via CDE
+    # >    END PROGRAM
+    #
+    # The following text is output from 'explain ftn-1077':
+    # > Warning : This compilation contains OpenMP directives.  -h omp is not active
+    # > so the directives are ignored.
+    # >
+    # > OpenMP directives are only recognized when -h omp is specified.  This is not
+    # > the default mode.   The compiler has found one or more OpenMP directives.
+    # > These directives have been ignored.  This message is only issued once per
+    # > compilation.  This message can be disabled with -M1077.  Note that -h
+    # > profile_generate overrides -h omp, so if both are specified, -h omp will be
+    # > turned off.
+	AX_CHECK_COMPILE_FLAG([-M 878,1077], [FCFLAGS="$FCFLAGS -M 878,1077"])
 fi
 
 #######################################################################################
