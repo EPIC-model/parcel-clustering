@@ -4,6 +4,7 @@ import os
 import matplotlib.pyplot as plt
 import re
 import argparse
+from matplotlib.legend_handler import HandlerTuple
 
 plt.rcParams['font.family'] = 'sans'
 plt.rcParams['font.size'] = 12
@@ -127,17 +128,13 @@ try:
 
         title = titles[comm]
 
-        # 22 Jan 2025
-        # https://stackoverflow.com/a/47773515
         cmap = plt.get_cmap(args.colour_map)
 
         markers = args.markers
 
         groups = list(configs.keys())
 
-        # 22 Jan 2025
-        # https://stackoverflow.com/a/45738852
-        n_conf = sum(tag in s for s in groups)
+        n_conf = sum(tag in group for group in groups)
 
         if n_conf > len(markers):
             raise RuntimeError('Not enough markers. ' + \
@@ -194,9 +191,8 @@ try:
         for l in arg.keys():
             h_.append(arg[l])
 
-        # 22 Jan 2025
-        # https://stackoverflow.com/a/54980605
-        from matplotlib.legend_handler import HandlerTuple
+        # 23 Jan 2025
+        # https://matplotlib.org/stable/gallery/text_labels_and_annotations/legend_demo.html
         ax.legend(loc='lower left', handles=h_, labels=arg.keys(),
                   handler_map={list: HandlerTuple(ndivide=None)})
 
