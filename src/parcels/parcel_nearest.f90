@@ -359,14 +359,7 @@ contains
 
         call tree%create_comm(l_include=l_no_small)
 
-        ! Dummy-allocate to avoid Cray Fortran compiler warning:
-        ! 'Fortran allocatable variable "dclo" is being used before being allocated.'
-        allocate(dclo(0))
-
         if (.not. l_no_small) then
-            ! undo dummy-allocation
-            deallocate(dclo)
-
             ! allocate arrays
             allocate(isma(0:n_local_small+n_remote_small))
             allocate(inva(0:n_local_small+n_remote_small))
@@ -649,18 +642,18 @@ contains
     ! Note: The information about the received small parcels is stored in the last
     !       n_remote_small entries of isma, iclo, rclo and dlco
     subroutine find_closest_parcel_globally(pcont, n_local_small, iclo, rclo, dclo)
-        class(pc_type),   intent(in)            :: pcont
-        integer,          intent(in)            :: n_local_small
-        integer,          intent(inout)         :: iclo(:)
-        integer,          intent(inout)         :: rclo(:)
-        double precision, intent(inout)         :: dclo(:)
-        double precision, dimension(:), pointer :: send_buf
-        double precision, allocatable           :: recv_buf(:)
-        type(MPI_Request)                       :: requests(8)
-        type(MPI_Status)                        :: recv_status, send_statuses(8)
-        integer                                 :: recv_size, send_size, buf_sizes(8)
-        integer                                 :: tag, recv_count, n, l, i, m, k, j
-        integer, parameter                      :: n_entries = 3
+        class(pc_type),   intent(in)                 :: pcont
+        integer,          intent(in)                 :: n_local_small
+        integer,          allocatable, intent(inout) :: iclo(:)
+        integer,          allocatable, intent(inout) :: rclo(:)
+        double precision, allocatable, intent(inout) :: dclo(:)
+        double precision, dimension(:), pointer      :: send_buf
+        double precision, allocatable                :: recv_buf(:)
+        type(MPI_Request)                            :: requests(8)
+        type(MPI_Status)                             :: recv_status, send_statuses(8)
+        integer                                      :: recv_size, send_size, buf_sizes(8)
+        integer                                      :: tag, recv_count, n, l, i, m, k, j
+        integer, parameter                           :: n_entries = 3
 
         buf_sizes = n_neighbour_small * n_entries
         call allocate_mpi_buffers(buf_sizes)
