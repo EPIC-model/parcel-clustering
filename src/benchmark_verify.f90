@@ -10,10 +10,10 @@ program benchmark_verify
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
-    use utils, only : register_timer           &
-                    , register_all_timers      &
+    use utils, only : register_all_timers      &
                     , setup_parcels            &
                     , init_rng
+    use mpi_timer, only : register_timer
     use parcel_netcdf
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
