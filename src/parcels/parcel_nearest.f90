@@ -359,7 +359,14 @@ contains
 
         call tree%create_comm(l_include=l_no_small)
 
+        ! Dummy-allocate to avoid Cray Fortran compiler warning:
+        ! 'Fortran allocatable variable "dclo" is being used before being allocated.'
+        allocate(dclo(0))
+
         if (.not. l_no_small) then
+            ! undo dummy-allocation
+            deallocate(dclo)
+
             ! allocate arrays
             allocate(isma(0:n_local_small+n_remote_small))
             allocate(inva(0:n_local_small+n_remote_small))
@@ -677,6 +684,16 @@ contains
                 ! merge index on *this* rank
                 m = n_local_small + j + l
 
+                if (m > size(dclo)) then
+                    call mpi_exit_on_error(&
+                        "parcel_nearest::find_closest_parcel_globally: Index bigger than size of dclo.")
+                endif
+
+                if (m > size(iclo)) then
+                    call mpi_exit_on_error(&
+                        "parcel_nearest::find_closest_parcel_globally: Index bigger than size of iclo.")
+                endif
+
                 send_buf(i)   = dble(near%midsma(k)) ! merge index on remote rank
                 send_buf(i+1) = dclo(m)              ! distance to closest parcel
                 send_buf(i+2) = dble(iclo(m))        ! parcel index of closest parcel
@@ -744,6 +761,10 @@ contains
             do l = 1, recv_count
                 i = 1 + (l-1) * n_entries
                 m = nint(recv_buf(i))
+                if (m > size(dclo)) then
+                    call mpi_exit_on_error(&
+                        "parcel_nearest::find_closest_parcel_globally: Index bigger than size of dclo.")
+                endif
                 if (dclo(m) > recv_buf(i+1)) then
                     ! the local closest distance is
                     ! larger; we must use the remote parcel and
