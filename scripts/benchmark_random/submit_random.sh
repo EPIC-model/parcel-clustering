@@ -30,9 +30,17 @@ if test "COMPILER" = "gnu"; then
     module load cray-dsmml
     module load cray-openshmemx
 
+    # make gcc/12.2.0 available and load it
+    module load load-epcc-module;
+    module load  extra-compilers/1.0
+
+    # update all other modules:
+    module load cpe/23.09
+
     export NETCDF_C_DIR=$NETCDF_DIR
     export NETCDF_FORTRAN_DIR=$NETCDF_DIR
     export FC=ftn
+    export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
 elif test "COMPILER" = "cray"; then
     echo "Loading the Cray Compiling Environment (CCE)"
     module load PrgEnv-cray/8.3.3
