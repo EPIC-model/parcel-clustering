@@ -90,17 +90,13 @@ run_jobs() {
 # end
 # subcomm
 
-# 1 node to 8 nodes
-run_jobs "submit_random.sh" "cray" 10 5 256 512 80 160 7 10 "false"
+for compiler in "cray"; do #"gnu" "cray"; do
+    # 1 node to 8 nodes
+    run_jobs "submit_random.sh" $compiler 1 5 256 512 80 160 7 10 "false"
 
-# 2 nodes to 32 nodes
-run_jobs "submit_random.sh" "cray" 10 5 512 512 160 160 8 12 "false"
+    # 2 nodes to 32 nodes
+    run_jobs "submit_random.sh" $compiler 1 5 512 512 160 160 8 12 "false"
 
-# 8 nodes to 128 nodes
-run_jobs "submit_random.sh" "cray" 10 5 1024 1024 320 320 10 14 "false"
-
-
-## 1 node to 8 nodes
-#run_jobs "submit_random.sh" "gnu" 10 5 256 512 80 160 7 10 "false"
-
-
+    # 8 nodes to 128 nodes
+    run_jobs "submit_random.sh" $compiler 1 5 1024 1024 320 320 10 14 "false"
+done
