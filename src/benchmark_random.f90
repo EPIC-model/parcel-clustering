@@ -11,12 +11,17 @@ program benchmark_random
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
+#ifdef ENABLE_COARRAY
+    use mpi_utils, only : mpi_print
+#endif
     use utils, only : register_all_timers      &
                     , setup_parcels            &
                     , init_rng
+#ifndef ENABLE_COARRAY
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
     use parcel_nearest_shmem_graph, only : shmem_graph_t
+#endif
     use netcdf_timings
     implicit none
 
@@ -46,6 +51,7 @@ program benchmark_random
 
     call init_rng(seed)
 
+#ifndef ENABLE_COARRAY
     select case(graph_type)
         case ('p2p')
             allocate(p2p_graph_t :: tree)
@@ -56,6 +62,7 @@ program benchmark_random
         case default
             allocate(p2p_graph_t :: tree)
     end select
+#endif
 
     call tree%initialise(max_num_parcels, l_subcomm)
 
@@ -224,6 +231,9 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 graph_type = trim(arg)
+#ifdef ENABLE_COARRAY
+                call mpi_print("WARNING: Ignorting 'graph_type' argument. Coarray is enabled.")
+#endif
             else if (arg == '--seed') then
                 i = i + 1
                 call get_command_argument(i, arg)
@@ -254,6 +264,10 @@ contains
         if (ncfname == '') then
             call mpi_stop("No netCDF output file name provided.")
         endif
+
+#ifdef ENABLE_COARRAY
+        graph_type = "caf"
+#endif
 
         if (world%rank == world%root) then
             print *, "nx", nx

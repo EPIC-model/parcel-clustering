@@ -21,12 +21,6 @@ module parcel_nearest_caf_graph
         logical, dimension(:), codimension[:], allocatable :: l_available
         logical, dimension(:), codimension[:], allocatable :: l_merged    ! indicates parcels merged in first stage
 
-        integer :: resolve_timer = -1
-        integer :: allreduce_timer = -1
-        integer :: caf_put_timer = -1
-        integer :: caf_get_timer = -1
-        integer :: sync_timer = -1
-
         logical :: l_caf_allocated = .false.
 
     contains
@@ -151,9 +145,7 @@ contains
             enddo
 
             ! This barrier is necessary!
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
 
             ! determine leaf parcels
             do m = 1, n_local_small
@@ -168,9 +160,7 @@ contains
 
             ! We must synchronise all MPI processes here to ensure all MPI processes
             ! have done theirRMA operations as we modify the windows again.
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
 
             ! filter out parcels that are "unavailable" for merging
             do m = 1, n_local_small
@@ -188,10 +178,7 @@ contains
             ! This sync is necessary as SHMEM processes access their l_available
             ! array which may be modified in the loop above. In order to make sure all
             ! SHMEM processes have finished above loop, we need this barrier.
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
-
 
             ! identify mergers in this iteration
             do m = 1, n_local_small
@@ -242,10 +229,8 @@ contains
             endif
         enddo
 
-        ! This barrier is necessary as we modifiy l_available above and need it below.
-        call start_timer(this%sync_timer)
+        ! This barrier is necessary as we modifiy l_available above and need it below
         call this%barrier
-        call stop_timer(this%sync_timer)
 
         ! Second stage
         do m = 1, n_local_small
@@ -305,9 +290,7 @@ contains
 
 
         ! This barrier is necessary.
-        call start_timer(this%sync_timer)
         call this%barrier
-        call stop_timer(this%sync_timer)
 
         !------------------------------------------------------
         do m = 1, n_local_small
@@ -354,8 +337,8 @@ contains
 
         call register_timer('graph resolve', this%resolve_timer)
         call register_timer('MPI graph allreduce', this%allreduce_timer)
-        call register_timer('Coarray put', this%caf_put_timer)
-        call register_timer('Coarray get', this%caf_get_timer)
+        call register_timer('Coarray put', this%put_timer)
+        call register_timer('Coarray get', this%get_timer)
         call register_timer('Coarray sync', this%sync_timer)
 
     end subroutine caf_graph_register_timer
@@ -368,9 +351,9 @@ contains
         integer,            intent(in)    :: ic
         logical,            intent(in)    :: val
 
-        call start_timer(this%caf_put_timer)
+        call start_timer(this%put_timer)
         this%l_available(ic) = val
-        call stop_timer(this%caf_put_timer)
+        call stop_timer(this%put_timer)
 
     end subroutine put_avail
 
@@ -382,9 +365,9 @@ contains
         integer,            intent(in)    :: ic
         logical,            intent(in)    :: val
 
-        call start_timer(this%caf_put_timer)
+        call start_timer(this%put_timer)
         this%l_leaf(ic) = val
-        call stop_timer(this%caf_put_timer)
+        call stop_timer(this%put_timer)
 
     end subroutine put_leaf
 
@@ -396,9 +379,9 @@ contains
         integer,            intent(in)    :: ic
         logical,            intent(in)    :: val
 
-        call start_timer(this%caf_put_timer)
+        call start_timer(this%put_timer)
         this%l_merged(ic) = val
-        call stop_timer(this%caf_put_timer)
+        call stop_timer(this%put_timer)
 
     end subroutine put_merged
 
@@ -410,9 +393,9 @@ contains
         integer,            intent(in)    :: ic
         logical                           :: val
 
-        call start_timer(this%caf_get_timer)
+        call start_timer(this%get_timer)
         val = this%l_available(ic)
-        call stop_timer(this%caf_get_timer)
+        call stop_timer(this%get_timer)
 
     end function get_avail
 
@@ -424,9 +407,9 @@ contains
         integer,            intent(in)    :: ic
         logical                           :: val
 
-        call start_timer(this%caf_get_timer)
+        call start_timer(this%get_timer)
         val = this%l_leaf(ic)
-        call stop_timer(this%caf_get_timer)
+        call stop_timer(this%get_timer)
 
     end function get_leaf
 
@@ -438,9 +421,9 @@ contains
         integer,            intent(in)    :: ic
         logical                           :: val
 
-        call start_timer(this%caf_get_timer)
+        call start_timer(this%get_timer)
         val = this%l_merged(ic)
-        call stop_timer(this%caf_get_timer)
+        call stop_timer(this%get_timer)
 
     end function get_merged
 
@@ -449,7 +432,9 @@ contains
     subroutine barrier(this)
         class(caf_graph_t), intent(inout) :: this
 
+        call start_timer(this%sync_timer)
         sync images(*)
+        call stop_timer(this%sync_timer)
 
     end subroutine barrier
 

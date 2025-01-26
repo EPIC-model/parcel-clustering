@@ -10,6 +10,9 @@ program benchmark_verify
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
+#ifdef ENABLE_COARRAY
+    use mpi_utils, only : mpi_print
+#endif
     use utils, only : register_all_timers      &
                     , setup_parcels            &
                     , init_rng
@@ -43,6 +46,7 @@ program benchmark_verify
 
     call parcels%allocate(max_num_parcels)
 
+#ifndef ENABLE_COARRAY
     select case(graph_type)
         case ('p2p')
             allocate(p2p_graph_t :: tree)
@@ -53,6 +57,7 @@ program benchmark_verify
         case default
             allocate(p2p_graph_t :: tree)
     end select
+#endif
 
     call tree%initialise(max_num_parcels, l_subcomm)
     call tree%register_timer
@@ -207,6 +212,9 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 graph_type = trim(arg)
+#ifdef ENABLE_COARRAY
+                call mpi_print("WARNING: Ignorting 'graph_type' argument. Coarray is enabled.")
+#endif
             else if (arg == '--seed') then
                 i = i + 1
                 call get_command_argument(i, arg)
@@ -225,6 +233,10 @@ contains
             endif
             i = i+1
         end do
+
+#ifdef ENABLE_COARRAY
+        graph_type = 'caf'
+#endif
 
         if (world%rank == world%root) then
             print *, "nx", nx
