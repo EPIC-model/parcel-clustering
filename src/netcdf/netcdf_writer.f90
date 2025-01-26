@@ -361,8 +361,7 @@ contains
         ! 15 June 2021
         ! https://gcc.gnu.org/onlinedocs/gfortran/DATE_005fAND_005fTIME.html
         call date_and_time(date=cdate, time=ctime, zone=czone)
-        ! 15 June 2021
-        ! https://stackoverflow.com/questions/13755762/access-character-at-specific-index-in-a-string-in-fortran
+
         tmp1 = cdate(1:4) // '/' // cdate(5:6) // '/' // cdate(7:8)
         tmp2 = ctime(1:2) // ':' // ctime(3:4) // ':' // ctime(5:6)
         tmp3 = 'UTC' // czone(1:3) // ':' // czone(4:5)

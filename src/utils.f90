@@ -6,7 +6,7 @@ module utils
     use parcels_mod, only : parcels
     use parcel_split_mod, only : split_timer
     use parcel_merging, only : merge_timer
-    use parcel_nearest, only : merge_nearest_timer, tree
+    use parcel_nearest, only : find_nearest_timer, build_graphs_timer, tree
     use parcel_netcdf, only : parcel_io_timer
     use parcel_init, only : init_timer
     use mpi_environment
@@ -17,16 +17,9 @@ module utils
 
     private
 
-    integer :: total_timer = -1
     integer, allocatable :: seed(:)
 
-    public :: total_timer           &
-            , merge_timer           &
-            , merge_nearest_timer   &
-            , register_timer        &
-            , print_timer           &
-            , start_timer           &
-            , stop_timer            &
+    public :: print_timer           &
             , register_all_timers   &
             , init_rng              &
             , setup_parcels
@@ -34,13 +27,13 @@ module utils
 contains
 
     subroutine register_all_timers
-        call register_timer('total', total_timer)
         call register_timer('parcel container resize', resize_timer)
         call register_timer('parcel split', split_timer)
-        call register_timer('parcel merge', merge_timer)
+        call register_timer('parcel merge (total)', merge_timer)
         call register_timer('parcel initialisation', init_timer)
         call register_timer('parcel I/O', parcel_io_timer)
-        call register_timer('merge nearest', merge_nearest_timer)
+        call register_timer('find nearest', find_nearest_timer)
+        call register_timer('build graphs', build_graphs_timer)
     end subroutine register_all_timers
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::

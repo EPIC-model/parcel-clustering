@@ -10,14 +10,10 @@ program benchmark_verify
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
-    use utils, only : total_timer              &
-                    , register_timer           &
-                    , register_all_timers      &
-                    , print_timer              &
-                    , start_timer              &
-                    , stop_timer               &
+    use utils, only : register_all_timers      &
                     , setup_parcels            &
                     , init_rng
+    use mpi_timer, only : register_timer
     use parcel_netcdf
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
@@ -25,16 +21,14 @@ program benchmark_verify
     use parcel_nearest, only : tree
     implicit none
 
-    integer              :: allreduce_timer = -1
     integer              :: seed
     double precision     :: lx, ly, lz
     logical              :: l_setup, l_shuffle, l_subcomm
-    character(len=9)     :: graph_type ! OpenSHMEM, MPI RMA, MPI P2P
+    character(len=5)     :: graph_type ! shmem, rma, p2p
 
     call mpi_env_initialise
 
     call register_all_timers
-    call register_timer('MPI allreduce', allreduce_timer)
 
     call parse_command_line
 
@@ -50,11 +44,11 @@ program benchmark_verify
     call parcels%allocate(max_num_parcels)
 
     select case(graph_type)
-        case ('MPI P2P')
+        case ('p2p')
             allocate(p2p_graph_t :: tree)
-        case ('MPI RMA')
+        case ('rma')
             allocate(rma_graph_t :: tree)
-        case ('OpenSHMEM')
+        case ('shmem')
             allocate(shmem_graph_t :: tree)
         case default
             allocate(p2p_graph_t :: tree)
@@ -63,8 +57,6 @@ program benchmark_verify
     call tree%initialise(max_num_parcels, l_subcomm)
     call tree%register_timer
 
-    call start_timer(total_timer)
-
     ! -------------------------------------------------------------
     ! Set up the parcel configuration:
     if (l_setup) then
@@ -72,7 +64,6 @@ program benchmark_verify
 
         call setup_parcels(xlen=lx, ylen=ly, zlen=lz, l_shuffle=l_shuffle, l_variable_nppc=.false.)
 
-        call start_timer(allreduce_timer)
         parcels%total_num = 0
         call MPI_Allreduce(parcels%local_num, &
                            parcels%total_num, &
@@ -81,7 +72,6 @@ program benchmark_verify
                            MPI_SUM_64BIT,     &
                            world%comm,        &
                            world%err)
-        call stop_timer(allreduce_timer)
 
         output%parcel_list(1)  = 'volume'
         output%parcel_list(2)  = 'x_position'
@@ -105,7 +95,6 @@ program benchmark_verify
 
     parcels%total_num = 0
 
-    call start_timer(allreduce_timer)
     call MPI_Allreduce(parcels%local_num, &
                        parcels%total_num, &
                        1,                 &
@@ -113,8 +102,6 @@ program benchmark_verify
                        MPI_SUM_64BIT,     &
                        world%comm,        &
                        world%err)
-
-    call stop_timer(allreduce_timer)
 
     if (world%size == 1) then
         call serial_merge
@@ -123,7 +110,6 @@ program benchmark_verify
     endif
 
     parcels%total_num = 0
-    call start_timer(allreduce_timer)
     call MPI_Allreduce(parcels%local_num, &
                        parcels%total_num, &
                        1,                 &
@@ -131,7 +117,6 @@ program benchmark_verify
                        MPI_SUM_64BIT,     &
                        world%comm,        &
                        world%err)
-    call stop_timer(allreduce_timer)
 
 
     if (world%size == 1) then
@@ -142,11 +127,7 @@ program benchmark_verify
 
     call write_netcdf_parcels(t = 0.0d0)
 
-    call stop_timer(total_timer)
-
     call parcels%deallocate
-
-    call print_timer
 
     call tree%finalise
 
@@ -169,7 +150,7 @@ contains
         l_setup = .false.
         l_shuffle = .false.
         l_subcomm = .false.
-        graph_type = 'MPI P2P'
+        graph_type = 'p2p'
         seed = 42
 
 
@@ -237,8 +218,8 @@ contains
                              "--min_vratio [float] ",                                 &
                              "--shuffle (optional) ",                                 &
                              "--seed [int] ",                                         &
-                             "--subcomm (optional, disabled for OpenhSHMEM) ",        &
-                             "--graph-type [MPI P2P, MPI RMA, OpenSHMEM]"
+                             "--subcomm (optional, disabled for shmem) ",             &
+                             "--graph-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
             endif

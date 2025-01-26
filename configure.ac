@@ -30,12 +30,6 @@ AC_CONFIG_FILES([
 # https://www.gnu.org/software/autoconf-archive/ax_check_compile_flag.html
 AX_COMPILER_VENDOR
 
-# 16 Jan 2025
-# https://stackoverflow.com/a/68125949
-if ftn --version | grep "Cray Fortran" >/dev/null 2>/dev/null; then
-    AC_SUBST(ax_cv_fc_compiler_vendor, ["cray"])
-fi
-
 if test "$ax_cv_fc_compiler_vendor" = "unknown"; then
     AC_MSG_ERROR([Could not deduce compiler vendor.])
 fi
@@ -64,6 +58,42 @@ fi
 if test "$ax_cv_fc_compiler_vendor" = "cray"; then
     AX_CHECK_COMPILE_FLAG([-s integer32], [FCFLAGS="$FCFLAGS -s integer32"])
     AX_CHECK_COMPILE_FLAG([-s real64], [FCFLAGS="$FCFLAGS -s real64"])
+    # Suppress harmless warnings:
+    #
+    # The following text is output from 'explain ftn-878':
+    # > Warning : A module named "%s" has already been directly or indirectly use
+    # > associated into this scope.
+    # >
+    # > A module name is a global name and by definition, all global names must be
+    # > unique.  The compiler detected more than one module with the same name in
+    # > this scope and assumes that they are the same module.  This can happen
+    # > because a module can be directly or indirectly use associated into a scoping
+    # > unit.  An example would be:
+    # >
+    # >    MODULE ABC
+    # >    INTEGER I
+    # >    END MODULE
+    # >
+    # >    MODULE CDE
+    # >    USE ABC
+    # >    END MODULE
+    # >
+    # >    PROGRAM BBB
+    # >    USE CDE
+    # >    USE ABC  ! ABC is already in this scope via CDE
+    # >    END PROGRAM
+    #
+    # The following text is output from 'explain ftn-1077':
+    # > Warning : This compilation contains OpenMP directives.  -h omp is not active
+    # > so the directives are ignored.
+    # >
+    # > OpenMP directives are only recognized when -h omp is specified.  This is not
+    # > the default mode.   The compiler has found one or more OpenMP directives.
+    # > These directives have been ignored.  This message is only issued once per
+    # > compilation.  This message can be disabled with -M1077.  Note that -h
+    # > profile_generate overrides -h omp, so if both are specified, -h omp will be
+    # > turned off.
+	AX_CHECK_COMPILE_FLAG([-M 878,1077], [FCFLAGS="$FCFLAGS -M 878,1077"])
 fi
 
 #######################################################################################
@@ -172,14 +202,11 @@ AC_ARG_WITH([mpi],
             [MPI_DIR=$withval],
             [])
 
-if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
 if test -n "${MPI_DIR}"; then
     # mod file may also be in $MPI_DIR/lib
+    AC_MSG_NOTICE([Found MPI_DIR environment. Appending include and lib path to FCFLAGS and LDFLAGS.])
     FCFLAGS="$FCFLAGS -I$MPI_DIR/include -I$MPI_DIR/lib"
     LDFLAGS="$LDFLAGS -L$MPI_DIR/lib"
-else
-    AC_MSG_ERROR([No MPI_DIR environment variable.])
-fi
 fi
 
 AC_SEARCH_LIBS([MPI_Init],
@@ -411,7 +438,7 @@ else
 
     # gfortran compiler flags
     AX_CHECK_COMPILE_FLAG([-funroll-all-loops], [FCFLAGS="$FCFLAGS -funroll-all-loops"])
-    AX_CHECK_COMPILE_FLAG([-flto], [FCFLAGS="$FCFLAGS -flto"])
+    #AX_CHECK_COMPILE_FLAG([-flto], [FCFLAGS="$FCFLAGS -flto"])
 
     # intel compiler flags
     AX_CHECK_COMPILE_FLAG([-funroll-loops], [FCFLAGS="$FCFLAGS -funroll-loops"])

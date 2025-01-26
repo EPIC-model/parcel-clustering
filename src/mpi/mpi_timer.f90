@@ -3,17 +3,16 @@
 !                     https://github.com/EPCCed/pmpic
 ! =============================================================================
 module mpi_timer
-    use datatypes, only : int64
     use mpi_environment
     use mpi_collectives
     implicit none
 
     type timer_type
         character(len=32)   :: name
-        integer             :: handle
+        integer             :: handle = -1
         double precision    :: wall_time
         logical             :: running
-        integer(kind=int64) :: n_calls
+        integer             :: n_calls
         double precision    :: start_time, end_time
         double precision    :: mean_time
         double precision    :: min_time
@@ -110,8 +109,8 @@ contains
         timings(handle)%end_time = MPI_Wtime()
 
         timings(handle)%wall_time = timings(handle)%wall_time &
-                                    + timings(handle)%end_time  &
-                                    - timings(handle)%start_time
+                                  + timings(handle)%end_time  &
+                                  - timings(handle)%start_time
     end subroutine stop_timer
 
     subroutine print_timer
@@ -239,8 +238,8 @@ contains
     end subroutine write_time_to_csv
 
     subroutine select_units
-        double precision    :: max_wall_time
-        integer(kind=int64) :: max_n_calls
+        double precision :: max_wall_time
+        integer          :: max_n_calls
 
         ! go from seconds to minutes (24 hours = 86400 seconds)
         max_wall_time = maxval(timings(1:n_timers)%wall_time)

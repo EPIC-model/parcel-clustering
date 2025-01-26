@@ -40,12 +40,6 @@ module parcel_nearest_shmem_graph
         logical, pointer :: l_available(:)
         logical, pointer :: l_merged(:)    ! indicates parcels merged in first stage
 
-        integer :: resolve_timer = -1
-        integer :: allreduce_timer = -1
-        integer :: shmem_put_timer = -1
-        integer :: shmem_get_timer = -1
-        integer :: sync_timer = -1
-
         logical :: l_shmem_allocated = .false.
 
         ! Mapping of neighbouring ranks between MPI Cartesian topology and OpenSHMEM
@@ -207,9 +201,7 @@ contains
             enddo
 
             ! This barrier is necessary!
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
 
             ! determine leaf parcels
             do m = 1, n_local_small
@@ -224,9 +216,7 @@ contains
 
             ! We must synchronise all MPI processes here to ensure all MPI processes
             ! have done theirRMA operations as we modify the windows again.
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
 
             ! filter out parcels that are "unavailable" for merging
             do m = 1, n_local_small
@@ -244,10 +234,7 @@ contains
             ! This sync is necessary as SHMEM processes access their l_available
             ! array which may be modified in the loop above. In order to make sure all
             ! SHMEM processes have finished above loop, we need this barrier.
-            call start_timer(this%sync_timer)
             call this%barrier
-            call stop_timer(this%sync_timer)
-
 
             ! identify mergers in this iteration
             do m = 1, n_local_small
@@ -299,9 +286,7 @@ contains
         enddo
 
         ! This barrier is necessary as we modifiy l_available above and need it below.
-        call start_timer(this%sync_timer)
         call this%barrier
-        call stop_timer(this%sync_timer)
 
         ! Second stage
         do m = 1, n_local_small
@@ -361,9 +346,7 @@ contains
 
 
         ! This barrier is necessary.
-        call start_timer(this%sync_timer)
         call this%barrier
-        call stop_timer(this%sync_timer)
 
         !------------------------------------------------------
         do m = 1, n_local_small
@@ -408,11 +391,11 @@ contains
     subroutine shmem_graph_register_timer(this)
         class(shmem_graph_t), intent(inout) :: this
 
-        call register_timer('graph resolve', this%resolve_timer)
-        call register_timer('MPI graph allreduce', this%allreduce_timer)
-        call register_timer('OpenSHMEM put', this%shmem_put_timer)
-        call register_timer('OpenSHMEM get', this%shmem_get_timer)
-        call register_timer('OpenSHMEM sync', this%sync_timer)
+        call register_timer('resolve graphs', this%resolve_timer)
+        call register_timer('MPI allreduce', this%allreduce_timer)
+        call register_timer('SHMEM put', this%put_timer)
+        call register_timer('SHMEM get', this%get_timer)
+        call register_timer('SHMEM sync', this%sync_timer)
 
     end subroutine shmem_graph_register_timer
 
@@ -428,10 +411,10 @@ contains
         if (rank == cart%rank) then
             this%l_available(ic) = val
         else
-            call start_timer(this%shmem_put_timer)
+            call start_timer(this%put_timer)
             pe = this%get_pe(rank)
             call shmem_logical_put(this%l_available(ic), val, 1, pe)
-            call stop_timer(this%shmem_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_avail
@@ -448,10 +431,10 @@ contains
         if (rank == cart%rank) then
             this%l_leaf(ic) = val
         else
-            call start_timer(this%shmem_put_timer)
+            call start_timer(this%put_timer)
             pe = this%get_pe(rank)
             call shmem_logical_put(this%l_leaf(ic), val, 1, pe)
-            call stop_timer(this%shmem_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_leaf
@@ -468,10 +451,10 @@ contains
         if (rank == cart%rank) then
             this%l_merged(ic) = val
         else
-            call start_timer(this%shmem_put_timer)
+            call start_timer(this%put_timer)
             pe = this%get_pe(rank)
             call shmem_logical_put(this%l_merged(ic), val, 1, pe)
-            call stop_timer(this%shmem_put_timer)
+            call stop_timer(this%put_timer)
         endif
 
     end subroutine put_merged
@@ -488,10 +471,10 @@ contains
         if (rank == cart%rank) then
             val = this%l_available(ic)
         else
-            call start_timer(this%shmem_get_timer)
+            call start_timer(this%get_timer)
             pe = this%get_pe(rank)
             call shmem_logical_get(val, this%l_available(ic), 1, pe)
-            call stop_timer(this%shmem_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_avail
@@ -508,10 +491,10 @@ contains
         if (rank == cart%rank) then
             val = this%l_leaf(ic)
         else
-            call start_timer(this%shmem_get_timer)
+            call start_timer(this%get_timer)
             pe = this%get_pe(rank)
             call shmem_logical_get(val, this%l_leaf(ic), 1, pe)
-            call stop_timer(this%shmem_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_leaf
@@ -528,10 +511,10 @@ contains
         if (rank == cart%rank) then
             val = this%l_merged(ic)
         else
-            call start_timer(this%shmem_get_timer)
+            call start_timer(this%get_timer)
             pe = this%get_pe(rank)
             call shmem_logical_get(val, this%l_merged(ic), 1, pe)
-            call stop_timer(this%shmem_get_timer)
+            call stop_timer(this%get_timer)
         endif
 
     end function get_merged
@@ -541,7 +524,11 @@ contains
     subroutine barrier(this)
         class(shmem_graph_t), intent(inout) :: this
 
+        call start_timer(this%sync_timer)
+
         call shmem_barrier_all
+
+        call stop_timer(this%sync_timer)
 
     end subroutine barrier
 

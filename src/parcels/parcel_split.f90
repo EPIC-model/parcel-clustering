@@ -76,9 +76,9 @@ contains
         !$omp end parallel
 
         ! contains all indices of parcels that split
+        n_indices = count(pid(1:parcels%local_num) /= 0)
+        allocate(indices(n_indices))
         indices = pack(pid(1:parcels%local_num), pid(1:parcels%local_num) /= 0)
-
-        n_indices = size(indices)
 
         !------------------------------------------------------------------
         ! Adapt container size if needed:
@@ -171,6 +171,8 @@ contains
         ! all entries in "pid" that are non-zero are indices of
         ! child parcels; remove all zero entries such that
         ! we can do a halo swap
+        n_indices = count(pid(1:parcels%local_num) /= 0)
+        allocate(invalid(n_indices))
         invalid = pack(pid(1:parcels%local_num), pid(1:parcels%local_num) /= 0)
 
         ! send the invalid parcels to the proper MPI process;

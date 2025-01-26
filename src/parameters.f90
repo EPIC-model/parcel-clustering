@@ -6,10 +6,7 @@ module parameters
     use options, only : parcel
     use datatypes, only : int64
     use constants
-    use netcdf_reader
-    use netcdf_utils
-    use netcdf_writer
-    use mpi_environment
+    use mpi_environment, only : world
     use mpi_layout, only : box, l_mpi_layout_initialised
     use mpi_utils, only : mpi_print, mpi_stop
     implicit none
@@ -159,17 +156,5 @@ contains
         max_num_parcels = int(max_size)
 
     end subroutine update_parameters
-
-    subroutine set_mesh_spacing(ext, nc)
-        double precision, intent(in) :: ext(3)
-        integer,          intent(in) :: nc(3)
-        dx = ext / dble(nc)
-    end subroutine set_mesh_spacing
-
-
-    subroutine set_max_num_parcels(num)
-        integer, intent(in) :: num
-        max_num_parcels = num
-    end subroutine set_max_num_parcels
 
 end module parameters

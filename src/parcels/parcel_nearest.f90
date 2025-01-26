@@ -65,7 +65,8 @@ module parcel_nearest
 #endif
     implicit none
 
-    integer :: merge_nearest_timer = -1
+    integer :: find_nearest_timer = -1
+    integer :: build_graphs_timer = -1
 
     private
 
@@ -105,7 +106,8 @@ module parcel_nearest
 #endif
 
     public :: find_nearest                      &
-            , merge_nearest_timer               &
+            , find_nearest_timer                &
+            , build_graphs_timer                &
             , update_remote_indices             &
             , locate_parcel_in_boundary_cell    &
             , send_small_parcel_bndry_info      &
@@ -271,7 +273,9 @@ contains
         character(512)                    :: fname
 #endif
 
-        call start_timer(merge_nearest_timer)
+        call start_timer(find_nearest_timer)
+
+        call start_timer(build_graphs_timer)
 
         call near%alloc(pcont%max_num)
 
@@ -324,7 +328,8 @@ contains
         if (n_global_small == 0) then
             call near%dealloc
             call deallocate_parcel_id_buffers
-            call stop_timer(merge_nearest_timer)
+            call stop_timer(build_graphs_timer)
+            call stop_timer(find_nearest_timer)
             return
         endif
 
@@ -402,17 +407,13 @@ contains
             enddo
         endif
 
-        call stop_timer(merge_nearest_timer)
+        call stop_timer(build_graphs_timer)
 
         !---------------------------------------------------------------------
         ! Figure out the mergers:
         if (tree%comm%comm /= MPI_COMM_NULL) then
             call tree%resolve(isma, iclo, rclo, n_local_small)
         endif
-
-        timings(merge_nearest_timer)%n_calls = timings(merge_nearest_timer)%n_calls - 1
-
-        call start_timer(merge_nearest_timer)
 
         if (.not. l_no_small) then
             !---------------------------------------------------------------------
@@ -458,7 +459,7 @@ contains
 
         call near%dealloc
 
-        call stop_timer(merge_nearest_timer)
+        call stop_timer(find_nearest_timer)
 
     end subroutine find_nearest
 
@@ -641,18 +642,18 @@ contains
     ! Note: The information about the received small parcels is stored in the last
     !       n_remote_small entries of isma, iclo, rclo and dlco
     subroutine find_closest_parcel_globally(pcont, n_local_small, iclo, rclo, dclo)
-        class(pc_type),   intent(in)            :: pcont
-        integer,          intent(in)            :: n_local_small
-        integer,          intent(inout)         :: iclo(:)
-        integer,          intent(inout)         :: rclo(:)
-        double precision, intent(inout)         :: dclo(:)
-        double precision, dimension(:), pointer :: send_buf
-        double precision, allocatable           :: recv_buf(:)
-        type(MPI_Request)                       :: requests(8)
-        type(MPI_Status)                        :: recv_status, send_statuses(8)
-        integer                                 :: recv_size, send_size, buf_sizes(8)
-        integer                                 :: tag, recv_count, n, l, i, m, k, j
-        integer, parameter                      :: n_entries = 3
+        class(pc_type),   intent(in)                 :: pcont
+        integer,          intent(in)                 :: n_local_small
+        integer,          allocatable, intent(inout) :: iclo(:)
+        integer,          allocatable, intent(inout) :: rclo(:)
+        double precision, allocatable, intent(inout) :: dclo(:)
+        double precision, dimension(:), pointer      :: send_buf
+        double precision, allocatable                :: recv_buf(:)
+        type(MPI_Request)                            :: requests(8)
+        type(MPI_Status)                             :: recv_status, send_statuses(8)
+        integer                                      :: recv_size, send_size, buf_sizes(8)
+        integer                                      :: tag, recv_count, n, l, i, m, k, j
+        integer, parameter                           :: n_entries = 3
 
         buf_sizes = n_neighbour_small * n_entries
         call allocate_mpi_buffers(buf_sizes)
@@ -675,6 +676,16 @@ contains
 
                 ! merge index on *this* rank
                 m = n_local_small + j + l
+
+                if (m > size(dclo)) then
+                    call mpi_exit_on_error(&
+                        "parcel_nearest::find_closest_parcel_globally: Index bigger than size of dclo.")
+                endif
+
+                if (m > size(iclo)) then
+                    call mpi_exit_on_error(&
+                        "parcel_nearest::find_closest_parcel_globally: Index bigger than size of iclo.")
+                endif
 
                 send_buf(i)   = dble(near%midsma(k)) ! merge index on remote rank
                 send_buf(i+1) = dclo(m)              ! distance to closest parcel
@@ -743,6 +754,10 @@ contains
             do l = 1, recv_count
                 i = 1 + (l-1) * n_entries
                 m = nint(recv_buf(i))
+                if (m > size(dclo)) then
+                    call mpi_exit_on_error(&
+                        "parcel_nearest::find_closest_parcel_globally: Index bigger than size of dclo.")
+                endif
                 if (dclo(m) > recv_buf(i+1)) then
                     ! the local closest distance is
                     ! larger; we must use the remote parcel and
@@ -767,19 +782,6 @@ contains
         call deallocate_mpi_buffers
 
     end subroutine find_closest_parcel_globally
-
-!     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-!
-!     ! https://github.com/mpi-forum/mpi-forum-historic/issues/413
-!     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node294.htm
-!     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node279.htm
-!     subroutine resolve_tree(isma, iclo, rclo, n_local_small)
-!         integer, intent(inout) :: isma(0:)
-!         integer, intent(inout) :: iclo(:)
-!         integer, intent(inout) :: rclo(:)
-!         integer, intent(inout) :: n_local_small
-!
-!     end subroutine resolve_tree
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
