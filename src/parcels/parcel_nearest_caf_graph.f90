@@ -64,10 +64,10 @@ contains
         this%l_caf_allocated = .true.
 
         ! Ensure we use all MPI ranks because we need to call
-        ! shmem_barrier_all
+        ! sync
         if (l_subcomm) then
             call mpi_print("Ignoring the request to use a subcommunicator.")
-            call mpi_print("We only support a global communicator with OpenSHMEM.")
+            call mpi_print("We only support a global communicator with Coarray Fortran.")
         endif
         this%l_enabled_subcomm = .false.
 
@@ -175,9 +175,9 @@ contains
                 endif
             enddo
 
-            ! This sync is necessary as SHMEM processes access their l_available
+            ! This sync is necessary as CAF processes access their l_available
             ! array which may be modified in the loop above. In order to make sure all
-            ! SHMEM processes have finished above loop, we need this barrier.
+            ! CAF processes have finished above loop, we need this barrier.
             call this%barrier
 
             ! identify mergers in this iteration
@@ -200,7 +200,7 @@ contains
             enddo
 
             call start_timer(this%allreduce_timer)
-            ! Perfoshmemnce improvement: We actually only need to synchronize with neighbours
+            ! Performance improvement: We actually only need to synchronize with neighbours
             call MPI_Allreduce(MPI_IN_PLACE,            &
                                l_continue_iteration,    &
                                1,                       &
@@ -210,7 +210,7 @@ contains
                                this%comm%err)
             call stop_timer(this%allreduce_timer)
             call mpi_check_for_error(this%comm, &
-                "in MPI_Allreduce of shmem_graph_t::resolve_tree.")
+                "in MPI_Allreduce of caf_graph_t::resolve_tree.")
         enddo
 
         ! No barrier necessary because of the blocking MPI_Allreduce that acts like
@@ -251,7 +251,7 @@ contains
 
                 if (l_helper) then
                     call mpi_exit_on_error(&
-                        'in shmem_graph_t::resolve_tree: First stage error')
+                        'in caf_graph_t::resolve_tree: First stage error')
                 endif
 
                 ! end of sanity check
