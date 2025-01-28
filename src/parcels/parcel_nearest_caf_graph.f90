@@ -433,7 +433,7 @@ contains
         class(caf_graph_t), intent(inout) :: this
 
         call start_timer(this%sync_timer)
-        sync images(*)
+        sync images([neighbours(:)%rank])
         call stop_timer(this%sync_timer)
 
     end subroutine barrier
