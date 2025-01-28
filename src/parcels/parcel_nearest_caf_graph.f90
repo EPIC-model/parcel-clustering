@@ -25,7 +25,6 @@ module parcel_nearest_caf_graph
 
         ! Mapping of neighbouring ranks between MPI Cartesian topology and CAF
         integer :: cart2caf(8)
-        integer :: me ! this PE
 
     contains
 
@@ -115,9 +114,9 @@ contains
     subroutine caf_graph_reset(this)
         class(caf_graph_t), intent(inout) :: this
 
-        this%l_merged(:)[this%me] = .false.
-        this%l_leaf(:)[this%me] = .false.
-        this%l_available(:)[this%me] = .false.
+        this%l_merged = .false.
+        this%l_leaf = .false.
+        this%l_available = .false.
 
     end subroutine caf_graph_reset
 
@@ -147,10 +146,10 @@ contains
                 is = isma(m)
                 ! only consider links that still may be merging
                 ! reset relevant properties
-                if (.not. this%l_merged(is)[this%me]) then
+                if (.not. this%l_merged(is)) then
                     ic = iclo(m)
                     rc = rclo(m)
-                    this%l_leaf(is)[this%me] = .true.
+                    this%l_leaf(is) = .true.
                     call this%put_avail(rc, ic, .true.)
                 endif
             enddo
@@ -162,7 +161,7 @@ contains
             do m = 1, n_local_small
                 is = isma(m)
 
-                if (.not. this%l_merged(is)[this%me]) then
+                if (.not. this%l_merged(is)) then
                     ic = iclo(m)
                     rc = rclo(m)
                     call this%put_leaf(rc, ic, .false.)
@@ -177,8 +176,8 @@ contains
             do m = 1, n_local_small
                 is = isma(m)
 
-                if (.not. this%l_merged(is)[this%me]) then
-                    if (.not. this%l_leaf(is)[this%me]) then
+                if (.not. this%l_merged(is)) then
+                    if (.not. this%l_leaf(is)) then
                         ic = iclo(m)
                         rc = rclo(m)
                         call this%put_avail(rc, ic, .false.)
@@ -195,15 +194,15 @@ contains
             do m = 1, n_local_small
                 is = isma(m)
 
-                if (.not. this%l_merged(is)[this%me]) then
+                if (.not. this%l_merged(is)) then
                     ic = iclo(m)
                     rc = rclo(m)
 
                     l_helper = this%get_avail(rc, ic)
 
-                    if (this%l_leaf(is)[this%me] .and. l_helper) then
+                    if (this%l_leaf(is) .and. l_helper) then
                         l_continue_iteration = .true. ! merger means continue iteration
-                        this%l_merged(is)[this%me] = .true.
+                        this%l_merged(is) = .true.
 
                         call this%put_merged(rc, ic, .true.)
                     endif
@@ -231,8 +230,8 @@ contains
         do m = 1, n_local_small
             is = isma(m)
 
-            if (.not. this%l_merged(is)[this%me]) then
-                if (this%l_leaf(is)[this%me]) then ! set in last iteration of stage 1
+            if (.not. this%l_merged(is)) then
+                if (this%l_leaf(is)) then ! set in last iteration of stage 1
                     ic = iclo(m)
                     rc = rclo(m)
                     call this%put_avail(rc, ic, .true.)
@@ -251,7 +250,7 @@ contains
             l_do_merge(m) = .false.
             l_isolated_dual_link(m) = .false.
 
-            if (this%l_merged(is)[this%me] .and. this%l_leaf(is)[this%me]) then
+            if (this%l_merged(is) .and. this%l_leaf(is)) then
                 ! previously identified mergers: keep
                 l_do_merge(m) = .true.
                 !----------------------------------------------------------
@@ -268,11 +267,11 @@ contains
                 ! end of sanity check
                 !----------------------------------------------------------
 
-            elseif (.not. this%l_merged(is)[this%me]) then
-                if (this%l_leaf(is)[this%me]) then
+            elseif (.not. this%l_merged(is)) then
+                if (this%l_leaf(is)) then
                     ! links from leafs
                     l_do_merge(m) = .true.
-                elseif (.not. this%l_available(is)[this%me]) then
+                elseif (.not. this%l_available(is)) then
                     ! Above means parcels that have been made 'available' do not keep outgoing links
 
                     l_helper = this%get_avail(rc, ic)
@@ -292,7 +291,7 @@ contains
                         if (cart%rank <= rc) then
                             ! The MPI rank with lower number makes its parcel
                             ! available.
-                            this%l_available(is)[this%me] = .true.
+                            this%l_available(is) = .true.
                         endif
                     endif
                 endif
@@ -364,7 +363,13 @@ contains
         integer                           :: pe
 
         if (rank == cart%rank) then
-            this%l_available(ic)[this%me] = val
+            ! Note that
+            !   this%l_available(ic)
+            ! access the local data and is equal
+            ! to
+            !   me = this_image()
+            !   this%l_available(ic)[me]
+            this%l_available(ic) = val
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
@@ -384,7 +389,7 @@ contains
         integer                           :: pe
 
         if (rank == cart%rank) then
-            this%l_leaf(ic)[this%me] = val
+            this%l_leaf(ic) = val
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
@@ -404,7 +409,7 @@ contains
         integer                           :: pe
 
         if (rank == cart%rank) then
-            this%l_merged(ic)[this%me] = val
+            this%l_merged(ic) = val
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
@@ -424,7 +429,7 @@ contains
         integer                           :: pe
 
         if (rank == cart%rank) then
-            val = this%l_available(ic)[this%me]
+            val = this%l_available(ic)
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
@@ -444,7 +449,7 @@ contains
         integer                           :: pe
 
         if (rank == cart%rank) then
-            val = this%l_leaf(ic)[this%me]
+            val = this%l_leaf(ic)
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
@@ -464,7 +469,7 @@ contains
         integer                           :: pe
 
         if (rank == cart%rank) then
-            val = this%l_merged(ic)[this%me]
+            val = this%l_merged(ic)
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
@@ -492,20 +497,21 @@ contains
         type(MPI_Request)                 :: requests(8)
         type(MPI_Status)                  :: statuses(8)
         integer                           :: n
+        integer                           :: me
 
         ! *this* CAF PE (= processing element)
-        this%me = this_image()
+        me = this_image()
 
         ! check if MPI comm world rank == CAF rank
         ! Note: MPI rank starts at 0; CAF rank starts at 1
-        if (world%rank + 1 /= this%me) then
+        if (world%rank + 1 /= me) then
             call mpi_exit_on_error("MPI rank and CAF do not agree.")
         endif
 
         this%cart2caf = -1
 
         do n = 1, 8
-            call MPI_Isend(this%me,                 &
+            call MPI_Isend(me,                      &
                            1,                       &
                            MPI_INTEGER,             &
                            neighbours(n)%rank,      &
