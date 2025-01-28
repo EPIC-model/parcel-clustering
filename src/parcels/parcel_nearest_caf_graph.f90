@@ -115,9 +115,9 @@ contains
     subroutine caf_graph_reset(this)
         class(caf_graph_t), intent(inout) :: this
 
-        this%l_merged(:)[*] = .false.
-        this%l_leaf(:)[*] = .false.
-        this%l_available(:)[*] = .false.
+        this%l_merged(:)[this%me] = .false.
+        this%l_leaf(:)[this%me] = .false.
+        this%l_available(:)[this%me] = .false.
 
     end subroutine caf_graph_reset
 
