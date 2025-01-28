@@ -56,7 +56,6 @@ contains
         class(caf_graph_t), intent(inout) :: this
         integer,            intent(in)    :: num
         logical,            intent(in)    :: l_subcomm
-!         integer                           :: error
 
         if (this%l_caf_allocated) then
             return
