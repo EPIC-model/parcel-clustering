@@ -232,7 +232,7 @@ contains
                 call get_command_argument(i, arg)
                 graph_type = trim(arg)
 #ifdef ENABLE_COARRAY
-                call mpi_print("WARNING: Ignorting 'graph_type' argument. Coarray is enabled.")
+                call mpi_print("WARNING: Ignoring 'graph_type' argument. Coarray is enabled.")
 #endif
             else if (arg == '--seed') then
                 i = i + 1
