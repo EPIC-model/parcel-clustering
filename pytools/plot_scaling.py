@@ -123,7 +123,8 @@ try:
         titles = {
             'p2p':   'MPI point-to-point communication',
             'rma':   'MPI RMA communication',
-            'shmem': 'SHMEM communication'
+            'shmem': 'SHMEM communication',
+            'caf':   'Coarray Fortran'
         }
 
         title = titles[comm]
@@ -231,7 +232,7 @@ try:
         "--comm",
         type=str,
         default='all',
-        choices=['all', 'p2p', 'rma', 'shmem'],
+        choices=['all', 'p2p', 'rma', 'shmem', 'caf'],
         help="Communication method.",
     )
 
@@ -239,7 +240,7 @@ try:
         "--timings",
         type=str,
         nargs='+',
-        default=['parcel merge', 'merge nearest', 'graph resolve'],
+        default=['parcel merge (total)', 'find nearest', 'resolve graphs'],
         help="Timer data to visualise.",
     )
 
@@ -270,7 +271,7 @@ try:
     configs = get_configurations(args.path, args.test_case)
 
     if args.comm == 'all':
-        for comm in ['p2p', 'rma', 'shmem']:
+        for comm in ['p2p', 'rma', 'shmem', 'caf']:
             generate_plot(configs, comm=comm, args=args)
     else:
         generate_plot(configs, comm=args.comm, args=args)

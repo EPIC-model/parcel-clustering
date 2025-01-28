@@ -335,8 +335,8 @@ contains
     subroutine caf_graph_register_timer(this)
         class(caf_graph_t), intent(inout) :: this
 
-        call register_timer('graph resolve', this%resolve_timer)
-        call register_timer('MPI graph allreduce', this%allreduce_timer)
+        call register_timer('resolve graphs', this%resolve_timer)
+        call register_timer('MPI allreduce', this%allreduce_timer)
         call register_timer('Coarray put', this%put_timer)
         call register_timer('Coarray get', this%get_timer)
         call register_timer('Coarray sync', this%sync_timer)

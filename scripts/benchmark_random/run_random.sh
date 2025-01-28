@@ -47,12 +47,12 @@ run_jobs() {
     for i in $(seq $begin 1 $end); do
         ntasks=$((2**i))
         nodes=$((ntasks/128))
-    
+
         # 2 March 2024
         # https://stackoverflow.com/a/10415158
         nodes=$((nodes==0 ? 1 : nodes))
         echo "Submit job with $ntasks tasks on $nodes nodes using the $compiler version"
-    
+
         fn="submit_random_nx_${nx}_ny_${ny}_nodes_${nodes}.sh"
         cp ../$fname $fn
         sed -i "s:JOBNAME:$compiler-random:g" $fn
@@ -70,16 +70,16 @@ run_jobs() {
         sed -i "s:--ylen LY:--ylen $ly:g" $fn
 
         sed -i "s:SUBCOMM:$subcomm:g" $fn
-    
+
         sbatch $fn
     done
-    
+
     cd ..
 }
 
 # Argument order:
 # fname
-# compiler : cray or gnu
+# compiler : cray, cray-caf or gnu
 # nrepeat
 # niter
 # nx

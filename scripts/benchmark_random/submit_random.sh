@@ -7,12 +7,12 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=StandardMem
 #SBATCH --switches=1
-#SBATCH --account=e710 
+#SBATCH --account=e710
 #SBATCH --partition=standard
 #SBATCH --qos=standard
 
 # Set the number of threads to 1
-#   This prevents any threaded system libraries from automatically 
+#   This prevents any threaded system libraries from automatically
 #   using threading.
 export OMP_NUM_THREADS=1
 export OMP_PLACES=cores
@@ -41,7 +41,7 @@ if test "COMPILER" = "gnu"; then
     export NETCDF_FORTRAN_DIR=$NETCDF_DIR
     export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
-elif test "COMPILER" = "cray"; then
+elif test "COMPILER" = "cray" || test "COMPILER" = "cray-caf"; then
     echo "Loading the Cray Compiling Environment (CCE)"
     module load PrgEnv-cray/8.3.3
     module load cce/15.0.0
@@ -74,74 +74,97 @@ PATH=${EXE_DIR}:$PATH
 
 sbcast --compress=none ${EXE_DIR}/benchmark_random /tmp/benchmark_random
 for i in $(seq 1 NREPEAT); do
-    srun --nodes=NODES \
-         --ntasks=NTASKS \
-         --unbuffered \
-         --distribution=block:block \
-         /tmp/benchmark_random \
-         --nx NX \
-         --ny NY \
-         --nz 32 \
-         --lx LX \
-         --ly LY \
-         --lz 10.0 \
-         --xlen LX \
-         --ylen LY \
-         --zlen 10.0 \
-         --min_vratio 20.0 \
-         --n_per_cell 20 \
-         --niter NITER \
-         --shuffle \
-         --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nodes-NODES.nc" \
-         --graph-type "shmem"
-    for g in "p2p" "rma"; do
+    if test "COMPILER" = "cray-caf"; then
         srun --nodes=NODES \
-             --ntasks=NTASKS \
-             --unbuffered \
-             --distribution=block:block \
-             --hint=nomultithread \
-             /tmp/benchmark_random \
-             --nx NX \
-             --ny NY \
-             --nz 32 \
-             --lx LX \
-             --ly LY \
-             --lz 10.0 \
-             --xlen LX \
-             --ylen LY \
-             --zlen 10.0 \
-             --min_vratio 20.0 \
-             --n_per_cell 20 \
-             --niter NITER \
-             --shuffle \
-             --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nodes-NODES.nc" \
-             --graph-type "$g"
-
-        if test "SUBCOMM" = "true"; then
+            --ntasks=NTASKS \
+            --unbuffered \
+            --distribution=block:block \
+            /tmp/benchmark_random \
+            --nx NX \
+            --ny NY \
+            --nz 32 \
+            --lx LX \
+            --ly LY \
+            --lz 10.0 \
+            --xlen LX \
+            --ylen LY \
+            --zlen 10.0 \
+            --min_vratio 20.0 \
+            --n_per_cell 20 \
+            --niter NITER \
+            --shuffle \
+            --ncfname "COMPILER-random-nx-NX-ny-NY-nodes-NODES.nc" \
+            --graph-type "caf"
+    else
+        srun --nodes=NODES \
+            --ntasks=NTASKS \
+            --unbuffered \
+            --distribution=block:block \
+            /tmp/benchmark_random \
+            --nx NX \
+            --ny NY \
+            --nz 32 \
+            --lx LX \
+            --ly LY \
+            --lz 10.0 \
+            --xlen LX \
+            --ylen LY \
+            --zlen 10.0 \
+            --min_vratio 20.0 \
+            --n_per_cell 20 \
+            --niter NITER \
+            --shuffle \
+            --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nodes-NODES.nc" \
+            --graph-type "shmem"
+        for g in "p2p" "rma"; do
             srun --nodes=NODES \
-                 --ntasks=NTASKS \
-                 --unbuffered \
-                 --distribution=block:block \
-                 --hint=nomultithread \
-                 /tmp/benchmark_random \
-                 --nx NX \
-                 --ny NY \
-                 --nz 32 \
-                 --lx LX \
-                 --ly LY \
-                 --lz 10.0 \
-                 --xlen LX \
-                 --ylen LY \
-                 --zlen 10.0 \
-                 --min_vratio 20.0 \
-                 --n_per_cell 20 \
-                 --niter NITER \
-                 --shuffle \
-                 --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nodes-NODES-subcomm.nc" \
-                 --graph-type "$g" \
-                 --subcomm
-        fi
-    done
+                --ntasks=NTASKS \
+                --unbuffered \
+                --distribution=block:block \
+                --hint=nomultithread \
+                /tmp/benchmark_random \
+                --nx NX \
+                --ny NY \
+                --nz 32 \
+                --lx LX \
+                --ly LY \
+                --lz 10.0 \
+                --xlen LX \
+                --ylen LY \
+                --zlen 10.0 \
+                --min_vratio 20.0 \
+                --n_per_cell 20 \
+                --niter NITER \
+                --shuffle \
+                --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nodes-NODES.nc" \
+                --graph-type "$g"
+
+            if test "SUBCOMM" = "true"; then
+                srun --nodes=NODES \
+                    --ntasks=NTASKS \
+                    --unbuffered \
+                    --distribution=block:block \
+                    --hint=nomultithread \
+                    /tmp/benchmark_random \
+                    --nx NX \
+                    --ny NY \
+                    --nz 32 \
+                    --lx LX \
+                    --ly LY \
+                    --lz 10.0 \
+                    --xlen LX \
+                    --ylen LY \
+                    --zlen 10.0 \
+                    --min_vratio 20.0 \
+                    --n_per_cell 20 \
+                    --niter NITER \
+                    --shuffle \
+                    --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nodes-NODES-subcomm.nc" \
+                    --graph-type "$g" \
+                    --subcomm
+            fi
+        done
+    fi
 done
 
 wait

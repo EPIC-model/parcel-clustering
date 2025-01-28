@@ -7,12 +7,12 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=StandardMem
 #SBATCH --switches=1
-#SBATCH --account=e710 
+#SBATCH --account=e710
 #SBATCH --partition=standard
 #SBATCH --qos=long
 
 # Set the number of threads to 1
-#   This prevents any threaded system libraries from automatically 
+#   This prevents any threaded system libraries from automatically
 #   using threading.
 export OMP_NUM_THREADS=1
 export OMP_PLACES=cores
@@ -33,15 +33,15 @@ if test "COMPILER" = "gnu"; then
     # make gcc/12.2.0 available and load it
     module load load-epcc-module;
     module load  extra-compilers/1.0
-    
+
     # update all other modules:
     module load cpe/23.09
- 
+
     export NETCDF_C_DIR=$NETCDF_DIR
     export NETCDF_FORTRAN_DIR=$NETCDF_DIR
     export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
-elif test "COMPILER" = "cray"; then
+elif test "COMPILER" = "cray" || test "COMPILER" = "cray-caf"; then
     echo "Loading the Cray Compiling Environment (CCE)"
     module load PrgEnv-cray/8.3.3
     module load cce/15.0.0
@@ -75,23 +75,39 @@ export PYTHONPATH=$PYTHONPATH:$WORK_DIR/COMPILER/clustering/bin/pytools
 
 PATH=/work/e710/e710/mf248/COMPILER/clustering/bin:$PATH
 
-if test "GRAPH_TYPE" = "shmem"; then
-    echo "Run OpenSHMEM"
+if test "COMPILER" = "cray-caf"; then
+    echo "Run Coarray Fortran"
     python ${EXEC_PATH}/verify_cluster_algorithm.py \
-	    --n_ranks 16 32 64 128 256 \
-	    --n_parcel_per_cell 40 \
-	    --nx 32 \
-	    --ny 32 \
-	    --nz 32 \
-	    --min_vratio 40.0 \
-	    --verbose \
- 	    --n_samples N_SAMPLES \
-	    --cmd srun \
-	    --seed SEED \
-    	    --graph-type "GRAPH_TYPE"
+        --n_ranks 16 32 64 128 256 \
+        --n_parcel_per_cell 40 \
+        --nx 32 \
+        --ny 32 \
+        --nz 32 \
+        --min_vratio 40.0 \
+        --verbose \
+        --n_samples N_SAMPLES \
+        --cmd srun \
+        --seed SEED \
+        --graph-type "caf" \
+        --subcomm
 else
-    echo "Run GRAPH_TYPE"
-    python ${EXEC_PATH}/verify_cluster_algorithm.py \
+    if test "GRAPH_TYPE" = "shmem"; then
+        echo "Run OpenSHMEM"
+        python ${EXEC_PATH}/verify_cluster_algorithm.py \
+            --n_ranks 16 32 64 128 256 \
+            --n_parcel_per_cell 40 \
+            --nx 32 \
+            --ny 32 \
+            --nz 32 \
+            --min_vratio 40.0 \
+            --verbose \
+            --n_samples N_SAMPLES \
+            --cmd srun \
+            --seed SEED \
+            --graph-type "GRAPH_TYPE"
+    else
+        echo "Run GRAPH_TYPE"
+        python ${EXEC_PATH}/verify_cluster_algorithm.py \
             --n_ranks 16 32 64 128 256 \
             --n_parcel_per_cell 40 \
             --nx 32 \
@@ -103,5 +119,6 @@ else
             --cmd srun \
             --seed SEED \
             --graph-type "GRAPH_TYPE" \
-	    --subcomm
+            --subcomm
+    fi
 fi
