@@ -23,6 +23,9 @@ module parcel_nearest_caf_graph
 
         logical :: l_caf_allocated = .false.
 
+        ! Mapping of neighbouring ranks between MPI Cartesian topology and CAF
+        integer :: cart2caf(8)
+
     contains
 
         procedure :: initialise => caf_graph_initialise
@@ -40,6 +43,8 @@ module parcel_nearest_caf_graph
         procedure, private :: get_merged
 
         procedure, private :: barrier
+
+        procedure, private :: init_cart2caf
 
     end type
 
@@ -70,6 +75,11 @@ contains
             call mpi_print("We only support a global communicator with Coarray Fortran.")
         endif
         this%l_enabled_subcomm = .false.
+
+        !--------------------------------------------------
+        ! Check mapping beteen MPI and CAF
+
+        call this%init_cart2caf
 
         !--------------------------------------------------
 
@@ -433,9 +443,68 @@ contains
         class(caf_graph_t), intent(inout) :: this
 
         call start_timer(this%sync_timer)
-        sync images([neighbours(:)%rank])
+        sync images([this%cart2caf])
         call stop_timer(this%sync_timer)
 
     end subroutine barrier
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine init_cart2caf(this)
+        class(caf_graph_t), intent(inout) :: this
+        type(MPI_Request)                 :: requests(8)
+        type(MPI_Status)                  :: statuses(8)
+        integer                           :: n
+        integer                           :: me
+
+        ! *this* CAF PE (= processing element)
+        me = this_image()
+
+        ! check if MPI comm world rank == CAF rank
+        ! Note: MPI rank starts at 0; CAF rank starts at 1
+        if (world%rank + 1 /= me) then
+            call mpi_exit_on_error("MPI rank and CAF do not agree.")
+        endif
+
+        this%cart2caf = -1
+
+        do n = 1, 8
+            call MPI_Isend(me,                      &
+                           1,                       &
+                           MPI_INTEGER,             &
+                           neighbours(n)%rank,      &
+                           SEND_NEIGHBOUR_TAG(n),   &
+                           cart%comm,               &
+                           requests(n),             &
+                           cart%err)
+
+            call mpi_check_for_error(cart, &
+                "in MPI_Isend of caf_graph_t::init_cart2caf.")
+        enddo
+
+        do n = 1, 8
+            call MPI_Recv(this%cart2caf(n),       &
+                          1,                      &
+                          MPI_INTEGER,            &
+                          neighbours(n)%rank,     &
+                          RECV_NEIGHBOUR_TAG(n),  &
+                          cart%comm,              &
+                          statuses(n),            &
+                          cart%err)
+        enddo
+
+        call MPI_Waitall(8,                 &
+                        requests,           &
+                        statuses,           &
+                        cart%err)
+
+        call mpi_check_for_error(cart, &
+                                "in MPI_Waitall of caf_graph_t::init_cart2caf.")
+
+        if (any(this%cart2caf == -1)) then
+            call mpi_exit_on_error("in caf_graph_t::init_cart2caf: Not all MPI ranks finished.")
+        endif
+
+    end subroutine init_cart2caf
 
 end module parcel_nearest_caf_graph
