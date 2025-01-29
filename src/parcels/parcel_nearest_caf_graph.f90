@@ -1,57 +1,38 @@
-module shmem
-    interface
-            type(c_ptr) function shmem_malloc(n) bind(C, name="shmem_malloc")
-                use, intrinsic :: iso_c_binding
-                integer(kind=c_size_t), value :: n
-            end function shmem_malloc
-        end interface
-
-        interface
-            subroutine shmem_free(ptr) bind(C,name="shmem_free")
-                use, intrinsic :: iso_c_binding
-                type(C_PTR), value :: ptr
-            end subroutine shmem_free
-        end interface
-end module shmem
-
-module parcel_nearest_shmem_graph
+module parcel_nearest_caf_graph
     use mpi_layout
     use mpi_utils
     use mpi_timer, only : start_timer       &
                         , stop_timer        &
                         , register_timer
     use parcel_nearest_graph, only : graph_t
-    use iso_c_binding, only : c_ptr, c_f_pointer, c_sizeof, c_loc
     use mpi_environment, only : l_ignore_mpi_finalize
-    use shmem
     implicit none
-!     include 'shmem.fh'
 
     private
 
-    type, extends(graph_t) :: shmem_graph_t
+    type, extends(graph_t) :: caf_graph_t
 
         private
 
         ! Logicals used to determine which mergers are executed
         ! Integers above could be reused for this, but this would
         ! make the algorithm less readable
-        logical, pointer :: l_leaf(:)
-        logical, pointer :: l_available(:)
-        logical, pointer :: l_merged(:)    ! indicates parcels merged in first stage
+        logical, dimension(:), codimension[:], allocatable :: l_leaf
+        logical, dimension(:), codimension[:], allocatable :: l_available
+        logical, dimension(:), codimension[:], allocatable :: l_merged    ! indicates parcels merged in first stage
 
-        logical :: l_shmem_allocated = .false.
+        logical :: l_caf_allocated = .false.
 
-        ! Mapping of neighbouring ranks between MPI Cartesian topology and OpenSHMEM
-        integer :: cart2shmem(8)
+        ! Mapping of neighbouring ranks between MPI Cartesian topology and CAF
+        integer :: cart2caf(8)
 
     contains
 
-        procedure :: initialise => shmem_graph_initialise
-        procedure :: finalise   => shmem_graph_finalise
-        procedure :: reset      => shmem_graph_reset
-        procedure :: resolve    => shmem_graph_resolve
-        procedure :: register_timer => shmem_graph_register_timer
+        procedure :: initialise => caf_graph_initialise
+        procedure :: finalise   => caf_graph_finalise
+        procedure :: reset      => caf_graph_reset
+        procedure :: resolve    => caf_graph_resolve
+        procedure :: register_timer => caf_graph_register_timer
 
         procedure, private :: put_avail
         procedure, private :: put_leaf
@@ -63,24 +44,21 @@ module parcel_nearest_shmem_graph
 
         procedure, private :: barrier
 
-        procedure, private :: init_cart2shmem
+        procedure, private :: init_cart2caf
         procedure, private :: get_pe
 
     end type
 
-    public :: shmem_graph_t
+    public :: caf_graph_t
 
 contains
 
-    subroutine shmem_graph_initialise(this, num, l_subcomm)
-        class(shmem_graph_t), intent(inout) :: this
-        integer,              intent(in)    :: num
-        logical,              intent(in)    :: l_subcomm
-        type(c_ptr)                         :: buf_ptr
-        logical                             :: l_byte
-!         integer                             :: error
+    subroutine caf_graph_initialise(this, num, l_subcomm)
+        class(caf_graph_t), intent(inout) :: this
+        integer,            intent(in)    :: num
+        logical,            intent(in)    :: l_subcomm
 
-        if (this%l_shmem_allocated) then
+        if (this%l_caf_allocated) then
             return
         endif
 
@@ -88,96 +66,72 @@ contains
             call mpi_stop("Error: The Cartesian communicator not yet initialised.")
         endif
 
-        this%l_shmem_allocated = .true.
+        this%l_caf_allocated = .true.
 
         ! Ensure we use all MPI ranks because we need to call
-        ! shmem_barrier_all
+        ! sync
         if (l_subcomm) then
             call mpi_print("Ignoring the request to use a subcommunicator.")
-            call mpi_print("We only support a global communicator with OpenSHMEM.")
+            call mpi_print("We only support a global communicator with Coarray Fortran.")
         endif
         this%l_enabled_subcomm = .false.
 
-        call shmem_init
-
         !--------------------------------------------------
-        ! Check mapping beteen MPI and OpenSHMEM
+        ! Check mapping beteen MPI and CAF
 
-        call this%init_cart2shmem
+        call this%init_cart2caf
 
         !--------------------------------------------------
 
-!         call shpalloc(buf_ptr, num, error, 0)
-        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
-        call c_f_pointer(buf_ptr, this%l_available, [num])
-
-!         call shpalloc(buf_ptr, num, error, 0)
-        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
-        call c_f_pointer(buf_ptr, this%l_leaf, [num])
-
-!         call shpalloc(buf_ptr, num, error, 0)
-        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
-        call c_f_pointer(buf_ptr, this%l_merged, [num])
+        allocate (this%l_available(num)[*])
+        allocate (this%l_leaf(num)[*])
+        allocate (this%l_merged(num)[*])
 
         call this%reset
 
-    end subroutine shmem_graph_initialise
+    end subroutine caf_graph_initialise
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine shmem_graph_finalise(this)
-        class(shmem_graph_t), intent(inout) :: this
-        type(c_ptr)                         :: buf_ptr
+    subroutine caf_graph_finalise(this)
+        class(caf_graph_t), intent(inout) :: this
+        type(c_ptr)                       :: buf_ptr
 
-        if (.not. this%l_shmem_allocated) then
+        if (.not. this%l_caf_allocated) then
             return
         endif
 
-        this%l_shmem_allocated = .false.
+        this%l_caf_allocated = .false.
 
-        call shmem_barrier_all
-
-        buf_ptr = c_loc(this%l_available)
-        call shmem_free(buf_ptr)
-        call c_f_pointer(buf_ptr, this%l_available, [0])
-
-        buf_ptr = c_loc(this%l_leaf)
-        call shmem_free(buf_ptr)
-        call c_f_pointer(buf_ptr, this%l_leaf, [0])
-
-        buf_ptr = c_loc(this%l_merged)
-        call shmem_free(buf_ptr)
-        call c_f_pointer(buf_ptr, this%l_merged, [0])
-
-        call shmem_finalize
+        sync images(*)
 
         l_ignore_mpi_finalize = .true.
 
-    end subroutine shmem_graph_finalise
+    end subroutine caf_graph_finalise
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine shmem_graph_reset(this)
-        class(shmem_graph_t), intent(inout) :: this
+    subroutine caf_graph_reset(this)
+        class(caf_graph_t), intent(inout) :: this
 
         this%l_merged = .false.
         this%l_leaf = .false.
         this%l_available = .false.
 
-    end subroutine shmem_graph_reset
+    end subroutine caf_graph_reset
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine shmem_graph_resolve(this, isma, iclo, rclo, n_local_small)
-        class(shmem_graph_t), intent(inout) :: this
-        integer,              intent(inout) :: isma(0:)
-        integer,              intent(inout) :: iclo(:)
-        integer,              intent(inout) :: rclo(:)
-        integer,              intent(inout) :: n_local_small
-        integer                             :: ic, rc, is, m, j
-        logical                             :: l_helper
-        logical                             :: l_continue_iteration, l_do_merge(n_local_small)
-        logical                             :: l_isolated_dual_link(n_local_small)
+    subroutine caf_graph_resolve(this, isma, iclo, rclo, n_local_small)
+        class(caf_graph_t), intent(inout) :: this
+        integer,            intent(inout) :: isma(0:)
+        integer,            intent(inout) :: iclo(:)
+        integer,            intent(inout) :: rclo(:)
+        integer,            intent(inout) :: n_local_small
+        integer                           :: ic, rc, is, m, j
+        logical                           :: l_helper
+        logical                           :: l_continue_iteration, l_do_merge(n_local_small)
+        logical                           :: l_isolated_dual_link(n_local_small)
 
         call start_timer(this%resolve_timer)
 
@@ -231,9 +185,9 @@ contains
                 endif
             enddo
 
-            ! This sync is necessary as SHMEM processes access their l_available
+            ! This sync is necessary as CAF processes access their l_available
             ! array which may be modified in the loop above. In order to make sure all
-            ! SHMEM processes have finished above loop, we need this barrier.
+            ! CAF processes have finished above loop, we need this barrier.
             call this%barrier
 
             ! identify mergers in this iteration
@@ -256,7 +210,7 @@ contains
             enddo
 
             call start_timer(this%allreduce_timer)
-            ! Perfoshmemnce improvement: We actually only need to synchronize with neighbours
+            ! Performance improvement: We actually only need to synchronize with neighbours
             call MPI_Allreduce(MPI_IN_PLACE,            &
                                l_continue_iteration,    &
                                1,                       &
@@ -266,7 +220,7 @@ contains
                                this%comm%err)
             call stop_timer(this%allreduce_timer)
             call mpi_check_for_error(this%comm, &
-                "in MPI_Allreduce of shmem_graph_t::resolve_tree.")
+                "in MPI_Allreduce of caf_graph_t::resolve_tree.")
         enddo
 
         ! No barrier necessary because of the blocking MPI_Allreduce that acts like
@@ -285,7 +239,7 @@ contains
             endif
         enddo
 
-        ! This barrier is necessary as we modifiy l_available above and need it below.
+        ! This barrier is necessary as we modifiy l_available above and need it below
         call this%barrier
 
         ! Second stage
@@ -307,7 +261,7 @@ contains
 
                 if (l_helper) then
                     call mpi_exit_on_error(&
-                        'in shmem_graph_t::resolve_tree: First stage error')
+                        'in caf_graph_t::resolve_tree: First stage error')
                 endif
 
                 ! end of sanity check
@@ -384,36 +338,43 @@ contains
         n_local_small = j
 
         call stop_timer(this%resolve_timer)
-    end subroutine shmem_graph_resolve
+    end subroutine caf_graph_resolve
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine shmem_graph_register_timer(this)
-        class(shmem_graph_t), intent(inout) :: this
+    subroutine caf_graph_register_timer(this)
+        class(caf_graph_t), intent(inout) :: this
 
         call register_timer('resolve graphs', this%resolve_timer)
         call register_timer('MPI allreduce', this%allreduce_timer)
-        call register_timer('SHMEM put', this%put_timer)
-        call register_timer('SHMEM get', this%get_timer)
-        call register_timer('SHMEM sync', this%sync_timer)
+        call register_timer('Coarray put', this%put_timer)
+        call register_timer('Coarray get', this%get_timer)
+        call register_timer('Coarray sync', this%sync_timer)
 
-    end subroutine shmem_graph_register_timer
+    end subroutine caf_graph_register_timer
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     subroutine put_avail(this, rank, ic, val)
-        class(shmem_graph_t), intent(inout) :: this
-        integer,              intent(in)    :: rank
-        integer,              intent(in)    :: ic
-        logical,              intent(in)    :: val
-        integer                             :: pe
+        class(caf_graph_t), intent(inout) :: this
+        integer,            intent(in)    :: rank
+        integer,            intent(in)    :: ic
+        logical,            intent(in)    :: val
+        integer                           :: pe
 
         if (rank == cart%rank) then
+            ! Note that
+            !   this%l_available(ic)
+            ! access the local data and is equal
+            ! to
+            !   me = this_image()
+            !   this%l_available(ic)[me]
             this%l_available(ic) = val
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(this%l_available(ic), val, 1, pe)
+            !dir$ pgas defer_sync
+            this%l_available(ic)[pe] = val
             call stop_timer(this%put_timer)
         endif
 
@@ -422,18 +383,19 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     subroutine put_leaf(this, rank, ic, val)
-        class(shmem_graph_t), intent(inout) :: this
-        integer,              intent(in)    :: rank
-        integer,              intent(in)    :: ic
-        logical,              intent(in)    :: val
-        integer                             :: pe
+        class(caf_graph_t), intent(inout) :: this
+        integer,            intent(in)    :: rank
+        integer,            intent(in)    :: ic
+        logical,            intent(in)    :: val
+        integer                           :: pe
 
         if (rank == cart%rank) then
             this%l_leaf(ic) = val
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(this%l_leaf(ic), val, 1, pe)
+            !dir$ pgas defer_sync
+            this%l_leaf(ic)[pe] = val
             call stop_timer(this%put_timer)
         endif
 
@@ -442,18 +404,19 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     subroutine put_merged(this, rank, ic, val)
-        class(shmem_graph_t), intent(inout) :: this
-        integer,              intent(in)    :: rank
-        integer,              intent(in)    :: ic
-        logical,              intent(in)    :: val
-        integer                             :: pe
+        class(caf_graph_t), intent(inout) :: this
+        integer,            intent(in)    :: rank
+        integer,            intent(in)    :: ic
+        logical,            intent(in)    :: val
+        integer                           :: pe
 
         if (rank == cart%rank) then
             this%l_merged(ic) = val
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(this%l_merged(ic), val, 1, pe)
+            !dir$ pgas defer_sync
+            this%l_merged(ic)[pe] = val
             call stop_timer(this%put_timer)
         endif
 
@@ -462,18 +425,18 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     function get_avail(this, rank, ic) result(val)
-        class(shmem_graph_t), intent(inout) :: this
-        integer,              intent(in)    :: rank
-        integer,              intent(in)    :: ic
-        logical                             :: val
-        integer                             :: pe
+        class(caf_graph_t), intent(inout) :: this
+        integer,            intent(in)    :: rank
+        integer,            intent(in)    :: ic
+        logical                           :: val
+        integer                           :: pe
 
         if (rank == cart%rank) then
             val = this%l_available(ic)
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(val, this%l_available(ic), 1, pe)
+            val = this%l_available(ic)[pe]
             call stop_timer(this%get_timer)
         endif
 
@@ -482,18 +445,18 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     function get_leaf(this, rank, ic) result(val)
-        class(shmem_graph_t), intent(inout) :: this
-        integer,              intent(in)    :: rank
-        integer,              intent(in)    :: ic
-        logical                             :: val
-        integer                             :: pe
+        class(caf_graph_t), intent(inout) :: this
+        integer,            intent(in)    :: rank
+        integer,            intent(in)    :: ic
+        logical                           :: val
+        integer                           :: pe
 
         if (rank == cart%rank) then
             val = this%l_leaf(ic)
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(val, this%l_leaf(ic), 1, pe)
+            val = this%l_leaf(ic)[pe]
             call stop_timer(this%get_timer)
         endif
 
@@ -502,18 +465,18 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     function get_merged(this, rank, ic) result(val)
-        class(shmem_graph_t), intent(inout) :: this
-        integer,              intent(in)    :: rank
-        integer,              intent(in)    :: ic
-        logical                             :: val
-        integer                             :: pe
+        class(caf_graph_t), intent(inout) :: this
+        integer,            intent(in)    :: rank
+        integer,            intent(in)    :: ic
+        logical                           :: val
+        integer                           :: pe
 
         if (rank == cart%rank) then
             val = this%l_merged(ic)
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(val, this%l_merged(ic), 1, pe)
+            val = this%l_merged(ic)[pe]
             call stop_timer(this%get_timer)
         endif
 
@@ -522,35 +485,33 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     subroutine barrier(this)
-        class(shmem_graph_t), intent(inout) :: this
+        class(caf_graph_t), intent(inout) :: this
 
         call start_timer(this%sync_timer)
-
-        call shmem_barrier_all
-
+        sync images([this%cart2caf])
         call stop_timer(this%sync_timer)
 
     end subroutine barrier
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine init_cart2shmem(this)
-        class(shmem_graph_t), intent(inout) :: this
-        type(MPI_Request)                   :: requests(8)
-        type(MPI_Status)                    :: statuses(8)
-        integer                             :: n
-        integer                             :: my_pe
-        integer                             :: me
+    subroutine init_cart2caf(this)
+        class(caf_graph_t), intent(inout) :: this
+        type(MPI_Request)                 :: requests(8)
+        type(MPI_Status)                  :: statuses(8)
+        integer                           :: n
+        integer                           :: me
 
-        ! *this* OpenSHMEM PE (= processing element)
-        me = my_pe()
+        ! *this* CAF PE (= processing element)
+        me = this_image()
 
-        ! check if MPI comm world rank == OpenSHMEM rank
-        if (world%rank /= me) then
-            call mpi_exit_on_error("MPI rank and OpenSHMEM do not agree.")
+        ! check if MPI comm world rank == CAF rank
+        ! Note: MPI rank starts at 0; CAF rank starts at 1
+        if (world%rank + 1 /= me) then
+            call mpi_exit_on_error("MPI rank and CAF do not agree.")
         endif
 
-        this%cart2shmem = -1
+        this%cart2caf = -1
 
         do n = 1, 8
             call MPI_Isend(me,                      &
@@ -563,17 +524,17 @@ contains
                            cart%err)
 
             call mpi_check_for_error(cart, &
-                "in MPI_Isend of shmem_graph_t::init_cart2shmem.")
+                "in MPI_Isend of caf_graph_t::init_cart2caf.")
         enddo
 
         do n = 1, 8
-            call MPI_Recv(this%cart2shmem(n),       &
-                          1,                        &
-                          MPI_INTEGER,              &
-                          neighbours(n)%rank,       &
-                          RECV_NEIGHBOUR_TAG(n),    &
-                          cart%comm,                &
-                          statuses(n),              &
+            call MPI_Recv(this%cart2caf(n),       &
+                          1,                      &
+                          MPI_INTEGER,            &
+                          neighbours(n)%rank,     &
+                          RECV_NEIGHBOUR_TAG(n),  &
+                          cart%comm,              &
+                          statuses(n),            &
                           cart%err)
         enddo
 
@@ -583,25 +544,25 @@ contains
                         cart%err)
 
         call mpi_check_for_error(cart, &
-                                "in MPI_Waitall of shmem_graph_t::init_cart2shmem.")
+                                "in MPI_Waitall of caf_graph_t::init_cart2caf.")
 
-        if (any(this%cart2shmem == -1)) then
-            call mpi_exit_on_error("in shmem_graph_t::init_cart2shmem: Not all MPI ranks finished.")
+        if (any(this%cart2caf == -1)) then
+            call mpi_exit_on_error("in caf_graph_t::init_cart2caf: Not all MPI ranks finished.")
         endif
 
-    end subroutine init_cart2shmem
+    end subroutine init_cart2caf
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     function get_pe(this, rank) result(pe)
-        class(shmem_graph_t), intent(in) :: this
-        integer,              intent(in) :: rank
-        integer                          :: n
-        integer                          :: pe
+        class(caf_graph_t), intent(in) :: this
+        integer,            intent(in) :: rank
+        integer                        :: n
+        integer                        :: pe
 
         n = get_neighbour_from_rank(rank)
-        pe = this%cart2shmem(n)
+        pe = this%cart2caf(n)
 
     end function get_pe
 
-end module parcel_nearest_shmem_graph
+end module parcel_nearest_caf_graph

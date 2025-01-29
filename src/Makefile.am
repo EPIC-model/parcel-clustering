@@ -39,7 +39,12 @@ benchmark_random_SOURCES = 			\
         parcels/parcel_nearest_graph.f90        \
         parcels/parcel_nearest_p2p_graph.f90    \
         parcels/parcel_nearest_rma_graph.f90    \
-        parcels/parcel_nearest_shmem_graph.f90  \
+        parcels/parcel_nearest_shmem_graph.f90
+if ENABLE_COARRAY
+benchmark_random_SOURCES += 			\
+	parcels/parcel_nearest_caf_graph.f90
+endif
+benchmark_random_SOURCES += 			\
         parcels/parcel_nearest.f90              \
         parcels/parcel_merge.f90                \
         parcels/parcel_netcdf.f90               \
@@ -78,7 +83,12 @@ benchmark_read_SOURCES = 			\
         parcels/parcel_nearest_graph.f90        \
         parcels/parcel_nearest_p2p_graph.f90    \
         parcels/parcel_nearest_rma_graph.f90    \
-        parcels/parcel_nearest_shmem_graph.f90  \
+        parcels/parcel_nearest_shmem_graph.f90
+if ENABLE_COARRAY
+benchmark_read_SOURCES += 			\
+	parcels/parcel_nearest_caf_graph.f90
+endif
+benchmark_read_SOURCES += 			\
         parcels/parcel_nearest.f90              \
         parcels/parcel_merge.f90                \
         parcels/parcel_netcdf.f90               \
@@ -117,7 +127,12 @@ benchmark_verify_SOURCES = 			\
         parcels/parcel_nearest_graph.f90        \
         parcels/parcel_nearest_p2p_graph.f90    \
         parcels/parcel_nearest_rma_graph.f90    \
-        parcels/parcel_nearest_shmem_graph.f90  \
+        parcels/parcel_nearest_shmem_graph.f90
+if ENABLE_COARRAY
+benchmark_verify_SOURCES += 			\
+	parcels/parcel_nearest_caf_graph.f90
+endif
+benchmark_verify_SOURCES += 			\
         parcels/parcel_nearest.f90              \
         parcels/parcel_merge.f90                \
         parcels/parcel_netcdf.f90               \

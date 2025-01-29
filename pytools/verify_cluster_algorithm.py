@@ -79,7 +79,7 @@ try:
     parser.add_argument(
         "--graph-type",
         type=str,
-        choices=["p2p", "rma", "shmem"],
+        choices=["p2p", "rma", "shmem", "caf"],
         default="p2p",
         help="Graph type for parallel version.",
     )

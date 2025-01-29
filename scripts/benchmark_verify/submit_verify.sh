@@ -7,19 +7,18 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=StandardMem
 #SBATCH --switches=1
-#SBATCH --account=e710 
+#SBATCH --account=e710
 #SBATCH --partition=standard
 #SBATCH --qos=long
 
 # Set the number of threads to 1
-#   This prevents any threaded system libraries from automatically 
+#   This prevents any threaded system libraries from automatically
 #   using threading.
 export OMP_NUM_THREADS=1
 export OMP_PLACES=cores
 export FI_OFI_RXM_SAR_LIMIT=64K
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
-export WORK_DIR=/work/e710/e710/mf248
 export MPLCONFIGDIR=$PWD
 
 if test "COMPILER" = "gnu"; then
@@ -33,10 +32,10 @@ if test "COMPILER" = "gnu"; then
     # make gcc/12.2.0 available and load it
     module load load-epcc-module;
     module load  extra-compilers/1.0
-    
+
     # update all other modules:
     module load cpe/23.09
- 
+
     export NETCDF_C_DIR=$NETCDF_DIR
     export NETCDF_FORTRAN_DIR=$NETCDF_DIR
     export FC=ftn
@@ -68,40 +67,43 @@ fi
 
 export SLURM_CPU_FREQ_REQ=2000000
 
-#conda activate epic-env
-source /work/e710/e710/mf248/miniconda3/bin/activate epic-env
-export EXEC_PATH=/work/e710/e710/mf248/COMPILER/clustering/bin/pytools
-export PYTHONPATH=$PYTHONPATH:$WORK_DIR/COMPILER/clustering/bin/pytools
+module load craype-hugepages2M
+export HUGETLB_VERBOSE=2
 
-PATH=/work/e710/e710/mf248/COMPILER/clustering/bin:$PATH
+source CONDA_DIR/activate CONDA_ENV
+bin_dir=BIN_DIR
+exe_dir=${bin_dir}/pytools
+export PYTHONPATH=$PYTHONPATH:${exe_dir}
 
-if test "GRAPH_TYPE" = "shmem"; then
-    echo "Run OpenSHMEM"
-    python ${EXEC_PATH}/verify_cluster_algorithm.py \
-	    --n_ranks 16 32 64 128 256 \
-	    --n_parcel_per_cell 40 \
-	    --nx 32 \
-	    --ny 32 \
-	    --nz 32 \
-	    --min_vratio 40.0 \
-	    --verbose \
- 	    --n_samples N_SAMPLES \
-	    --cmd srun \
-	    --seed SEED \
-    	    --graph-type "GRAPH_TYPE"
+PATH=${bin_dir}:$PATH
+
+echo "Run GRAPH_TYPE"
+
+if test "GRAPH_TYPE" = "shmem" || test "GRAPH_TYPE" = "caf"; then
+    python ${exe_dir}/verify_cluster_algorithm.py \
+        --n_ranks 16 32 64 128 256 \
+        --n_parcel_per_cell 40 \
+        --nx 32 \
+        --ny 32 \
+        --nz 32 \
+        --min_vratio 40.0 \
+        --verbose \
+        --n_samples N_SAMPLES \
+        --cmd srun \
+        --seed SEED \
+        --graph-type "GRAPH_TYPE"
 else
-    echo "Run GRAPH_TYPE"
-    python ${EXEC_PATH}/verify_cluster_algorithm.py \
-            --n_ranks 16 32 64 128 256 \
-            --n_parcel_per_cell 40 \
-            --nx 32 \
-            --ny 32 \
-            --nz 32 \
-            --min_vratio 40.0 \
-            --verbose \
-            --n_samples N_SAMPLES \
-            --cmd srun \
-            --seed SEED \
-            --graph-type "GRAPH_TYPE" \
-	    --subcomm
+    python ${exe_dir}/verify_cluster_algorithm.py \
+        --n_ranks 16 32 64 128 256 \
+        --n_parcel_per_cell 40 \
+        --nx 32 \
+        --ny 32 \
+        --nz 32 \
+        --min_vratio 40.0 \
+        --verbose \
+        --n_samples N_SAMPLES \
+        --cmd srun \
+        --seed SEED \
+        --graph-type "GRAPH_TYPE" \
+        --subcomm
 fi

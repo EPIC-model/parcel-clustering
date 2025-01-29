@@ -32,10 +32,14 @@ module parcel_nearest
                         , mpi_stop                   &
                         , mpi_check_rma_window_model
     use iso_c_binding, only : c_ptr, c_f_pointer
+#ifdef ENABLE_COARRAY
+    use parcel_nearest_caf_graph, only : caf_graph_t
+#else
     use parcel_nearest_graph, only : graph_t
 !     use parcel_nearest_p2p_graph, only : p2p_graph_t
 !     use parcel_nearest_rma_graph, only : rma_graph_t
 !     use parcel_nearest_shmem_graph, only : shmem_graph_t
+#endif
     use parcel_mpi, only : n_parcel_sends               &
                          , north_pid                    &
                          , south_pid                    &
@@ -90,10 +94,14 @@ module parcel_nearest
 
     type(nearest_type) :: near
 
+#ifdef ENABLE_COARRAY
+    type(caf_graph_t) :: tree
+#else
     class(graph_t), allocatable :: tree
 !     type(p2p_graph_t) :: tree
 !     type(rma_graph_t) :: tree
 !     type(shmem_graph_t) :: tree
+#endif
 
     integer :: n_neighbour_small(8)  ! number of small parcels received
 
