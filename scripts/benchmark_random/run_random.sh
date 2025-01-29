@@ -6,8 +6,8 @@ run_jobs() {
     # https://stackoverflow.com/a/6212408
     # https://stackoverflow.com/a/12128447
 
-
-    local fname=${1}
+    local machine=${1}
+    local fname="submit_${machine}_random.sh"
 
     # "gnu" or "cray"
     local compiler=${2}
@@ -28,6 +28,7 @@ run_jobs() {
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
+    echo "machine    = $machine"
     echo "fname      = $fname"
     echo "compiler   = $compiler"
     echo "bin_dir    = $bin_dir"
@@ -96,6 +97,7 @@ run_jobs() {
 # subcomm
 # enable_caf : "no" or "yes"
 
+machine="archer2"
 gnu_bin="/work/e710/e710/mf248/gnu/clustering/bin"
 cray_bin="/work/e710/e710/mf248/cray/clustering/bin"
 caf_bin="/work/e710/e710/mf248/cray-caf/clustering/bin"
@@ -129,11 +131,11 @@ for bin_dir in $gnu_bin $cray_bin $caf_bin; do
     fi
 
     # 1 node to 8 nodes
-    run_jobs "submit_random.sh" $comiler $bin_dir 1 5 256 512 80 160 7 10 "false" $enable_caf
+    run_jobs $machine $comiler $bin_dir 1 5 256 512 80 160 7 10 "false" $enable_caf
 
     # 2 nodes to 32 nodes
-    run_jobs "submit_random.sh" $compiler $bin_dir 1 5 512 512 160 160 8 12 "false" $enabl_caf
+    run_jobs $machine $compiler $bin_dir 1 5 512 512 160 160 8 12 "false" $enabl_caf
 
     # 8 nodes to 128 nodes
-    run_jobs "submit_random.sh" $compiler $bin_dir 1 5 1024 1024 320 320 10 14 "false" $enable_caf
+    run_jobs $machine $compiler $bin_dir 1 5 1024 1024 320 320 10 14 "false" $enable_caf
 done

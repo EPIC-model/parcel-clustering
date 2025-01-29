@@ -2,18 +2,20 @@
 
 run_job() {
 
-    local fname="submit_verify.sh"
+    local machine=${1}
+    local fname="submit_${machine}_verify.sh"
 
-    local compiler=${1}
-    local bin_dir=${2}
-    local comm_type=${3}
-    local n_samples=${4}
-    local seed=${5}
+    local compiler=${2}
+    local bin_dir=${3}
+    local comm_type=${4}
+    local n_samples=${5}
+    local seed=${6}
     local conda_dir=${CONDA_EXE%/*}
-    local conda_env=${6}
+    local conda_env=${7}
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
+    echo "machine    = $machine"
     echo "compiler   = $compiler"
     echo "bin_dir    = $bin_dir"
     echo "comm_type  = $comm_type"
@@ -70,15 +72,15 @@ fi
 
 for i in "p2p" "rma" "shmem"; do
     if test -d "$gnu_bin"; then
-        run_job "gnu" $gnu_bin $i $n_samples $seed $conda_env
+        run_job $machine "gnu" $gnu_bin $i $n_samples $seed $conda_env
     fi
 
     if test -d "$cray_bin"; then
-        run_job "cray" $cray_bin $i $n_samples $seed $conda_env
+        run_job $machine "cray" $cray_bin $i $n_samples $seed $conda_env
     fi
 done
 
 # Coarray Fortran (CAF) is a separate build:
 if test -d "$caf_bin"; then
-    run_job "cray" $caf_bin "caf" $n_samples $seed $conda_env
+    run_job $machine "cray" $caf_bin "caf" $n_samples $seed $conda_env
 fi
