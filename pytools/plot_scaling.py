@@ -64,6 +64,22 @@ try:
     def add_to_plot(ax, config, timings, cmap, marker, add_label=False):
         nodes = config['nodes']
 
+        # switch case:
+        # (see https://docs.python.org/3.10/whatsnew/3.10.html#pep-634-structural-pattern-matching, 28 Jan 2025)
+        method = ''
+        match config['graph']:
+            case 'caf':
+                method = 'CAF'
+            case 'p2p':
+                method = 'MPI-3 P2P'
+            case 'rma':
+                method = 'MPI-3 RMA'
+            case 'shmem':
+                method = 'SHMEM'
+            case _:
+                raise RuntimeError("No method called '" + config['graph'] + "'.")
+        # done
+
         avg_data = {}
         std_data = {}
         for long_name in timings:
@@ -103,6 +119,8 @@ try:
             label = None
             if add_label:
                 label = long_name
+            if "resolve graphs" in label:
+                label = label + ' (' + method + ')'
             ax.errorbar(x=nodes,
                         y=avg_data[long_name],
                         yerr=std_data[long_name],
@@ -147,10 +165,6 @@ try:
 
 
         ax.set_title(title)
-        ax.set_yscale('log', base=10)
-        ax.set_xscale('log', base=2)
-        ax.set_xlabel('number of nodes (1 node = 128 cores)')
-        ax.set_ylabel('run time (s)')
         ax.grid(which='both', linestyle='dashed', linewidth=0.25)
 
 
@@ -179,7 +193,7 @@ try:
 
         arg = {}
         arg['ideal scaling'] = None
-        for t in args.timings:
+        for t in labels:
             arg[t] = []
 
         for i in range(len(labels)):
@@ -196,6 +210,11 @@ try:
         # https://matplotlib.org/stable/gallery/text_labels_and_annotations/legend_demo.html
         ax.legend(loc='lower left', handles=h_, labels=arg.keys(),
                   handler_map={list: HandlerTuple(ndivide=None)})
+
+        ax.set_yscale('log', base=10)
+        ax.set_xscale('log', base=2)
+        ax.set_xlabel('number of nodes (1 node = 128 cores)')
+        ax.set_ylabel('run time (s)')
 
         # -----------------------------------------------------------
         # Save figure:
