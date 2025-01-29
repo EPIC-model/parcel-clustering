@@ -14,34 +14,36 @@ run_jobs() {
 
     mkdir -p $compiler; cd $compiler
 
-    local subcomm="false"
-
-    local nrepeat=${3}
-    local niter=${4}
-    local nx=${5}
-    local ny=${6}
-    local lx=${7}
-    local ly=${8}
-    local begin=${9}
-    local end=${10}
-    local subcomm=${11}
+    local bin_dir=${3}
+    local nrepeat=${4}
+    local niter=${5}
+    local nx=${6}
+    local ny=${7}
+    local lx=${8}
+    local ly=${9}
+    local begin=${10}
+    local end=${11}
+    local subcomm=${12}
+    local enable_caf=${13}
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
-    echo "fname    = $fname"
-    echo "compiler = $compiler"
-    echo "nrepeat  = $nrepeat"
-    echo "niter    = $niter"
-    echo "nx       = $nx"
-    echo "ny       = $ny"
-    echo "lx       = $lx"
-    echo "ly       = $ly"
-    echo "begin    = $begin"
-    echo "end      = $end"
+    echo "fname      = $fname"
+    echo "compiler   = $compiler"
+    echo "bin_dir    = $bin_dir"
+    echo "nrepeat    = $nrepeat"
+    echo "niter      = $niter"
+    echo "nx         = $nx"
+    echo "ny         = $ny"
+    echo "lx         = $lx"
+    echo "ly         = $ly"
+    echo "begin      = $begin"
+    echo "end        = $end"
     if ! test "$subcomm" = "true"; then
         subcomm="false"
     fi
-    echo "subcomm  = $subcomm"
+    echo "subcomm    = $subcomm"
+    echo "enable_caf = $enable_caf"
     echo "--------------------------------"
 
     for i in $(seq $begin 1 $end); do
@@ -69,6 +71,8 @@ run_jobs() {
         sed -i "s:--xlen LX:--xlen $lx:g" $fn
         sed -i "s:--ylen LY:--ylen $ly:g" $fn
 
+        sed -i "s:BIN_DIR:$bin_dir:g" $fn
+        sed -i "s:ENABLE_CAF:$enable_caf:g" $fn
         sed -i "s:SUBCOMM:$subcomm:g" $fn
 
         sbatch $fn
@@ -79,7 +83,8 @@ run_jobs() {
 
 # Argument order:
 # fname
-# compiler : cray, cray-caf or gnu
+# compiler : cray or gnu
+# bin_dir
 # nrepeat
 # niter
 # nx
@@ -89,14 +94,46 @@ run_jobs() {
 # begin
 # end
 # subcomm
+# enable_caf : "no" or "yes"
 
-for compiler in "cray"; do #"gnu" "cray"; do
+gnu_bin="/work/e710/e710/mf248/gnu/clustering/bin"
+cray_bin="/work/e710/e710/mf248/cray/clustering/bin"
+caf_bin="/work/e710/e710/mf248/cray-caf/clustering/bin"
+
+cray_compiler="cray"
+gnu_compiler="gnu"
+caf_compiler=$cray_compiler
+
+compiler=$gnu_compiler
+enable_caf="no"
+
+for bin_dir in $gnu_bin $cray_bin $caf_bin; do
+    if ! test -d "$bin_dir"; then
+        echo "No bin directory: $bin_dir"
+        break
+    fi
+
+    if test "$bin_dir" = "$gnu_bin"; then
+        compiler=$gnu_compiler
+        enable_caf="no"
+    fi
+
+    if test "$bin_dir" = "$cray_bin"; then
+        compiler=$cray_compiler
+        enable_caf="no"
+    fi
+
+    if test "$bin_dir" = "$caf_bin"; then
+        compiler=$caf_compiler
+        enable_caf="yes"
+    fi
+
     # 1 node to 8 nodes
-    run_jobs "submit_random.sh" $compiler 1 5 256 512 80 160 7 10 "false"
+    run_jobs "submit_random.sh" $comiler $bin_dir 1 5 256 512 80 160 7 10 "false" $enable_caf
 
     # 2 nodes to 32 nodes
-    run_jobs "submit_random.sh" $compiler 1 5 512 512 160 160 8 12 "false"
+    run_jobs "submit_random.sh" $compiler $bin_dir 1 5 512 512 160 160 8 12 "false" $enabl_caf
 
     # 8 nodes to 128 nodes
-    run_jobs "submit_random.sh" $compiler 1 5 1024 1024 320 320 10 14 "false"
+    run_jobs "submit_random.sh" $compiler $bin_dir 1 5 1024 1024 320 320 10 14 "false" $enable_caf
 done
