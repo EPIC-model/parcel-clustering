@@ -1,46 +1,84 @@
 #!/bin/bash
 
-fname="submit_verify.sh"
+run_job() {
 
-n_samples=1000
-seed=42
-l_enable_caf="false"
+    local fname="submit_verify.sh"
+    
+    local compiler=${1}
+    local bin_dir=${2}
+    local graph_type=${3}
+    local n_samples=${4}
+    local seed=${5}
+    local conda_dir=${CONDA_EXE%/*}
+    local conda_env=${6}
+    
+    echo "--------------------------------"
+    echo "Run jobs with following options:"
+    echo "compiler   = $compiler"
+    echo "bin_dir    = $bin_dir"
+    echo "graph_type = $graph_type"
+    echo "n_samples  = $n_samples"
+    echo "seed       = $seed"
+    echo "conda_dir  = $conda_dir"
+    echo "conda_env  = $conda_env"
+    echo "--------------------------------"
 
-for c in "gnu" "cray"; do
-    mkdir "$c"
-    cd "$c"
-    for i in "p2p" "rma" "shmem"; do
-        mkdir "$i"
-        cd "$i"
-        cp "../../$fname" .
+    mkdir -p "$compiler"
+    cd "$compiler"
 
-        sed -i "s:#SBATCH --job-name=JOBNAME:#SBATCH --job-name=$c-$i:g" $fname
-        sed -i "s:COMPILER:$c:g" $fname
-        sed -i "s:GRAPH_TYPE:$i:g" $fname
-        sed -i "s:N_SAMPLES:$n_samples:g" $fname
-        sed -i "s:SEED:$seed:g" $fname
-
-        echo "Submit job $i with $c. Running $n_samples samples with seed $seed."
-        sbatch $fname
-        cd ..
-    done
-    cd ..
-done
-
-# Run Coarray Fortran
-if test "$l_enable_caf" = "true"; then
-    cd "cray"
-    mkdir "caf"
-    cd "caf"
+    mkdir -p "$graph_type"
+    cd "$graph_type"
     cp "../../$fname" .
 
-    sed -i "s:#SBATCH --job-name=JOBNAME:#SBATCH --job-name=cray-caf:g" $fname
-    sed -i "s:COMPILER:cray-caf:g" $fname
-    sed -i "s:GRAPH_TYPE:caf:g" $fname
+    sed -i "s:#SBATCH --job-name=JOBNAME:#SBATCH --job-name=$compiler-$graph_type:g" $fname
+    sed -i "s:COMPILER:$compiler:g" $fname
+    sed -i "s:GRAPH_TYPE:$graph_type:g" $fname
     sed -i "s:N_SAMPLES:$n_samples:g" $fname
     sed -i "s:SEED:$seed:g" $fname
+    sed -i "s:BIN_DIR:$bin_dir:g" $fname
+    sed -i "s:CONDA_DIR:$conda_dir:g" $fname
+    sed -i "s:CONDA_ENV:$conda_env:g" $fname
 
-    echo "Submit job caf with cray. Running $n_samples samples with seed $seed."
+    echo "Submit job $graph_type with $compiler. Running $n_samples samples with seed $seed."
     sbatch $fname
-    cd ..
+    cd "../.."
+}
+
+# --------------------------------------------------------
+# User options:
+
+# number of samples
+n_samples=10
+
+# RNG seed
+seed=42
+
+# PYTHON CONDA environment
+conda_env="epic-env"
+
+# bin directories of executables:
+gnu_bin="/work/e710/e710/mf248/gnu/clustering/bin"
+cray_bin="/work/e710/e710/mf248/cray/clustering/bin"
+caf_bin="/work/e710/e710/mf248/cray-caf/clustering/bin"
+# --------------------------------------------------------
+
+
+if ! test "$CONDA_EXE"; then
+    echo "No CONDA environment."
+    exit 1
+fi
+
+for i in "p2p" "rma" "shmem"; do
+    if test -d "$gnu_bin"; then
+        run_job "gnu" $gnu_bin $i $n_samples $seed $conda_env
+    fi
+
+    if test -d "$cray_bin"; then
+        run_job "cray" $cray_bin $i $n_samples $seed $conda_env
+    fi
+done
+
+# Coarray Fortran (CAF) is a separate build:
+if test -d "$caf_bin"; then
+    run_job "cray" $caf_bin "caf" $n_samples $seed $conda_env
 fi
