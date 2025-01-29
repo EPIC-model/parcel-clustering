@@ -58,7 +58,7 @@ elif test "COMPILER" = "cray"; then
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
 fi
 
-if test "GRAPH_TYPE" = "shmem"; then
+if test "COMM_TYPE" = "shmem"; then
     echo "Setting SHMEM symmetric size"
     export SHMEM_SYMMETRIC_SIZE=1G
     export SHMEM_VERSION_DISPLAY=0
@@ -77,9 +77,9 @@ export PYTHONPATH=$PYTHONPATH:${exe_dir}
 
 PATH=${bin_dir}:$PATH
 
-echo "Run GRAPH_TYPE"
+echo "Run COMM_TYPE"
 
-if test "GRAPH_TYPE" = "shmem" || test "GRAPH_TYPE" = "caf"; then
+if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
     python ${exe_dir}/verify_cluster_algorithm.py \
         --n_ranks 16 32 64 128 256 \
         --n_parcel_per_cell 40 \
@@ -91,7 +91,7 @@ if test "GRAPH_TYPE" = "shmem" || test "GRAPH_TYPE" = "caf"; then
         --n_samples N_SAMPLES \
         --cmd srun \
         --seed SEED \
-        --graph-type "GRAPH_TYPE"
+        --comm-type "COMM_TYPE"
 else
     python ${exe_dir}/verify_cluster_algorithm.py \
         --n_ranks 16 32 64 128 256 \
@@ -104,6 +104,6 @@ else
         --n_samples N_SAMPLES \
         --cmd srun \
         --seed SEED \
-        --graph-type "GRAPH_TYPE" \
+        --comm-type "COMM_TYPE" \
         --subcomm
 fi

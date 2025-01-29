@@ -32,7 +32,7 @@ program benchmark_read
     character(512)   :: fname, ncfname
     integer          :: ncid, n, m, niter
     integer          :: ncells(3), offset, nfiles
-    character(len=5) :: graph_type ! p2p, rma or shmem
+    character(len=5) :: comm_type ! p2p, rma, shmem or caf
     logical          :: l_subcomm
 
     call mpi_env_initialise
@@ -62,7 +62,7 @@ program benchmark_read
     call parcels%allocate(max_num_parcels)
 
 #ifndef ENABLE_COARRAY
-    select case(graph_type)
+    select case(comm_type)
         case ('p2p')
             allocate(p2p_graph_t :: tree)
         case ('rma')
@@ -137,7 +137,7 @@ contains
         i = 0
         offset = 0
         nfiles = 0
-        graph_type = 'p2p'
+        comm_type = 'p2p'
         l_subcomm = .false.
         ncfname = ''
 
@@ -167,12 +167,12 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(f16.0)') parcel%size_factor
-            else if (arg == '--graph-type') then
+            else if (arg == '--comm-type') then
                 i = i + 1
                 call get_command_argument(i, arg)
-                graph_type = trim(arg)
+                comm_type = trim(arg)
 #ifdef ENABLE_COARRAY
-                call mpi_print("WARNING: Ignoring 'graph_type' argument. Coarray is enabled.")
+                call mpi_print("WARNING: Ignoring 'comm_type' argument. Coarray is enabled.")
 #endif
             else if (arg == '--subcomm') then
                 l_subcomm = .true.
@@ -188,7 +188,7 @@ contains
                              "--offset [int] ",                                 &
                              "--nfiles [int] ",                                 &
                              "--subcomm (optional, disabled for shmem) ",       &
-                             "--graph-type [p2p, rma, shmem] ",                 &
+                             "--comm-type [p2p, rma, shmem] ",                  &
                              "--ncfname [string]",                              &
                              "--size_factor [float]"
                 endif
@@ -202,7 +202,7 @@ contains
         endif
 
 #ifdef ENABLE_COARRAY
-        graph_type = 'caf'
+        comm_type = 'caf'
 #endif
 
         if (world%rank == world%root) then
@@ -212,7 +212,7 @@ contains
             print *, "niter", niter
             print *, "size_factor", parcel%size_factor
             print *, "enabled subcommunicator", l_subcomm
-            print *, "graph type: " // graph_type
+            print *, "comm type: " // comm_type
             print *, "netCDF output file name: " // trim(ncfname)
         endif
 
