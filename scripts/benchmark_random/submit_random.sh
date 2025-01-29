@@ -16,7 +16,11 @@
 #   using threading.
 export OMP_NUM_THREADS=1
 export OMP_PLACES=cores
+
+# Set the eager limit
+# (see also https://docs.archer2.ac.uk/user-guide/tuning/#setting-the-eager-limit-on-archer2)
 export FI_OFI_RXM_SAR_LIMIT=64K
+
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
 export WORK_DIR=/work/e710/e710/mf248
@@ -59,13 +63,22 @@ elif test "COMPILER" = "cray" || test "COMPILER" = "cray-caf"; then
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
 fi
 
-
-echo "Setting SHMEM symmetric size"
-export SHMEM_SYMMETRIC_SIZE=1G
-export SHMEM_VERSION_DISPLAY=0
-export SHMEM_ENV_DISPLAY=0
+if test "COMPILER" = "cray-caf"; then
+    echo "Setting PGAS symmetric size"
+    export PGAS_MEMINFO_DISPLAY=1
+    export XT_SYMMETRIC_HEAP_SIZE=1G
+    export CRAY_PGAS_MAX_CONCURRENCY=1
+else
+    echo "Setting SHMEM symmetric size"
+    export SHMEM_SYMMETRIC_SIZE=1G
+    export SHMEM_VERSION_DISPLAY=0
+    export SHMEM_ENV_DISPLAY=0
+fi
 
 export SLURM_CPU_FREQ_REQ=2000000
+
+module load craype-hugepages2M
+export HUGETLB_VERBOSE=2
 
 echo "Running on $SLURM_NNODES nodes with $SLURM_NTASKS tasks."
 
