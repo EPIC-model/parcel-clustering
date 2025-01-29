@@ -27,7 +27,7 @@ program benchmark_verify
     integer              :: seed
     double precision     :: lx, ly, lz
     logical              :: l_setup, l_shuffle, l_subcomm
-    character(len=5)     :: graph_type ! shmem, rma, p2p
+    character(len=5)     :: comm_type ! shmem, rma, p2p or caf
 
     call mpi_env_initialise
 
@@ -47,7 +47,7 @@ program benchmark_verify
     call parcels%allocate(max_num_parcels)
 
 #ifndef ENABLE_COARRAY
-    select case(graph_type)
+    select case(comm_type)
         case ('p2p')
             allocate(p2p_graph_t :: tree)
         case ('rma')
@@ -155,7 +155,7 @@ contains
         l_setup = .false.
         l_shuffle = .false.
         l_subcomm = .false.
-        graph_type = 'p2p'
+        comm_type = 'p2p'
         seed = 42
 
 
@@ -208,12 +208,12 @@ contains
                 l_shuffle = .true.
             else if (arg == '--subcomm') then
                 l_subcomm = .true.
-            else if (arg == '--graph-type') then
+            else if (arg == '--comm-type') then
                 i = i + 1
                 call get_command_argument(i, arg)
-                graph_type = trim(arg)
+                comm_type = trim(arg)
 #ifdef ENABLE_COARRAY
-                call mpi_print("WARNING: Ignoring 'graph_type' argument. Coarray is enabled.")
+                call mpi_print("WARNING: Ignoring 'comm_type' argument. Coarray is enabled.")
 #endif
             else if (arg == '--seed') then
                 i = i + 1
@@ -227,7 +227,7 @@ contains
                              "--shuffle (optional) ",                                 &
                              "--seed [int] ",                                         &
                              "--subcomm (optional, disabled for shmem) ",             &
-                             "--graph-type [p2p, rma, shmem]"
+                             "--comm-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
             endif
@@ -235,7 +235,7 @@ contains
         end do
 
 #ifdef ENABLE_COARRAY
-        graph_type = 'caf'
+        comm_type = 'caf'
 #endif
 
         if (world%rank == world%root) then
@@ -251,7 +251,7 @@ contains
             print *, "shuffle parcels", l_shuffle
             print *, "seed", seed
             print *, "enabled subcommunicator", l_subcomm
-            print *, "graph type: " // graph_type
+            print *, "comm type: " // comm_type
         endif
 
     end subroutine parse_command_line

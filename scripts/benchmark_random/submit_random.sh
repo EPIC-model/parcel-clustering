@@ -103,7 +103,7 @@ for i in $(seq 1 NREPEAT); do
             --niter NITER \
             --shuffle \
             --ncfname "COMPILER-caf-random-nx-NX-ny-NY-nodes-NODES.nc" \
-            --graph-type "caf"
+            --comm-type "caf"
     else
         srun --nodes=NODES \
             --ntasks=NTASKS \
@@ -124,7 +124,7 @@ for i in $(seq 1 NREPEAT); do
             --niter NITER \
             --shuffle \
             --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nodes-NODES.nc" \
-            --graph-type "shmem"
+            --comm-type "shmem"
         for g in "p2p" "rma"; do
             srun --nodes=NODES \
                 --ntasks=NTASKS \
@@ -146,7 +146,7 @@ for i in $(seq 1 NREPEAT); do
                 --niter NITER \
                 --shuffle \
                 --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nodes-NODES.nc" \
-                --graph-type "$g"
+                --comm-type "$g"
 
             if test "SUBCOMM" = "true"; then
                 srun --nodes=NODES \
@@ -169,7 +169,7 @@ for i in $(seq 1 NREPEAT); do
                     --niter NITER \
                     --shuffle \
                     --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nodes-NODES-subcomm.nc" \
-                    --graph-type "$g" \
+                    --comm-type "$g" \
                     --subcomm
             fi
         done

@@ -29,7 +29,7 @@ program benchmark_random
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc, l_subcomm
     character(len=512)   :: ncfname
-    character(len=5)     :: graph_type ! shmem, rma, p2p
+    character(len=5)     :: comm_type ! shmem, rma, p2p or caf
     character(len=1)     :: snum
     integer(kind=int64)  :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
 
@@ -52,7 +52,7 @@ program benchmark_random
     call init_rng(seed)
 
 #ifndef ENABLE_COARRAY
-    select case(graph_type)
+    select case(comm_type)
         case ('p2p')
             allocate(p2p_graph_t :: tree)
         case ('rma')
@@ -157,7 +157,7 @@ contains
         l_shuffle = .false.
         l_variable_nppc = .false.
         l_subcomm = .false.
-        graph_type = 'p2p'
+        comm_type = 'p2p'
         seed = 42
         ncfname = ''
 
@@ -227,12 +227,12 @@ contains
                 l_variable_nppc = .true.
             else if (arg == '--subcomm') then
                 l_subcomm = .true.
-            else if (arg == '--graph-type') then
+            else if (arg == '--comm-type') then
                 i = i + 1
                 call get_command_argument(i, arg)
-                graph_type = trim(arg)
+                comm_type = trim(arg)
 #ifdef ENABLE_COARRAY
-                call mpi_print("WARNING: Ignoring 'graph_type' argument. Coarray is enabled.")
+                call mpi_print("WARNING: Ignoring 'comm_type' argument. Coarray is enabled.")
 #endif
             else if (arg == '--seed') then
                 i = i + 1
@@ -254,7 +254,7 @@ contains
                              "--subcomm (optional, disabled for shmem) ",        &
                              "--seed [int] ",                                    &
                              "--ncfname [string]",                               &
-                             "--graph-type [p2p, rma, shmem]"
+                             "--comm-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
             endif
@@ -266,7 +266,7 @@ contains
         endif
 
 #ifdef ENABLE_COARRAY
-        graph_type = "caf"
+        comm_type = "caf"
 #endif
 
         if (world%rank == world%root) then
@@ -287,7 +287,7 @@ contains
             print *, "seed", seed
             print *, "enabled subcommunicator", l_subcomm
             print *, "variable number of parcels/cell:", l_variable_nppc
-            print *, "graph type: " // graph_type
+            print *, "comm type: " // comm_type
             print *, "netCDF file name: " // trim(ncfname)
         endif
 

@@ -3,20 +3,20 @@
 run_job() {
 
     local fname="submit_verify.sh"
-    
+
     local compiler=${1}
     local bin_dir=${2}
-    local graph_type=${3}
+    local comm_type=${3}
     local n_samples=${4}
     local seed=${5}
     local conda_dir=${CONDA_EXE%/*}
     local conda_env=${6}
-    
+
     echo "--------------------------------"
     echo "Run jobs with following options:"
     echo "compiler   = $compiler"
     echo "bin_dir    = $bin_dir"
-    echo "graph_type = $graph_type"
+    echo "comm_type  = $comm_type"
     echo "n_samples  = $n_samples"
     echo "seed       = $seed"
     echo "conda_dir  = $conda_dir"
@@ -26,20 +26,20 @@ run_job() {
     mkdir -p "$compiler"
     cd "$compiler"
 
-    mkdir -p "$graph_type"
-    cd "$graph_type"
+    mkdir -p "$comm_type"
+    cd "$comm_type"
     cp "../../$fname" .
 
-    sed -i "s:#SBATCH --job-name=JOBNAME:#SBATCH --job-name=$compiler-$graph_type:g" $fname
+    sed -i "s:#SBATCH --job-name=JOBNAME:#SBATCH --job-name=$compiler-$comm_type:g" $fname
     sed -i "s:COMPILER:$compiler:g" $fname
-    sed -i "s:GRAPH_TYPE:$graph_type:g" $fname
+    sed -i "s:COMM_TYPE:$comm_type:g" $fname
     sed -i "s:N_SAMPLES:$n_samples:g" $fname
     sed -i "s:SEED:$seed:g" $fname
     sed -i "s:BIN_DIR:$bin_dir:g" $fname
     sed -i "s:CONDA_DIR:$conda_dir:g" $fname
     sed -i "s:CONDA_ENV:$conda_env:g" $fname
 
-    echo "Submit job $graph_type with $compiler. Running $n_samples samples with seed $seed."
+    echo "Submit job $comm_type with $compiler. Running $n_samples samples with seed $seed."
     sbatch $fname
     cd "../.."
 }

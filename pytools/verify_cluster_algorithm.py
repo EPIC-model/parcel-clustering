@@ -77,7 +77,7 @@ try:
     )
 
     parser.add_argument(
-        "--graph-type",
+        "--comm-type",
         type=str,
         choices=["p2p", "rma", "shmem", "caf"],
         default="p2p",
@@ -145,7 +145,7 @@ try:
         flags = flags + ' --shuffle'
 
     pflags = flags                              \
-           + ' --graph-type ' + args.graph_type
+           + ' --comm-type ' + args.comm_type
 
     if args.subcomm:
         pflags = pflags + ' --subcomm'
