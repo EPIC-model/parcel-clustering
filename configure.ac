@@ -323,6 +323,7 @@ AC_MSG_CHECKING([whether we are enabling Fortran Coarray])
 if test "x$ENABLE_COARRAY" = "xyes"; then
     AC_MSG_RESULT([yes])
     FCFLAGS="$FCFLAGS -DENABLE_COARRAY"
+    AX_CHECK_COMPILE_FLAG([-hcaf], [FCFLAGS="$FCFLAGS -hcaf"])
 else
     AC_MSG_RESULT([no])
 fi
