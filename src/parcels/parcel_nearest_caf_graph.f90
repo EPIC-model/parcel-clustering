@@ -373,6 +373,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
+            !dir$ pgas defer_sync
             this%l_available(ic)[pe] = val
             call stop_timer(this%put_timer)
         endif
@@ -393,6 +394,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
+            !dir$ pgas defer_sync
             this%l_leaf(ic)[pe] = val
             call stop_timer(this%put_timer)
         endif
@@ -413,6 +415,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
+            !dir$ pgas defer_sync
             this%l_merged(ic)[pe] = val
             call stop_timer(this%put_timer)
         endif
