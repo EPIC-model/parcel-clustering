@@ -93,6 +93,25 @@ try:
                 nc_file.close()
             return avg_data, std_data
 
+
+        def get_mesh(self, grid):
+            pat = re.compile(r"nx-(\d*)-ny-(\d*)")
+            g = re.match(pat, grid)
+            return int(g.group(1)), int(g.group(2))
+
+        def get_sorted_grids(self):
+            pairs = []
+            for grid in self.grids:
+                nx, ny = self.get_mesh(grid)
+                pairs.append((nx, ny))
+            # (see also https://stackoverflow.com/a/68813294)
+            pairs.sort(key=lambda n: (n[0], n[1]))
+            grids = []
+            for (nx, ny) in pairs:
+                grids.append('nx-' + str(nx) + '-ny-' + str(ny))
+            return grids
+
+
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     def add_to_plot(ax, config, timings, cmap, marker, add_label=False):
@@ -174,6 +193,8 @@ try:
 
     def generate_scaling_plot(dset, args):
 
+        print("Generating a " + args.plot + " plot.")
+
         if args.figure == 'single':
             n = len(dset.comms)
             nrows = int(np.sqrt(n))
@@ -254,11 +275,11 @@ try:
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    def generate_efficiency_plot(dset, args):
+    def generate_strong_efficiency_plot(dset, args):
 
         timing = args.timings[0]
 
-        print("Generating an effiency plot of " + timing + ".")
+        print("Generating a " + args.plot + " plot of " + timing + ".")
 
         tf = timing.replace(' ', '-')
         for c in ['(', ')']:
@@ -266,9 +287,9 @@ try:
 
         cmap = plt.get_cmap(args.colour_map)
 
-        if args.figure == 'single':
+        grids = dset.get_sorted_grids()
 
-            grids = sorted(dset.grids)
+        if args.figure == 'single':
 
             n = len(grids)
             nrows = int(np.sqrt(n))
@@ -283,8 +304,11 @@ try:
                                     figsize=(5*ncols, 5*nrows),
                                     dpi=400)
             axs_fl = axs.flatten()
+            for j, grid in enumerate(grids):
 
-            for j, grid in enumerate(sorted(grids)):
+                nx, ny = dset.get_mesh(grid)
+                axs[j].set_title(r'$(nx = ' + str(nx) + r')\times(' + r'ny = ' + str(ny) + r')$')
+
                 axs[j].grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
 
                 # -----------------------------------------------------------
@@ -325,11 +349,11 @@ try:
             # -----------------------------------------------------------
             # Save figure:
             plt.tight_layout()
-            fname = args.compiler_suite + '-' + tf + '-strong-effiency.pdf'
+            fname = args.compiler_suite + '-' + tf + '-' + args.plot + '.pdf'
             plt.savefig(fname, bbox_inches='tight')
             plt.close()
         else:
-            for grid in sorted(dset.grids):
+            for grid in grids:
                 # -----------------------------------------------------------
                 # Create figure:
                 plt.figure(figsize=(8, 7), dpi=200)
@@ -355,7 +379,7 @@ try:
                             offset=offset,
                             width=width,
                             color=cmap(i),
-                            edgecolor='white',
+                            edgecolor='black',
                             hatch=args.hatches[i],
                             label=label)
 
@@ -370,7 +394,133 @@ try:
                 # -----------------------------------------------------------
                 # Save figure:
                 plt.tight_layout()
-                fname = args.compiler_suite + '-' + grid + '-' + tf + '-strong-effiency.pdf'
+                fname = args.compiler_suite + '-' + grid + '-' + tf + '-' + args.plot + '.pdf'
+                plt.savefig(fname, bbox_inches='tight')
+                plt.close()
+
+    # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    def generate_strong_efficiency_plot(dset, args):
+
+        timing = args.timings[0]
+
+        print("Generating a " + args.plot + " plot of " + timing + ".")
+
+        tf = timing.replace(' ', '-')
+        for c in ['(', ')']:
+            tf = tf.replace(c, '')
+
+        cmap = plt.get_cmap(args.colour_map)
+
+        grids = dset.get_sorted_grids()
+
+        grids = dset.get_sorted_grids()
+
+        if args.figure == 'single':
+            n = len(grids)
+            nrows = int(np.sqrt(n))
+            ncols = int(n / nrows + 0.5)
+
+            # -----------------------------------------------------------
+            # Create figure:
+            fig, axs = plt.subplots(nrows=nrows,
+                                    ncols=ncols,
+                                    sharey=True,
+                                    sharex=False,
+                                    figsize=(5*ncols, 5*nrows),
+                                    dpi=400)
+            axs_fl = axs.flatten()
+            for j, grid in enumerate(grids):
+
+                nx, ny = dset.get_mesh(grid)
+                axs[j].set_title(r'$(nx = ' + str(nx) + r')\times(' + r'ny = ' + str(ny) + r')$')
+
+                axs[j].grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
+
+                # -----------------------------------------------------------
+                # Add individual scaling:
+                comms = sorted(args.comm)
+                n_comms = len(comms)
+                width= 0.4 / n_comms
+                for i, comm in enumerate(comms):
+                    tag = args.compiler_suite + '-' + comm + '-' + args.test_case + '-' + grid
+
+                    axs[j].axhline(y=1, linestyle='solid', color='black', linewidth=0.75)
+
+                    label = dset.titles[comm]
+                    offset = width * (i - 0.5*n_comms)
+                    add_bar(axs[j],
+                            dset,
+                            tag,
+                            timing,
+                            comm,
+                            args,
+                            offset=offset,
+                            width=width,
+                            color=cmap(i),
+                            edgecolor='black',
+                            hatch=args.hatches[i],
+                            label=label)
+
+                    axs[j].legend(loc='upper left', ncols=int((n_comms+1) / 2))
+
+                    axs[j].set_xlabel('number of nodes (1 node = 128 cores)')
+
+            if nrows > 1:
+                for i in range(nrows):
+                    axs[i, 0].set_ylabel('strong parallel efficiency')
+            else:
+                axs[0].set_ylabel('strong parallel efficiency')
+
+            # -----------------------------------------------------------
+            # Save figure:
+            plt.tight_layout()
+            fname = args.compiler_suite + '-' + tf + '-' + args.plot + '.pdf'
+            plt.savefig(fname, bbox_inches='tight')
+            plt.close()
+        else:
+
+            for grid in grids:
+                # -----------------------------------------------------------
+                # Create figure:
+                plt.figure(figsize=(8, 7), dpi=200)
+                ax = plt.gca()
+                ax.grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
+
+                # -----------------------------------------------------------
+                # Add individual scaling:
+                comms = sorted(args.comm)
+                n_comms = len(comms)
+                width= 0.4 / n_comms
+                for i, comm in enumerate(comms):
+                    tag = args.compiler_suite + '-' + comm + '-' + args.test_case + '-' + grid
+
+                    label = dset.titles[comm]
+                    offset = width * (i - 0.5*n_comms)
+                    add_bar(ax,
+                            dset,
+                            tag,
+                            timing,
+                            comm,
+                            args,
+                            offset=offset,
+                            width=width,
+                            color=cmap(i),
+                            edgecolor='black',
+                            hatch=args.hatches[i],
+                            label=label)
+
+                ax.legend(loc='upper left', ncols=int((n_comms+1) / 2))
+
+                ax.axhline(y=1, linestyle='dashed', color='black')
+
+                ax.set_xlabel('number of nodes (1 node = 128 cores)')
+                ax.set_ylabel('strong efficiency')
+
+                # -----------------------------------------------------------
+                # Save figure:
+                plt.tight_layout()
+                fname = args.compiler_suite + '-' + grid + '-' + tf + '-' + args.plot + '.pdf'
                 plt.savefig(fname, bbox_inches='tight')
                 plt.close()
 
@@ -438,11 +588,14 @@ try:
 
             avg_data, std_data = dset.get_data(config, nodes, args.timings)
 
+            # Calculate strong parallel efficiency:
+            #   S(p) = T(1) / T(p)
+            #   E(p) = S(p) / p
             speedup = avg_data[timing][0] / avg_data[timing]
             p = nodes / nodes[0]
             eff = speedup / p
-            n = len(p)
-            x = np.arange(n)
+
+            x = np.arange(len(eff))
             ax.bar(x=x+offset,
                    height=eff,
                    align='edge',
@@ -533,18 +686,23 @@ try:
     parser.add_argument(
         "--plot",
         type=str,
-        default='scaling',
-        choices=['scaling', 'weak-efficiency', 'strong-efficiency'],
+        default='weak-strong-scaling',
+        choices=['weak-strong-scaling', 'strong-efficiency'],
         help="Plot scaling or efficiency figures.")
 
     args = parser.parse_args()
 
     dset = DataSet(args.path, args.test_case)
 
-    if args.plot == 'scaling':
-        generate_scaling_plot(dset, args=args)
-    else:
-        generate_efficiency_plot(dset, args=args)
+    match args.plot:
+        case 'weak-strong-scaling':
+            generate_scaling_plot(dset, args=args)
+        case 'strong-efficiency':
+            generate_strong_efficiency_plot(dset, args=args)
+        case _:
+            # raise error even though it is impossible to land here
+            raise RuntimeError("No plotting functionality '" + args.plot + "'.")
+    # done match
 
 except Exception as ex:
     print(ex, flush=True)
