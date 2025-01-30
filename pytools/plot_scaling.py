@@ -174,7 +174,7 @@ try:
 
     def generate_scaling_plot(dset, args):
 
-        if 'all' in args.comm:
+        if args.figure == 'single':
             n = len(dset.comms)
             nrows = int(np.sqrt(n))
             ncols = int(n / nrows + 0.5)
@@ -187,29 +187,33 @@ try:
                                     figsize=(5*ncols, 5*nrows),
                                     dpi=400)
 
-            axs = axs.flatten()
+            axs_fl = axs.flatten()
             comms = sorted(dset.comms)
             for i, comm in enumerate(comms):
-                axs[i].grid(which='both', linestyle='dashed', linewidth=0.25)
+                axs_fl[i].grid(which='both', linestyle='dashed', linewidth=0.25)
 
                 # -----------------------------------------------------------
                 # Add individual scaling:
                 tag = args.compiler_suite + '-' + comm + '-' + args.test_case
-                add_line(axs[i], dset, tag, comm, args)
+                add_line(axs_fl[i], dset, tag, comm, args)
 
                 # -----------------------------------------------------------
                 # Create legend where markers share a single legend entry:
-                add_legend(axs[i],
+                add_legend(axs_fl[i],
                            title=r'\bfseries{' + dset.titles[comm] + r'}',
                            alignment='left')
 
-                axs[i].set_yscale('log', base=10)
-                axs[i].set_xscale('log', base=2)
+                axs_fl[i].set_yscale('log', base=10)
+                axs_fl[i].set_xscale('log', base=2)
 
                 if i >= (nrows - 1) * ncols:
-                    axs[i].set_xlabel('number of nodes (1 node = 128 cores)')
+                    axs_fl[i].set_xlabel('number of nodes (1 node = 128 cores)')
 
-            axs[0].set_ylabel('run time (s)')
+            if nrows > 1:
+                for i in range(nrows):
+                    axs[i, 0].set_ylabel('run time (s)')
+            else:
+                axs[0].set_ylabel('run_time (s)')
 
             # -----------------------------------------------------------
             # Save figure:
@@ -252,8 +256,78 @@ try:
 
     def generate_efficiency_plot(dset, args):
 
-        if 'all' in args.comm:
-            raise RuntimeError("Not yet implemented.")
+        timing = args.timings[0]
+
+        print("Generating an effiency plot of " + timing + ".")
+
+        tf = timing.replace(' ', '-')
+        for c in ['(', ')']:
+            tf = tf.replace(c, '')
+
+        cmap = plt.get_cmap(args.colour_map)
+
+        if args.figure == 'single':
+
+            grids = sorted(dset.grids)
+
+            n = len(grids)
+            nrows = int(np.sqrt(n))
+            ncols = int(n / nrows + 0.5)
+
+            # -----------------------------------------------------------
+            # Create figure:
+            fig, axs = plt.subplots(nrows=nrows,
+                                    ncols=ncols,
+                                    sharey=True,
+                                    sharex=False,
+                                    figsize=(5*ncols, 5*nrows),
+                                    dpi=400)
+            axs_fl = axs.flatten()
+
+            for j, grid in enumerate(sorted(grids)):
+                axs[j].grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
+
+                # -----------------------------------------------------------
+                # Add individual scaling:
+                comms = sorted(args.comm)
+                n_comms = len(comms)
+                width= 0.4 / n_comms
+                for i, comm in enumerate(comms):
+                    tag = args.compiler_suite + '-' + comm + '-' + args.test_case + '-' + grid
+
+                    axs[j].axhline(y=1, linestyle='solid', color='black', linewidth=0.75)
+
+                    label = dset.titles[comm]
+                    offset = width * (i - 0.5*n_comms)
+                    add_bar(axs[j],
+                            dset,
+                            tag,
+                            timing,
+                            comm,
+                            args,
+                            offset=offset,
+                            width=width,
+                            color=cmap(i),
+                            edgecolor='black',
+                            hatch=args.hatches[i],
+                            label=label)
+
+                    axs[j].legend(loc='upper left', ncols=int((n_comms+1) / 2))
+
+                    axs[j].set_xlabel('number of nodes (1 node = 128 cores)')
+
+            if nrows > 1:
+                for i in range(nrows):
+                    axs[i, 0].set_ylabel('strong parallel efficiency')
+            else:
+                axs[0].set_ylabel('strong parallel efficiency')
+
+            # -----------------------------------------------------------
+            # Save figure:
+            plt.tight_layout()
+            fname = args.compiler_suite + '-' + tf + '-strong-effiency.pdf'
+            plt.savefig(fname, bbox_inches='tight')
+            plt.close()
         else:
             for grid in sorted(dset.grids):
                 # -----------------------------------------------------------
@@ -270,11 +344,23 @@ try:
                 for i, comm in enumerate(comms):
                     tag = args.compiler_suite + '-' + comm + '-' + args.test_case + '-' + grid
 
+                    label = dset.titles[comm]
                     offset = width * (i - 0.5*n_comms)
-                    add_bar(ax, dset, tag, comm, args, offset=offset, width=width)
+                    add_bar(ax,
+                            dset,
+                            tag,
+                            timing,
+                            comm,
+                            args,
+                            offset=offset,
+                            width=width,
+                            color=cmap(i),
+                            edgecolor='white',
+                            hatch=args.hatches[i],
+                            label=label)
 
 
-                ax.legend(loc='upper left')
+                ax.legend(loc='upper left', ncols=int((n_comms+1) / 2))
 
                 ax.axhline(y=1, linestyle='dashed', color='black')
 
@@ -284,8 +370,8 @@ try:
                 # -----------------------------------------------------------
                 # Save figure:
                 plt.tight_layout()
-                plt.savefig(args.compiler_suite + '-' + grid + '-strong-effiency.pdf',
-                            bbox_inches='tight')
+                fname = args.compiler_suite + '-' + grid + '-' + tf + '-strong-effiency.pdf'
+                plt.savefig(fname, bbox_inches='tight')
                 plt.close()
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -327,15 +413,19 @@ try:
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    def add_bar(ax, dset, tag, comm, args, offset, width):
+    def add_bar(ax, dset, tag, timing, comm, args, offset, **kwargs):
 
         configs = dset.configs
 
-        cmap = plt.get_cmap(args.colour_map)
+        markers = args.markers
 
         groups = list(configs.keys())
 
-        label = dset.titles[comm]
+        n_conf = sum(tag in group for group in groups)
+
+        if n_conf > len(markers):
+            raise RuntimeError('Not enough markers. ' + \
+                'Please add more to the command line with --markers')
 
         for group in groups:
 
@@ -348,16 +438,15 @@ try:
 
             avg_data, std_data = dset.get_data(config, nodes, args.timings)
 
-            speedup = avg_data['parcel merge'][0] / avg_data['parcel merge']
+            speedup = avg_data[timing][0] / avg_data[timing]
             p = nodes / nodes[0]
             eff = speedup / p
             n = len(p)
             x = np.arange(n)
             ax.bar(x=x+offset,
                    height=eff,
-                   width=width,
                    align='edge',
-                   label=label)
+                   **kwargs)
 
             ax.set_xticks(x, nodes)
 
@@ -386,11 +475,19 @@ try:
     )
 
     parser.add_argument(
+        "--figure",
+        type=str,
+        default='single',
+        choices=['single', 'multiple'],
+        help="Plot single figure all multiple figures.",
+    )
+
+    parser.add_argument(
         "--comm",
         type=str,
         nargs='+',
-        default='all',
-        choices=['all', 'p2p', 'rma', 'shmem', 'caf'],
+        default=['p2p', 'rma', 'shmem'],
+        choices=['p2p', 'rma', 'shmem', 'caf'],
         help="Communication method.",
     )
 
@@ -398,7 +495,7 @@ try:
         "--timings",
         type=str,
         nargs='+',
-        default=['parcel merge', 'merge nearest', 'graph resolve'],
+        default=['graph resolve'],
         #default=['parcel merge (total)', 'find nearest', 'build graphs', 'resolve graphs'],
         help="Timer data to visualise.",
     )
@@ -422,6 +519,14 @@ try:
         type=str,
         nargs='+',
         default=['o', 's', 'D'],
+        help="Markers for line plot."
+    )
+
+    parser.add_argument(
+        "--hatches",
+        type=str,
+        nargs='+',
+        default=['o', '/', 'x', '*', '\\', '|'],
         help="Markers for line plot."
     )
 
