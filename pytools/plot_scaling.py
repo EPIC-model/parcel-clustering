@@ -648,8 +648,7 @@ try:
         "--timings",
         type=str,
         nargs='+',
-        default=['graph resolve'],
-        #default=['parcel merge (total)', 'find nearest', 'build graphs', 'resolve graphs'],
+        default=['parcel merge (total)', 'find nearest', 'build graphs', 'resolve graphs'],
         help="Timer data to visualise.",
     )
 
