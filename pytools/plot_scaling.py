@@ -17,49 +17,81 @@ try:
     #
     class DataSet:
 
-        def __init__(self):
+        def __init__(self, path, test_case):
             self.compilers = set()
             self.grids = set()
-            self.graphs = set()
+            self.comms = set()
             self.groups = set()
 
-        def get_configurations(self, path, test_case):
+            self.titles = {
+                'p2p':   r'MPI-3 P2P', # communication',
+                'rma':   r'MPI-3 RMA', # communication',
+                'shmem': r'SHMEM', # communication',
+                'caf':   r'Coarray Fortran'
+            }
+
             tc = '-' + test_case + '-'
             pattern = re.compile(r"(\w*)-(\w*)" + tc + r"(nx-\d*-ny-\d*)-nodes-(\d*).nc")
 
-            configs = {}
+            self.configs = {}
             for fname in os.listdir(path=path):
                 m = re.match(pattern, fname)
                 if not m is None:
                     group = m.group(1) + '-' + m.group(2) + tc + m.group(3)
                     self.groups.add(group)
                     self.compilers.add(m.group(1))
-                    self.graphs.add(m.group(2))
+                    self.comms.add(m.group(2))
                     self.grids.add(m.group(3))
-                    if not group in configs.keys():
-                        configs[group] = {
+                    if not group in self.configs.keys():
+                        self.configs[group] = {
                             'basename': group + '-nodes-',
                             'compiler': m.group(1),
-                            'graph':    m.group(2),
+                            'comm':     m.group(2),
                             'grid':     m.group(3),
                             'nodes':    []
                         }
-                    configs[group]['nodes'].append(int(m.group(4)))
+                    self.configs[group]['nodes'].append(int(m.group(4)))
 
-            print("Found", len(configs.keys()), "different configurations. There are")
+            print("Found", len(self.configs.keys()), "different configurations. There are")
             print("\t", len(self.compilers), "compiler(s):", self.compilers)
-            print("\t", len(self.graphs), "graph method(s):", self.graphs)
+            print("\t", len(self.comms), "comm method(s):", self.comms)
             print("\t", len(self.grids), "grid configuration(s):", self.grids)
             print()
 
             # sort nodes
             for group in self.groups:
-                if not group in configs.keys():
+                if not group in self.configs.keys():
                     raise KeyError("Group '" + group + "' not found.")
-                config = configs[group]
+                config = self.configs[group]
                 config['nodes'].sort()
 
-            return configs
+
+        def get_data(self, config, nodes, timings):
+            avg_data = {}
+            std_data = {}
+            for long_name in timings:
+                avg_data[long_name] = np.zeros(len(nodes))
+                std_data[long_name] = np.zeros(len(nodes))
+
+            for i, node in enumerate(nodes):
+                fname = config['basename'] + str(node) + '.nc'
+
+                nc_file = nc.Dataset(fname, "r", format="NETCDF4")
+
+                lvars = list(nc_file.variables.keys())
+
+                for var in lvars:
+                    name = nc_file.variables[var].name
+                    if 'wtime' in name:
+                        long_name = nc_file.variables[var].long_name
+
+                        if long_name in timings:
+                            data = np.array(nc_file[name])
+                            avg_data[long_name][i] = data.mean()
+                            std_data[long_name][i] = data.std()
+
+                nc_file.close()
+            return avg_data, std_data
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -69,7 +101,7 @@ try:
         # switch case:
         # (see https://docs.python.org/3.10/whatsnew/3.10.html#pep-634-structural-pattern-matching, 28 Jan 2025)
         method = ''
-        match config['graph']:
+        match config['comm']:
             case 'caf':
                 method = 'CAF'
             case 'p2p':
@@ -79,33 +111,10 @@ try:
             case 'shmem':
                 method = 'SHMEM'
             case _:
-                raise RuntimeError("No method called '" + config['graph'] + "'.")
+                raise RuntimeError("No method called '" + config['comm'] + "'.")
         # done
 
-        avg_data = {}
-        std_data = {}
-        for long_name in timings:
-            avg_data[long_name] = np.zeros(len(nodes))
-            std_data[long_name] = np.zeros(len(nodes))
-
-        for i, node in enumerate(nodes):
-            fname = config['basename'] + str(node) + '.nc'
-
-            nc_file = nc.Dataset(fname, "r", format="NETCDF4")
-
-            lvars = list(nc_file.variables.keys())
-
-            for var in lvars:
-                name = nc_file.variables[var].name
-                if 'wtime' in name:
-                    long_name = nc_file.variables[var].long_name
-
-                    if long_name in timings:
-                        data = np.array(nc_file[name])
-                        avg_data[long_name][i] = data.mean()
-                        std_data[long_name][i] = data.std()
-
-            nc_file.close()
+        avg_data, std_data = dset.get_data(config, nodes, timings)
 
         label = None
         if add_label:
@@ -137,7 +146,7 @@ try:
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     # Create legend where markers share a single legend entry:
-    def add_legend(ax):
+    def add_legend(ax, **kwargs):
         handles, labels = ax.get_legend_handles_labels()
 
         arg = {}
@@ -158,30 +167,63 @@ try:
         # 23 Jan 2025
         # https://matplotlib.org/stable/gallery/text_labels_and_annotations/legend_demo.html
         ax.legend(loc='lower left', handles=h_, labels=arg.keys(),
-                  handler_map={list: HandlerTuple(ndivide=None)})
+                  handler_map={list: HandlerTuple(ndivide=None)},
+                  **kwargs)
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     def generate_scaling_plot(dset, args):
 
-        configs = dset.get_configurations(args.path, args.test_case)
-
-        titles = {
-            'p2p':   'MPI point-to-point communication',
-            'rma':   'MPI RMA communication',
-            'shmem': 'SHMEM communication',
-            'caf':   'Coarray Fortran'
-        }
-
         if 'all' in args.comm:
-            raise RuntimeError("To be implemented.")
+            n = len(dset.comms)
+            nrows = int(np.sqrt(n))
+            ncols = int(n / nrows + 0.5)
+
+            sharex = (nrows > 1)
+            fig, axs = plt.subplots(nrows=nrows,
+                                    ncols=ncols,
+                                    sharey=True,
+                                    sharex=sharex,
+                                    figsize=(5*ncols, 5*nrows),
+                                    dpi=400)
+
+            axs = axs.flatten()
+            comms = sorted(dset.comms)
+            for i, comm in enumerate(comms):
+                axs[i].grid(which='both', linestyle='dashed', linewidth=0.25)
+
+                # -----------------------------------------------------------
+                # Add individual scaling:
+                tag = args.compiler_suite + '-' + comm + '-' + args.test_case
+                add_line(axs[i], dset, tag, comm, args)
+
+                # -----------------------------------------------------------
+                # Create legend where markers share a single legend entry:
+                add_legend(axs[i],
+                           title=r'\bfseries{' + dset.titles[comm] + r'}',
+                           alignment='left')
+
+                axs[i].set_yscale('log', base=10)
+                axs[i].set_xscale('log', base=2)
+
+                if i >= (nrows - 1) * ncols:
+                    axs[i].set_xlabel('number of nodes (1 node = 128 cores)')
+
+            axs[0].set_ylabel('run time (s)')
+
+            # -----------------------------------------------------------
+            # Save figure:
+            plt.tight_layout()
+            plt.savefig(args.compiler_suite + '-scaling.pdf', bbox_inches='tight')
+            plt.close()
+
         else:
             for comm in args.comm:
                 # -----------------------------------------------------------
                 # Create figure:
                 plt.figure(figsize=(8, 7), dpi=200)
                 ax = plt.gca()
-                title = titles[comm]
+                title = dset.titles[comm]
                 ax.set_title(title)
                 ax.grid(which='both', linestyle='dashed', linewidth=0.25)
 
@@ -189,7 +231,7 @@ try:
                 # Add individual scaling:
                 tag = args.compiler_suite + '-' + comm + '-' + args.test_case
 
-                add_scaling(ax, tag, configs, comm, args)
+                add_line(ax, dset, tag, comm, args)
 
                 # -----------------------------------------------------------
                 # Create legend where markers share a single legend entry:
@@ -206,15 +248,51 @@ try:
                 plt.savefig(tag + '.pdf', bbox_inches='tight')
                 plt.close()
 
-        #if 'all' in args.comm:
-            #for comm in ['p2p', 'rma', 'shmem', 'caf']:
-                #add_scaling(ax, configs, comm=comm, args=args)
-        #else:
-            #for comm in args.comm:
-                #add_scaling(ax, configs, comm=comm, args=args)
+    # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    def generate_efficiency_plot(dset, args):
+
+        if 'all' in args.comm:
+            raise RuntimeError("Not yet implemented.")
+        else:
+            for grid in sorted(dset.grids):
+                # -----------------------------------------------------------
+                # Create figure:
+                plt.figure(figsize=(8, 7), dpi=200)
+                ax = plt.gca()
+                ax.grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
+
+                # -----------------------------------------------------------
+                # Add individual scaling:
+                comms = sorted(args.comm)
+                n_comms = len(comms)
+                width= 0.4 / n_comms
+                for i, comm in enumerate(comms):
+                    tag = args.compiler_suite + '-' + comm + '-' + args.test_case + '-' + grid
+
+                    offset = width * (i - 0.5*n_comms)
+                    add_bar(ax, dset, tag, comm, args, offset=offset, width=width)
 
 
-    def add_scaling(ax, tag, configs, comm, args):
+                ax.legend(loc='upper left')
+
+                ax.axhline(y=1, linestyle='dashed', color='black')
+
+                ax.set_xlabel('number of nodes (1 node = 128 cores)')
+                ax.set_ylabel('strong efficiency')
+
+                # -----------------------------------------------------------
+                # Save figure:
+                plt.tight_layout()
+                plt.savefig(args.compiler_suite + '-' + grid + '-strong-effiency.pdf',
+                            bbox_inches='tight')
+                plt.close()
+
+    # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    def add_line(ax, dset, tag, comm, args):
+
+        configs = dset.configs
 
         cmap = plt.get_cmap(args.colour_map)
 
@@ -246,6 +324,42 @@ try:
 
             i = i + 1
             found = False
+
+    # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    def add_bar(ax, dset, tag, comm, args, offset, width):
+
+        configs = dset.configs
+
+        cmap = plt.get_cmap(args.colour_map)
+
+        groups = list(configs.keys())
+
+        label = dset.titles[comm]
+
+        for group in groups:
+
+            if not tag in group:
+                continue
+
+            config = configs[group]
+
+            nodes = np.asarray(config['nodes'])
+
+            avg_data, std_data = dset.get_data(config, nodes, args.timings)
+
+            speedup = avg_data['parcel merge'][0] / avg_data['parcel merge']
+            p = nodes / nodes[0]
+            eff = speedup / p
+            n = len(p)
+            x = np.arange(n)
+            ax.bar(x=x+offset,
+                   height=eff,
+                   width=width,
+                   align='edge',
+                   label=label)
+
+            ax.set_xticks(x, nodes)
 
     # :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # Actual 'main':
@@ -284,7 +398,8 @@ try:
         "--timings",
         type=str,
         nargs='+',
-        default=['parcel merge (total)', 'find nearest', 'build graphs', 'resolve graphs'],
+        default=['parcel merge', 'merge nearest', 'graph resolve'],
+        #default=['parcel merge (total)', 'find nearest', 'build graphs', 'resolve graphs'],
         help="Timer data to visualise.",
     )
 
@@ -314,18 +429,17 @@ try:
         "--plot",
         type=str,
         default='scaling',
-        choices=['scaling', 'efficiency'],
+        choices=['scaling', 'weak-efficiency', 'strong-efficiency'],
         help="Plot scaling or efficiency figures.")
 
     args = parser.parse_args()
 
-    dset = DataSet()
+    dset = DataSet(args.path, args.test_case)
 
     if args.plot == 'scaling':
         generate_scaling_plot(dset, args=args)
     else:
-        pass
-
+        generate_efficiency_plot(dset, args=args)
 
 except Exception as ex:
     print(ex, flush=True)
