@@ -2,10 +2,6 @@
 
 run_jobs() {
 
-    # 22 Jan 2025
-    # https://stackoverflow.com/a/6212408
-    # https://stackoverflow.com/a/12128447
-
     local machine=${1}
     local fname="submit_${machine}_random.sh"
 
@@ -19,12 +15,14 @@ run_jobs() {
     local niter=${5}
     local nx=${6}
     local ny=${7}
-    local lx=${8}
-    local ly=${9}
-    local begin=${10}
-    local end=${11}
-    local subcomm=${12}
-    local enable_caf=${13}
+    local nz=${8}
+    local lx=${9}
+    local ly=${10}
+    local lz=${11}
+    local begin=${12}
+    local end=${13}
+    local subcomm=${14}
+    local enable_caf=${15}
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
@@ -36,8 +34,10 @@ run_jobs() {
     echo "niter      = $niter"
     echo "nx         = $nx"
     echo "ny         = $ny"
+    echo "nz         = $nz"
     echo "lx         = $lx"
     echo "ly         = $ly"
+    echo "lz         = $lz"
     echo "begin      = $begin"
     echo "end        = $end"
     if ! test "$subcomm" = "true"; then
@@ -51,8 +51,6 @@ run_jobs() {
         ntasks=$((2**i))
         nodes=$((ntasks/128))
 
-        # 2 March 2024
-        # https://stackoverflow.com/a/10415158
         nodes=$((nodes==0 ? 1 : nodes))
         echo "Submit job with $ntasks tasks on $nodes nodes using the $compiler version"
 
@@ -67,10 +65,14 @@ run_jobs() {
         sed -i "s:--niter NITER:--niter $niter:g" $fn
         sed -i "s:NX:$nx:g" $fn
         sed -i "s:NY:$ny:g" $fn
+        sed -i "s:NZ:$nz:g" $fn
+
         sed -i "s:--lx LX:--lx $lx:g" $fn
         sed -i "s:--ly LY:--ly $ly:g" $fn
+        sed -i "s:--lz LZ:--lz $lz:g" $fn
         sed -i "s:--xlen LX:--xlen $lx:g" $fn
         sed -i "s:--ylen LY:--ylen $ly:g" $fn
+        sed -i "s:--zlen LZ:--zlen $lz:g" $fn
 
         sed -i "s:BIN_DIR:$bin_dir:g" $fn
         sed -i "s:ENABLE_CAF:$enable_caf:g" $fn
@@ -90,8 +92,10 @@ run_jobs() {
 # niter
 # nx
 # ny
+# nz
 # lx
 # ly
+# lz
 # begin
 # end
 # subcomm
@@ -131,11 +135,11 @@ for bin_dir in $gnu_bin $cray_bin $caf_bin; do
     fi
 
     # 1 node to 8 nodes
-    run_jobs $machine $comiler $bin_dir 1 5 256 512 80 160 7 10 "false" $enable_caf
+    run_jobs $machine $comiler $bin_dir 1 5 256 512 32 80 160 10 7 10 "false" $enable_caf
 
     # 2 nodes to 32 nodes
-    run_jobs $machine $compiler $bin_dir 1 5 512 512 160 160 8 12 "false" $enable_caf
+    run_jobs $machine $compiler $bin_dir 1 5 512 512 32 160 160 10 8 12 "false" $enable_caf
 
     # 8 nodes to 128 nodes
-    run_jobs $machine $compiler $bin_dir 1 5 1024 1024 320 320 10 14 "false" $enable_caf
+    run_jobs $machine $compiler $bin_dir 1 5 1024 1024 32 320 320 10 10 14 "false" $enable_caf
 done

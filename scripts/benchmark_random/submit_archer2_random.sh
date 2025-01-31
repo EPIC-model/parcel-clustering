@@ -91,18 +91,18 @@ for i in $(seq 1 NREPEAT); do
             /tmp/benchmark_random \
             --nx NX \
             --ny NY \
-            --nz 32 \
+            --nz NZ \
             --lx LX \
             --ly LY \
-            --lz 10.0 \
+            --lz LZ \
             --xlen LX \
             --ylen LY \
-            --zlen 10.0 \
+            --zlen LZ \
             --min_vratio 20.0 \
             --n_per_cell 20 \
             --niter NITER \
             --shuffle \
-            --ncfname "COMPILER-caf-random-nx-NX-ny-NY-nodes-NODES.nc" \
+            --ncfname "COMPILER-caf-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
             --comm-type "caf"
     else
         srun --nodes=NODES \
@@ -112,18 +112,18 @@ for i in $(seq 1 NREPEAT); do
             /tmp/benchmark_random \
             --nx NX \
             --ny NY \
-            --nz 32 \
+            --nz NZ \
             --lx LX \
             --ly LY \
-            --lz 10.0 \
+            --lz LZ \
             --xlen LX \
             --ylen LY \
-            --zlen 10.0 \
+            --zlen LZ \
             --min_vratio 20.0 \
             --n_per_cell 20 \
             --niter NITER \
             --shuffle \
-            --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nodes-NODES.nc" \
+            --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
             --comm-type "shmem"
         for g in "p2p" "rma"; do
             srun --nodes=NODES \
@@ -134,18 +134,18 @@ for i in $(seq 1 NREPEAT); do
                 /tmp/benchmark_random \
                 --nx NX \
                 --ny NY \
-                --nz 32 \
+                --nz NZ \
                 --lx LX \
                 --ly LY \
-                --lz 10.0 \
+                --lz LZ \
                 --xlen LX \
                 --ylen LY \
-                --zlen 10.0 \
+                --zlen LZ \
                 --min_vratio 20.0 \
                 --n_per_cell 20 \
                 --niter NITER \
                 --shuffle \
-                --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nodes-NODES.nc" \
+                --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
                 --comm-type "$g"
 
             if test "SUBCOMM" = "true"; then
@@ -157,13 +157,13 @@ for i in $(seq 1 NREPEAT); do
                     /tmp/benchmark_random \
                     --nx NX \
                     --ny NY \
-                    --nz 32 \
+                    --nz NZ \
                     --lx LX \
                     --ly LY \
-                    --lz 10.0 \
+                    --lz LZ \
                     --xlen LX \
                     --ylen LY \
-                    --zlen 10.0 \
+                    --zlen LZ \
                     --min_vratio 20.0 \
                     --n_per_cell 20 \
                     --niter NITER \
