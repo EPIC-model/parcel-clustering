@@ -168,7 +168,7 @@ for i in $(seq 1 NREPEAT); do
                     --n_per_cell 20 \
                     --niter NITER \
                     --shuffle \
-                    --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nodes-NODES-subcomm.nc" \
+                    --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \
                     --comm-type "$g" \
                     --subcomm
             fi
