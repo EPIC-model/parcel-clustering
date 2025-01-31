@@ -31,7 +31,7 @@ try:
             }
 
             tc = '-' + test_case + '-'
-            pattern = re.compile(r"(\w*)-(\w*)" + tc + r"(nx-\d*-ny-\d*)-nodes-(\d*).nc")
+            pattern = re.compile(r"(\w*)-(\w*)" + tc + r"(nx-\d*-ny-\d*-nz-\d*)-nodes-(\d*).nc")
 
             self.configs = {}
             for fname in os.listdir(path=path):
@@ -95,20 +95,19 @@ try:
 
 
         def get_mesh(self, grid):
-            pat = re.compile(r"nx-(\d*)-ny-(\d*)")
+            pat = re.compile(r"nx-(\d*)-ny-(\d*)-nz-(\d*)")
             g = re.match(pat, grid)
-            return int(g.group(1)), int(g.group(2))
+            return int(g.group(1)), int(g.group(2), int(g.group(3))
 
         def get_sorted_grids(self):
-            pairs = []
+            triples = []
             for grid in self.grids:
-                nx, ny = self.get_mesh(grid)
-                pairs.append((nx, ny))
-            # (see also https://stackoverflow.com/a/68813294)
-            pairs.sort(key=lambda n: (n[0], n[1]))
+                nx, ny, nz = self.get_mesh(grid)
+                triples.append((nx, ny, nz))
+            triples.sort()
             grids = []
-            for (nx, ny) in pairs:
-                grids.append('nx-' + str(nx) + '-ny-' + str(ny))
+            for (nx, ny, nz) in triples:
+                grids.append('nx-' + str(nx) + '-ny-' + str(ny) + '-nz-' + str(nz))
             return grids
 
 
@@ -306,8 +305,11 @@ try:
             axs_fl = axs.flatten()
             for j, grid in enumerate(grids):
 
-                nx, ny = dset.get_mesh(grid)
-                axs[j].set_title(r'$(nx = ' + str(nx) + r')\times(' + r'ny = ' + str(ny) + r')$')
+                nx, ny, nz = dset.get_mesh(grid)
+                title = r'$(nx = ' + str(nx) + \
+                        r')\times(ny = ' + str(ny) + \
+                        r')\times(nz = ' + str(nz) + r')$')
+                axs[j].set_title(title)
 
                 axs[j].grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
 
