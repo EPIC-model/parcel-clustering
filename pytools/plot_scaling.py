@@ -24,10 +24,10 @@ try:
             self.groups = set()
 
             self.titles = {
-                'p2p':   r'MPI-3 P2P', # communication',
-                'rma':   r'MPI-3 RMA', # communication',
-                'shmem': r'SHMEM', # communication',
-                'caf':   r'Coarray Fortran'
+                'p2p':   r'P2P + P2P',
+                'rma':   r'P2P + RMA',
+                'shmem': r'P2P + SHMEM',
+                'caf':   r'P2P + CAF' #Coarray Fortran (CAF)'
             }
 
             tc = '-' + test_case + '-'
@@ -97,7 +97,7 @@ try:
         def get_mesh(self, grid):
             pat = re.compile(r"nx-(\d*)-ny-(\d*)-nz-(\d*)")
             g = re.match(pat, grid)
-            return int(g.group(1)), int(g.group(2), int(g.group(3))
+            return int(g.group(1)), int(g.group(2)), int(g.group(3))
 
         def get_sorted_grids(self):
             triples = []
@@ -308,7 +308,7 @@ try:
                 nx, ny, nz = dset.get_mesh(grid)
                 title = r'$(nx = ' + str(nx) + \
                         r')\times(ny = ' + str(ny) + \
-                        r')\times(nz = ' + str(nz) + r')$')
+                        r')\times(nz = ' + str(nz) + r')$'
                 axs[j].set_title(title)
 
                 axs[j].grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
@@ -341,6 +341,7 @@ try:
                     axs[j].legend(loc='upper left', ncols=int((n_comms+1) / 2))
 
                     axs[j].set_xlabel('number of nodes (1 node = 128 cores)')
+                    axs[j].set_ylim([0, 1.6])
 
             if nrows > 1:
                 for i in range(nrows):
