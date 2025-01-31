@@ -51,7 +51,11 @@ run_jobs() {
         ntasks=$((2**i))
         nodes=$((ntasks/128))
 
-        nodes=$((nodes==0 ? 1 : nodes))
+        # avoid nodes = 0
+        if test $nodes = 0; then
+            nodes=1
+        fi
+
         echo "Submit job with $ntasks tasks on $nodes nodes using the $compiler version"
 
         fn="submit_random_nx_${nx}_ny_${ny}_nodes_${nodes}.sh"
