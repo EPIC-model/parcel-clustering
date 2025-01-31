@@ -8,8 +8,6 @@ run_jobs() {
     # "gnu" or "cray"
     local compiler=${2}
 
-    mkdir -p $compiler; cd $compiler
-
     local bin_dir=${3}
     local nrepeat=${4}
     local niter=${5}
@@ -47,6 +45,9 @@ run_jobs() {
     echo "enable_caf = $enable_caf"
     echo "--------------------------------"
 
+    mkdir -p -v "$compiler"
+    cd "$compiler"
+
     for i in $(seq $begin 1 $end); do
         ntasks=$((2**i))
         nodes=$((ntasks/128))
@@ -57,9 +58,14 @@ run_jobs() {
         fi
 
         echo "Submit job with $ntasks tasks on $nodes nodes using the $compiler version"
+        
+        if test "$enable_caf" = "yes"; then
+            fn="submit_caf_random_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
+        else
+            fn="submit_random_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
+        fi
 
-        fn="submit_random_nx_${nx}_ny_${ny}_nodes_${nodes}.sh"
-        cp ../$fname $fn
+        cp "../$fname" $fn
         sed -i "s:JOBNAME:$compiler-random:g" $fn
         sed -i "s:COMPILER:$compiler:g" $fn
 
@@ -138,12 +144,12 @@ for bin_dir in $gnu_bin $cray_bin $caf_bin; do
         enable_caf="yes"
     fi
 
-    # 1 node to 8 nodes
-    run_jobs $machine $comiler $bin_dir 1 5 256 512 32 80 160 10 7 10 "false" $enable_caf
+    run_jobs "$machine" "$compiler" "$bin_dir" 1 5 256 512 64 80 160 20 7 10 "false" "$enable_caf"
 
     # 2 nodes to 32 nodes
-    run_jobs $machine $compiler $bin_dir 1 5 512 512 32 160 160 10 8 12 "false" $enable_caf
+    run_jobs "$machine" "$compiler" "$bin_dir" 1 5 512 512 64 160 160 20 8 12 "false" "$enable_caf"
 
     # 8 nodes to 128 nodes
-    run_jobs $machine $compiler $bin_dir 1 5 1024 1024 32 320 320 10 10 14 "false" $enable_caf
+    run_jobs "$machine" "$compiler" "$bin_dir" 1 5 1024 1024 64 320 320 20 10 14 "false" "$enable_caf"
+    
 done
