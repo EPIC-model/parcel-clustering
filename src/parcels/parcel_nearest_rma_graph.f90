@@ -437,6 +437,8 @@ contains
                          cart%err)
             call mpi_check_for_error(cart, &
                 "in MPI_Put of parcel_nearest::resolve_tree.")
+            
+            call MPI_Win_flush(rank, this%win_avail, cart%err)
 
             ! After MPI_Win_unlock, the RMA operation is completed at the origin and target.
             call MPI_Win_unlock(rank, this%win_avail, cart%err)
@@ -471,6 +473,8 @@ contains
                          cart%err)
             call mpi_check_for_error(cart, &
                 "in MPI_Put of parcel_nearest::resolve_tree.")
+
+            call MPI_Win_flush(rank, this%win_leaf, cart%err)
             call MPI_Win_unlock(rank, this%win_leaf, cart%err)
             call stop_timer(this%put_timer)
         endif
@@ -504,6 +508,8 @@ contains
                          cart%err)
             call mpi_check_for_error(cart, &
                 "in MPI_Put of parcel_nearest::resolve_tree.")
+
+            call MPI_Win_flush(rank, this%win_merged, cart%err)
             call MPI_Win_unlock(rank, this%win_merged, cart%err)
             call stop_timer(this%put_timer)
         endif
@@ -550,6 +556,7 @@ contains
             call mpi_check_for_error(cart, &
                     "in MPI_Get of parcel_nearest::resolve_tree.")
 
+            call MPI_Win_flush(rank, this%win_avail, cart%err)
             call MPI_Win_unlock(rank, this%win_avail, cart%err)
             call stop_timer(this%get_timer)
         endif
@@ -582,7 +589,7 @@ contains
                          cart%err)
             call mpi_check_for_error(cart, &
                 "in MPI_Get of parcel_nearest::resolve_tree.")
-
+            call MPI_Win_flush(rank, this%win_leaf, cart%err)
             call MPI_Win_unlock(rank, this%win_leaf, cart%err)
             call stop_timer(this%get_timer)
         endif
@@ -615,7 +622,7 @@ contains
                          cart%err)
             call mpi_check_for_error(cart, &
                 "in MPI_Get of parcel_nearest::resolve_tree.")
-
+            call MPI_Win_flush(rank, this%win_merged, cart%err)
             call MPI_Win_unlock(rank, this%win_merged, cart%err)
             call stop_timer(this%get_timer)
         endif
