@@ -286,6 +286,28 @@ if test "x$mpi_integer8_found" = "xyes"; then
 fi
 
 #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Check if we can write e.g. "type(MPI_Comm) :: comm = MPI_COMM_NULL"
+# E.g. with ifort we get the following error:
+# This symbol must be a defined parameter, an enumerator, or an argument of an inquiry function that evaluates to a compile-time constant.
+AC_MSG_CHECKING([if we can compile with direct assignment of MPI_COMM_NULL and MPI_OP_NULL ])
+AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM([], [
+        use mpi_f08
+        implicit none
+        integer :: ierr
+	type(MPI_Comm) :: comm = MPI_COMM_NULL
+	type(MPI_Op) :: op = MPI_OP_NULL
+        call MPI_Init(ierr)
+        call MPI_Finalize(ierr)])],
+    [null_assign_works=yes],
+    [null_assign_works=no])
+AC_MSG_RESULT([$null_assign_works])
+
+if test "x$null_assign_works" = "xyes"; then
+    AX_CHECK_COMPILE_FLAG([-DNULL_ASSIGNMENT_WORKS], [FCFLAGS="$FCFLAGS -DNULL_ASSIGNMENT_WORKS"])
+fi
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # OpenSHMEM
 
 AC_SEARCH_LIBS([shmem_init],

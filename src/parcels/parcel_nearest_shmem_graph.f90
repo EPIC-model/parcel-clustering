@@ -90,6 +90,10 @@ contains
 
         this%l_shmem_allocated = .true.
 
+#ifndef NULL_ASSIGNMENT_WORKS
+        this%comm%comm = MPI_COMM_NULL
+#endif
+
         ! Ensure we use all MPI ranks because we need to call
         ! shmem_barrier_all
         if (l_subcomm) then
