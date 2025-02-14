@@ -6,22 +6,31 @@
 module mpi_ops
     use mpi_f08
     use datatypes, only : int64
-#ifndef NDEBUG
+#if !defined(NDEBUG) || defined(ENABLE_MPI_INTEGER8)
     use mpi_datatypes, only : MPI_INTEGER_64BIT
 #endif
     implicit none
 
-    type(MPI_Op) :: MPI_SUM_64BIT = MPI_OP_NULL
-    type(MPI_Op) :: MPI_MAX_64BIT = MPI_OP_NULL
+    ! set operators to default operators
+    type(MPI_Op) :: MPI_SUM_64BIT = MPI_SUM
+    type(MPI_Op) :: MPI_MAX_64BIT = MPI_MAX
 
+#ifndef ENABLE_MPI_INTEGER8
     private :: mpi_op_sum_integer_64bit &
              , mpi_op_max_integer_64bit
+#endif
 
 contains
 
     subroutine mpi_ops_create
-        integer :: err
+        integer :: err = 0
 
+#ifdef ENABLE_MPI_INTEGER8
+        if (MPI_INTEGER_64BIT /= MPI_INTEGER8) then
+            print *, "MPI type is not MPI_INTEGER8 for 64-bit integers."
+            call MPI_Abort(MPI_COMM_WORLD, -1, err)
+        endif
+#else
         call MPI_Op_create(user_fn=mpi_op_sum_integer_64bit,    &
                            commute=.true.,                      &
                            op=MPI_SUM_64BIT,                    &
@@ -41,7 +50,7 @@ contains
             print *, "Error in mpi_ops::mpi_ops_create: Unable to create user-defined MPI_MAX operator."
             call MPI_Abort(MPI_COMM_WORLD, -1, err)
         endif
-
+#endif
     end subroutine mpi_ops_create
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -67,6 +76,7 @@ contains
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+#ifndef ENABLE_MPI_INTEGER8
     ! 11 March 2024
     !https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node115.htm
     subroutine mpi_op_sum_integer_64bit(invec, inoutvec, length, dtype)
@@ -102,5 +112,6 @@ contains
             call c_f_pointer(inoutvec, inoutvec64bit, (/ length /) )
             inoutvec64bit = max(invec64bit, inoutvec64bit)
     end subroutine mpi_op_max_integer_64bit
+#endif
 
 end module mpi_ops
