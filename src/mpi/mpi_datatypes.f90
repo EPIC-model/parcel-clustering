@@ -15,7 +15,11 @@ module mpi_datatypes
                       , MPI_SUCCESS             &
                       , MPI_COMM_WORLD          &
                       , MPI_INTEGER             &
-                      , MPI_LOGICAL
+                      , MPI_LOGICAL             &
+                      , MPI_TYPECLASS_INTEGER   &
+                      , MPI_Sizeof              &
+                      , MPI_Type_match_size     &
+                      , MPI_Type_size
 
     use datatypes
     implicit none
@@ -35,12 +39,25 @@ module mpi_datatypes
 contains
 
     subroutine mpi_datatypes_create
-        integer :: err
+        integer             :: err = 0
+#ifdef ENABLE_MPI_INTEGER8
+        integer(kind=int64) :: dummy
+        integer             :: int64size, dtypesize
 
+        call MPI_Sizeof(dummy, int64size)
+        call MPI_Type_match_size(MPI_TYPECLASS_INTEGER, int64size, MPI_INTEGER_64BIT)
+
+        call MPI_Type_size(MPI_INTEGER_64BIT, dtypesize)
+        if (int64size /= dtypesize) then
+            print *, "Type of 64-bit integer does not match MPI type."
+            call MPI_Abort(MPI_COMM_WORLD, -1, err)
+        endif
+#else
         ! 18 must be the same argument as used in selected_int_kind (in file utils/datatypes.f90)
         call MPI_Type_create_f90_integer(18, MPI_INTEGER_64BIT, err)
 
         call check_success(err)
+#endif
 
         call create_integer_logical_pair
 
