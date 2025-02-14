@@ -327,6 +327,10 @@ for lib in NONE oshmem; do
     LIBS=$save_LIBS
 done
 
+if test "x$openshmem_found" = "xno"; then
+    AC_MSG_ERROR([Cannot find SHMEM library])
+fi
+
 #######################################################################################
 ##
 ## "--enable" flags
