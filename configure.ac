@@ -263,6 +263,26 @@ if test "x$mpi_found" = "xno"; then
 fi
 
 #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Check if MPI_INTEGER8 exists
+AC_MSG_CHECKING([for MPI_INTEGER8])
+AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM([], [
+        use mpi_f08
+        implicit none
+        integer :: ierr
+        type(MPI_Datatype) :: dtype
+        call MPI_Init(ierr)
+        dtype = MPI_INTEGER8
+        call MPI_Finalize(ierr)])],
+    [mpi_integer8_found=yes],
+    [mpi_integer8_found=no])
+AC_MSG_RESULT([$mpi_integer8_found])
+
+if test "x$mpi_integer8_found" = "xyes"; then
+    AX_CHECK_COMPILE_FLAG([-DENABLE_MPI_INTEGER8], [FCFLAGS="$FCFLAGS -DENABLE_MPI_INTEGER8"])
+fi
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # OpenSHMEM
 
 AC_SEARCH_LIBS([shmem_init],

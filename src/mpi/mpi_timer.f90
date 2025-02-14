@@ -5,6 +5,7 @@
 module mpi_timer
     use mpi_environment
     use mpi_collectives
+    use mpi_f08, only : MPI_Wtime
     implicit none
 
     type timer_type
