@@ -45,6 +45,8 @@ contains
         integer             :: int64size, dtypesize
 
         call MPI_Sizeof(dummy, int64size)
+
+        ! This call should set MPI_INTEGER_64BIT = MPI_INTEGER8
         call MPI_Type_match_size(MPI_TYPECLASS_INTEGER, int64size, MPI_INTEGER_64BIT)
 
         call MPI_Type_size(MPI_INTEGER_64BIT, dtypesize)
