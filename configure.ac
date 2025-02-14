@@ -52,6 +52,9 @@ if test "$ax_cv_fc_compiler_vendor" = "intel"; then
     AX_CHECK_COMPILE_FLAG([-fp-model=source], [FCFLAGS="$FCFLAGS -fp-model=source"])
     AX_CHECK_COMPILE_FLAG([-real-size 8], [FCFLAGS="$FCFLAGS -real-size 8"])
     AX_CHECK_COMPILE_FLAG([-double-size 64], [FCFLAGS="$FCFLAGS -double-size 64"])
+    # Suppress harmless warnings:
+    # > ifort: warning #10145: no action performed for file 'parcels/parcel_merge.o'
+    AX_CHECK_COMPILE_FLAG([-diag-disable 10145], [FCFLAGS="$FCFLAGS -diag-disable 10145"])
 fi
 
 # Cray Fortran compiler:
