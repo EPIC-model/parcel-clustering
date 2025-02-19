@@ -53,8 +53,10 @@ if test "$ax_cv_fc_compiler_vendor" = "intel"; then
     AX_CHECK_COMPILE_FLAG([-real-size 8], [FCFLAGS="$FCFLAGS -real-size 8"])
     AX_CHECK_COMPILE_FLAG([-double-size 64], [FCFLAGS="$FCFLAGS -double-size 64"])
     # Suppress harmless warnings:
-    # > ifort: warning #10145: no action performed for file 'parcels/parcel_merge.o'
-    AX_CHECK_COMPILE_FLAG([-diag-disable 10145], [FCFLAGS="$FCFLAGS -diag-disable 10145"])
+    # > warning #8100: The actual argument is an array section or assumed-shape array, 
+    # > corresponding dummy argument that has either the VOLATILE or ASYNCHRONOUS attribute shall be an assumed-shape array.   [SEND_BUF]
+    # >       call MPI_Isend(send_buf(1:send_size)
+    AX_CHECK_COMPILE_FLAG([-diag-disable 8100], [FCFLAGS="$FCFLAGS -diag-disable 8100"])
 fi
 
 # Cray Fortran compiler:
@@ -498,7 +500,7 @@ else
 
     # intel compiler flags
     AX_CHECK_COMPILE_FLAG([-funroll-loops], [FCFLAGS="$FCFLAGS -funroll-loops"])
-    AX_CHECK_COMPILE_FLAG([-ipo -c], [FCFLAGS="$FCFLAGS -ipo -c"])
+    AX_CHECK_COMPILE_FLAG([-ipo], [FCFLAGS="$FCFLAGS -ipo"])
     AX_CHECK_COMPILE_FLAG([-ffat-lto-objects], [FCFLAGS="$FCFLAGS -ffat-lto-objects"])
 fi
 
