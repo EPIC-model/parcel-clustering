@@ -327,8 +327,12 @@ for lib in NONE oshmem; do
     LIBS=$save_LIBS
 done
 
-if test "x$openshmem_found" = "xno"; then
-    AC_MSG_ERROR([Cannot find SHMEM library])
+AC_MSG_CHECKING([whether we are enabling SHMEM])
+if test "x$openshmem_found" = "xyes"; then
+    AC_MSG_RESULT([yes])
+    FCFLAGS="$FCFLAGS -DENABLE_SHMEM"
+else
+    AC_MSG_RESULT([no])
 fi
 
 #######################################################################################
