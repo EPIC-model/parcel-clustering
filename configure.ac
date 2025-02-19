@@ -335,6 +335,8 @@ else
     AC_MSG_RESULT([no])
 fi
 
+AM_CONDITIONAL([ENABLE_SHMEM], [test "$openshmem_found" = "yes"])
+
 #######################################################################################
 ##
 ## "--enable" flags
