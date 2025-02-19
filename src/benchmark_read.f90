@@ -23,7 +23,9 @@ program benchmark_read
 #ifndef ENABLE_COARRAY
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
+#ifdef ENABLE_SHMEM
     use parcel_nearest_shmem_graph, only : shmem_graph_t
+#endif
 #endif
     use netcdf_timings
     implicit none
@@ -67,10 +69,12 @@ program benchmark_read
             allocate(p2p_graph_t :: tree)
         case ('rma')
             allocate(rma_graph_t :: tree)
+#ifdef ENABLE_SHMEM
         case ('shmem')
             allocate(shmem_graph_t :: tree)
+#endif
         case default
-            allocate(p2p_graph_t :: tree)
+            call mpi_stop("Communication layer not available!")
     end select
 #endif
 
