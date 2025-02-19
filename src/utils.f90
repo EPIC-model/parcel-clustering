@@ -90,11 +90,11 @@ contains
         u(1:3) = u(1:3) / u(4)
 
         ! azimuthal angle, [0, 2pi[
-        theta = datan2(u(2), u(1))
+        theta = atan2(u(2), u(1))
 
         ! polar angle, [0, pi[
         u(3) = max(-1.0d0, min(u(3), 1.0d0))
-        phi = dacos(u(3))
+        phi = acos(u(3))
 
     end subroutine random_angles
 
@@ -179,10 +179,10 @@ contains
                         ! get random angles:
                         call random_angles(theta, phi)
 
-                        st = dsin(theta)
-                        ct = dcos(theta)
-                        sp = dsin(phi)
-                        cp = dcos(phi)
+                        st = sin(theta)
+                        ct = cos(theta)
+                        sp = sin(phi)
+                        cp = cos(phi)
 
                         parcels%B(1, l) = a2 * ct ** 2 * sp ** 2 + b2 * st ** 2 + c2 * ct ** 2 * cp ** 2
                         parcels%B(2, l) = a2 * st * ct * sp ** 2 - b2 * st * ct + c2 * st * ct * cp ** 2

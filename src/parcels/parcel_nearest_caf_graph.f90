@@ -68,6 +68,10 @@ contains
 
         this%l_caf_allocated = .true.
 
+#ifndef NULL_ASSIGNMENT_WORKS
+        this%comm%comm = MPI_COMM_NULL
+#endif
+
         ! Ensure we use all MPI ranks because we need to call
         ! sync
         if (l_subcomm) then

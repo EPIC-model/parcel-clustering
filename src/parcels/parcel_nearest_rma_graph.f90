@@ -62,6 +62,10 @@ contains
             return
         endif
 
+#ifndef NULL_ASSIGNMENT_WORKS
+        this%comm%comm = MPI_COMM_NULL
+#endif
+
         this%l_enabled_subcomm = l_subcomm
 
         if (.not. l_mpi_layout_initialised) then

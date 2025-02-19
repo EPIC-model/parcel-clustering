@@ -7,7 +7,11 @@ module mpi_environment
     implicit none
 
     type :: communicator
+#ifdef NULL_ASSIGNMENT_WORKS
         type(MPI_Comm) :: comm = MPI_COMM_NULL
+#else
+        type(MPI_Comm) :: comm
+#endif
         integer        :: err = 0
         integer        :: rank = 0
         integer        :: size = 1

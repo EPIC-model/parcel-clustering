@@ -11,9 +11,13 @@ module mpi_ops
 #endif
     implicit none
 
-    ! set operators to default operators
-    type(MPI_Op) :: MPI_SUM_64BIT = MPI_SUM
-    type(MPI_Op) :: MPI_MAX_64BIT = MPI_MAX
+#ifdef NULL_ASSIGNMENT_WORKS
+    type(MPI_Op) :: MPI_SUM_64BIT = MPI_OP_NULL
+    type(MPI_Op) :: MPI_MAX_64BIT = MPI_OP_NULL
+#else
+    type(MPI_Op) :: MPI_SUM_64BIT
+    type(MPI_Op) :: MPI_MAX_64BIT
+#endif
 
 #ifndef ENABLE_MPI_INTEGER8
     private :: mpi_op_sum_integer_64bit &
@@ -30,6 +34,8 @@ contains
             print *, "MPI type is not MPI_INTEGER8 for 64-bit integers."
             call MPI_Abort(MPI_COMM_WORLD, -1, err)
         endif
+        MPI_SUM_64BIT = MPI_SUM
+        MPI_MAX_64BIT = MPI_MAX
 #else
         call MPI_Op_create(user_fn=mpi_op_sum_integer_64bit,    &
                            commute=.true.,                      &

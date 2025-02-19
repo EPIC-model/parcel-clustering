@@ -178,6 +178,10 @@ contains
 
         this%l_enabled_subcomm = l_subcomm
 
+#ifndef NULL_ASSIGNMENT_WORKS
+        this%comm%comm = MPI_COMM_NULL
+#endif
+
         if (.not. allocated(this%l_merged)) then
             allocate(this%l_merged(num))
             allocate(this%l_leaf(num))

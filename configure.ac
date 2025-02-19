@@ -52,6 +52,11 @@ if test "$ax_cv_fc_compiler_vendor" = "intel"; then
     AX_CHECK_COMPILE_FLAG([-fp-model=source], [FCFLAGS="$FCFLAGS -fp-model=source"])
     AX_CHECK_COMPILE_FLAG([-real-size 8], [FCFLAGS="$FCFLAGS -real-size 8"])
     AX_CHECK_COMPILE_FLAG([-double-size 64], [FCFLAGS="$FCFLAGS -double-size 64"])
+    # Suppress harmless warnings:
+    # > warning #8100: The actual argument is an array section or assumed-shape array, 
+    # > corresponding dummy argument that has either the VOLATILE or ASYNCHRONOUS attribute shall be an assumed-shape array.   [SEND_BUF]
+    # >       call MPI_Isend(send_buf(1:send_size)
+    AX_CHECK_COMPILE_FLAG([-diag-disable 8100], [FCFLAGS="$FCFLAGS -diag-disable 8100"])
 fi
 
 # Cray Fortran compiler:
@@ -283,6 +288,28 @@ if test "x$mpi_integer8_found" = "xyes"; then
 fi
 
 #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Check if we can write e.g. "type(MPI_Comm) :: comm = MPI_COMM_NULL"
+# E.g. with ifort we get the following error:
+# This symbol must be a defined parameter, an enumerator, or an argument of an inquiry function that evaluates to a compile-time constant.
+AC_MSG_CHECKING([if we can compile with direct assignment of MPI_COMM_NULL and MPI_OP_NULL ])
+AC_LINK_IFELSE(
+    [AC_LANG_PROGRAM([], [
+        use mpi_f08
+        implicit none
+        integer :: ierr
+	type(MPI_Comm) :: comm = MPI_COMM_NULL
+	type(MPI_Op) :: op = MPI_OP_NULL
+        call MPI_Init(ierr)
+        call MPI_Finalize(ierr)])],
+    [null_assign_works=yes],
+    [null_assign_works=no])
+AC_MSG_RESULT([$null_assign_works])
+
+if test "x$null_assign_works" = "xyes"; then
+    AX_CHECK_COMPILE_FLAG([-DNULL_ASSIGNMENT_WORKS], [FCFLAGS="$FCFLAGS -DNULL_ASSIGNMENT_WORKS"])
+fi
+
+#::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # OpenSHMEM
 
 AC_SEARCH_LIBS([shmem_init],
@@ -473,7 +500,7 @@ else
 
     # intel compiler flags
     AX_CHECK_COMPILE_FLAG([-funroll-loops], [FCFLAGS="$FCFLAGS -funroll-loops"])
-    AX_CHECK_COMPILE_FLAG([-ipo -c], [FCFLAGS="$FCFLAGS -ipo -c"])
+    AX_CHECK_COMPILE_FLAG([-ipo], [FCFLAGS="$FCFLAGS -ipo"])
     AX_CHECK_COMPILE_FLAG([-ffat-lto-objects], [FCFLAGS="$FCFLAGS -ffat-lto-objects"])
 fi
 
