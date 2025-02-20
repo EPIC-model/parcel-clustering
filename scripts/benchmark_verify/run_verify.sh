@@ -49,38 +49,65 @@ run_job() {
 # --------------------------------------------------------
 # User options:
 
+machine=''
+
 # number of samples
 n_samples=10
 
 # RNG seed
 seed=42
+while getopts "h?m:n:s:": option; do
+    case "$option" in
+        h|\?)
+            print_help
+            exit 0
+            ;;
+        m)
+            machine=$OPTARG
+            ;;
+        n)
+            n_samples=$OPTARG
+            ;;
+        s)
+            seed=$OPTARG
+            ;;
+    esac
+done
 
-# PYTHON CONDA environment
-conda_env="epic-env"
+if ! test "$machine" = "archer2" && ! test "$machine" = "cirrus"; then
+    echo "Only 'archer2' and 'cirrus' machines supported. Exiting."
+    exit 1
+fi
+
 
 # bin directories of executables:
-gnu_bin="/work/e710/e710/mf248/gnu/clustering/bin"
-cray_bin="/work/e710/e710/mf248/cray/clustering/bin"
-caf_bin="/work/e710/e710/mf248/cray-caf/clustering/bin"
+source "../$machine.sh"
 # --------------------------------------------------------
 
 
 if ! test "$CONDA_EXE"; then
-    echo "No CONDA environment."
-    exit 1
+    echo "No CONDA environment. Checking if 'python_exe' is set."
+
+    if ! test "$python_exe"; then
+        exit 1
+    fi
+
+    CONDA_EXE=$python_exe
 fi
 
-for i in "p2p" "rma" "shmem"; do
-    if test -d "$gnu_bin"; then
-        run_job $machine "gnu" $gnu_bin $i $n_samples $seed $conda_env
+j=0
+for bin_dir in ${bins[*]}; do
+    compiler="${compilers[$j]}"
+    with_caf="${enable_caf[$j]}"
+
+    # Coarray Fortran (CAF) is a separate build:
+    if test "$with_caf" = "yes"; then
+        run_job $machine $compiler "$bin_dir" "caf" $n_samples $seed $conda_env
+    else
+        for i in "p2p" "rma" "shmem"; do
+            run_job $machine $compiler "$bin_dir" $i $n_samples $seed $conda_env
+        done
     fi
 
-    if test -d "$cray_bin"; then
-        run_job $machine "cray" $cray_bin $i $n_samples $seed $conda_env
-    fi
+    j=$((j+1))
 done
-
-# Coarray Fortran (CAF) is a separate build:
-if test -d "$caf_bin"; then
-    run_job $machine "cray" $caf_bin "caf" $n_samples $seed $conda_env
-fi
