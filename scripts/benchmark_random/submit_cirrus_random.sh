@@ -5,7 +5,6 @@
 #SBATCH --nodes=NODES
 #SBATCH --tasks-per-node=36
 #SBATCH --cpus-per-task=1
-#SBATCH --constraint=StandardMem
 #SBATCH --switches=1
 #SBATCH --account=e710
 #SBATCH --partition=standard
@@ -43,7 +42,7 @@ elif test "COMPILER" = "intel-mpi"; then
     module load netcdf-parallel/4.9.2-intel20-impi20
     export NETCDF_C_DIR=$NETCDF_DIR
     export NETCDF_FORTRAN_DIR=$NETCDF_DIR
-elif test "COMPILER" = "intel-mpt"
+elif test "COMPILER" = "intel-mpt"; then
     echo "Loading the HPE MPT Environment with the Intel compiler"
     module load mpt/2.25
     module load intel-20.4/compilers
@@ -110,7 +109,7 @@ for i in $(seq 1 NREPEAT); do
              --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
              --comm-type "shmem"
         for g in "p2p" "rma"; do
-            srun --kill-on-bad-exit
+            srun --kill-on-bad-exit \
 	         --nodes=NODES \
                  --ntasks=NTASKS \
                  --unbuffered \
