@@ -5,7 +5,6 @@
 #SBATCH --nodes=2
 #SBATCH --tasks-per-node=36
 #SBATCH --cpus-per-task=1
-#SBATCH --constraint=StandardMem
 #SBATCH --switches=1
 #SBATCH --account=e710
 #SBATCH --partition=standard
@@ -43,7 +42,7 @@ elif test "COMPILER" = "intel-mpi"; then
     module load netcdf-parallel/4.9.2-intel20-impi20
     export NETCDF_C_DIR=$NETCDF_DIR
     export NETCDF_FORTRAN_DIR=$NETCDF_DIR
-elif test "COMPILER" = "intel-mpt"
+elif test "COMPILER" = "intel-mpt"; then
     echo "Loading the HPE MPT Environment with the Intel compiler"
     module load mpt/2.25
     module load intel-20.4/compilers
@@ -72,7 +71,7 @@ echo "Run COMM_TYPE"
 
 if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
     python ${exe_dir}/verify_cluster_algorithm.py \
-        --n_ranks 16 32 64 128 256 \
+        --n_ranks 9 18 36 72 \
         --n_parcel_per_cell 40 \
         --nx 32 \
         --ny 32 \
@@ -85,7 +84,7 @@ if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
         --comm-type "COMM_TYPE"
 else
     python ${exe_dir}/verify_cluster_algorithm.py \
-        --n_ranks 16 32 64 128 256 \
+        --n_ranks 9 18 36 72 \
         --n_parcel_per_cell 40 \
         --nx 32 \
         --ny 32 \
