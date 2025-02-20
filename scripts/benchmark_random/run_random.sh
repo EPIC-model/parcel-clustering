@@ -4,53 +4,55 @@ run_jobs() {
 
     local machine=${1}
     local fname="submit_${machine}_random.sh"
+    local ntasks_per_node=${2}
 
-    # "gnu" or "cray"
-    local compiler=${2}
+    local compiler=${3}
 
-    local bin_dir=${3}
-    local nrepeat=${4}
-    local niter=${5}
-    local nx=${6}
-    local ny=${7}
-    local nz=${8}
-    local lx=${9}
-    local ly=${10}
-    local lz=${11}
-    local begin=${12}
-    local end=${13}
-    local subcomm=${14}
-    local enable_caf=${15}
+    local bin_dir=${4}
+    local nrepeat=${5}
+    local niter=${6}
+    local nx=${7}
+    local ny=${8}
+    local nz=${9}
+    local lx=${10}
+    local ly=${11}
+    local lz=${12}
+    local min_ntasks=${13}
+    local inc_ntasks=${14}
+    local max_ntasks=${15}
+    local subcomm=${16}
+    local enable_caf=${17}
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
-    echo "machine    = $machine"
-    echo "fname      = $fname"
-    echo "compiler   = $compiler"
-    echo "bin_dir    = $bin_dir"
-    echo "nrepeat    = $nrepeat"
-    echo "niter      = $niter"
-    echo "nx         = $nx"
-    echo "ny         = $ny"
-    echo "nz         = $nz"
-    echo "lx         = $lx"
-    echo "ly         = $ly"
-    echo "lz         = $lz"
-    echo "begin      = $begin"
-    echo "end        = $end"
+    echo "machine         = $machine"
+    echo "ntasks_per_node = $ntasks_per_node"
+    echo "fname           = $fname"
+    echo "compiler        = $compiler"
+    echo "bin_dir         = $bin_dir"
+    echo "nrepeat         = $nrepeat"
+    echo "niter           = $niter"
+    echo "nx              = $nx"
+    echo "ny              = $ny"
+    echo "nz              = $nz"
+    echo "lx              = $lx"
+    echo "ly              = $ly"
+    echo "lz              = $lz"
+    echo "min_ntasks      = $min_ntasks"
+    echo "inc_ntasks      = $inc_ntasks"
+    echo "max_ntasks      = $max_ntasks"
     if ! test "$subcomm" = "true"; then
         subcomm="false"
     fi
-    echo "subcomm    = $subcomm"
-    echo "enable_caf = $enable_caf"
+    echo "subcomm         = $subcomm"
+    echo "enable_caf      = $enable_caf"
     echo "--------------------------------"
-
+    exit
     mkdir -p -v "$compiler"
     cd "$compiler"
 
-    for i in $(seq $begin 1 $end); do
-        ntasks=$((2**i))
-        nodes=$((ntasks/128))
+    for ntasks in $(seq $min_ntasks $inc_ntasks $max_ntasks); do
+        nodes=$((ntasks/ntasks_per_node))
 
         # avoid nodes = 0
         if test $nodes = 0; then
@@ -94,8 +96,9 @@ run_jobs() {
     cd ..
 }
 
-# Argument order:
-# fname
+# Argument order of run_jobs
+# machine
+# ntasks_per_node
 # compiler : cray or gnu
 # bin_dir
 # nrepeat
@@ -106,50 +109,100 @@ run_jobs() {
 # lx
 # ly
 # lz
-# begin
-# end
+# min_ntasks
+# inc_ntasks
+# max_ntasks
 # subcomm
 # enable_caf : "no" or "yes"
 
-machine="archer2"
-gnu_bin="/work/e710/e710/mf248/gnu/clustering/bin"
-cray_bin="/work/e710/e710/mf248/cray/clustering/bin"
-caf_bin="/work/e710/e710/mf248/cray-caf/clustering/bin"
+print_help() {
+    echo "Script to submit strong / weak scaling jobs"
+    echo "where the number of cores is doubled in each"
+    echo "iteration from '-l' to '-u'"
+    echo "Arguments:"
+    echo "    -m    machine to run on, either 'cirrus' or 'archer2'"
+    echo "    -h    print this help message"
+    echo "    -l    lower bound of cores"
+    echo "    -j    increment of cores"
+    echo "    -u    upper bound of cores"
+    echo "    -r    number of repetitions"
+    echo "    -i    number of iterations per repetition"
+    echo "    -x    number of grid cells in the horizontal direction x"
+    echo "    -y    number of grid cells in the horizontal direction y"
+    echo "    -z    number of grid cells in the vertical direction z"
+    echo "    -a    domain extent in the horizontal direction x"
+    echo "    -b    domain extent in the horizontal direction y"
+    echo "    -c    domain extent in the vertical direction z"
+    echo "    -s    use sub-communicator (optional)"
+}
 
-cray_compiler="cray"
-gnu_compiler="gnu"
-caf_compiler=$cray_compiler
+machine=''
+subcomm="false"
+while getopts "h?m:l:u:j:r:i:x:y:z:a:b:c:s": option; do
+    case "$option" in
+        h|\?)
+	    print_help
+            exit 0
+            ;;
+    	m)
+	    machine=$OPTARG
+      	    ;;
+	l)
+	    min_cores=$OPTARG
+	    ;;
+	u)
+	    max_cores=$OPTARG
+	    ;;
+	j)
+	    inc_cores=$OPTARG
+	    ;;
+	r)
+            nrep=$OPTARG
+	    ;;
+	i)
+	    niter=$OPTARG
+	    ;;
+	x)
+	    nx=$OPTARG
+            ;;
+	y)
+	    ny=$OPTARG
+	    ;;
+	z)
+            nz=$OPTARG
+	    ;;
+	a)
+	    lx=$OPTARG
+	    ;;
+	b)
+	    ly=$OPTARG
+	    ;;
+        c)
+	    lz=$OPTARG
+	    ;;
+	s)
+	    subcomm="true"
+	    ;;
+    esac
+done
 
-compiler=$gnu_compiler
-enable_caf="no"
+if ! test "$machine" = "archer2" && ! test "$machine" = "cirrus"; then
+    echo "Only 'archer2' and 'cirrus' machines supported. Exiting."
+    exit 1
+fi
 
-for bin_dir in $gnu_bin $cray_bin $caf_bin; do
-    if ! test -d "$bin_dir"; then
-        echo "No bin directory: $bin_dir"
-        break
-    fi
+# set bin directories
+source "../$machine.sh"
 
-    if test "$bin_dir" = "$gnu_bin"; then
-        compiler=$gnu_compiler
-        enable_caf="no"
-    fi
+echo "Submiting jobs on $machine with $min_cores to $max_cores cores."
+echo "Each job is repeated $nrep times with $niter iterations per repetition."
 
-    if test "$bin_dir" = "$cray_bin"; then
-        compiler=$cray_compiler
-        enable_caf="no"
-    fi
+i=0
+for bin_dir in ${bins[*]}; do
+    compiler="${compilers[$i]}"
+    with_caf="${enable_caf[$i]}"
 
-    if test "$bin_dir" = "$caf_bin"; then
-        compiler=$caf_compiler
-        enable_caf="yes"
-    fi
-
-    run_jobs "$machine" "$compiler" "$bin_dir" 1 5 256 512 64 80 160 20 7 10 "false" "$enable_caf"
-
-    # 2 nodes to 32 nodes
-    run_jobs "$machine" "$compiler" "$bin_dir" 1 5 512 512 64 160 160 20 8 12 "false" "$enable_caf"
-
-    # 8 nodes to 128 nodes
-    run_jobs "$machine" "$compiler" "$bin_dir" 1 5 1024 1024 64 320 320 20 10 14 "false" "$enable_caf"
-    
+    run_jobs $machine $ntasks_per_node $compiler "$bin_dir" $nrep $niter $nx $ny $nz $lx $ly $lz $min_cores $inc_cores $max_cores $subcomm $with_caf
+ 
+    i=$i+1    
 done
