@@ -46,6 +46,16 @@ run_job() {
     cd "../.."
 }
 
+print_help() {
+    echo "This script submits code verification jobs."
+    echo "Arguments:"
+    echo "    -h    print this message"
+    echo "    -c    communication layer, valid options: 'p2p', 'shmem', 'caf' and 'rma'"
+    echo "    -m    machine to run on, valid options: 'archer2' and 'cirrus'"
+    echo "    -n    number of random samples"
+    echo "    -s    seed for RNG"
+}
+
 # --------------------------------------------------------
 # User options:
 
@@ -56,8 +66,14 @@ n_samples=10
 
 # RNG seed
 seed=42
-while getopts "h?m:n:s:": option; do
+
+comm="p2p"
+
+while getopts "h?m:n:s:c:": option; do
     case "$option" in
+	c)
+	    comm=$OPTARG
+	    ;;
         h|\?)
             print_help
             exit 0
@@ -76,6 +92,18 @@ done
 
 if ! test "$machine" = "archer2" && ! test "$machine" = "cirrus"; then
     echo "Only 'archer2' and 'cirrus' machines supported. Exiting."
+    exit 1
+fi
+
+l_comm_valid=0
+for i in "p2p" "rma" "shmem" "caf"; do
+    if test "$comm" = "$i"; then
+        l_comm_valid=1
+    fi
+done
+
+if ! test $l_comm_valid = 1; then
+    echo "Invalid communication layer. Exiting."
     exit 1
 fi
 
@@ -100,13 +128,13 @@ for bin_dir in ${bins[*]}; do
     compiler="${compilers[$j]}"
     with_caf="${enable_caf[$j]}"
 
-    # Coarray Fortran (CAF) is a separate build:
-    if test "$with_caf" = "yes"; then
-        run_job $machine $compiler "$bin_dir" "caf" $n_samples $seed $conda_env
+    if test "$comm" = "caf"; then
+        # Coarray Fortran (CAF) is a separate build:
+        if test "$with_caf" = "yes"; then
+            run_job $machine $compiler "$bin_dir" "caf" $n_samples $seed $conda_env
+	fi
     else
-        for i in "p2p" "rma" "shmem"; do
-            run_job $machine $compiler "$bin_dir" $i $n_samples $seed $conda_env
-        done
+        run_job $machine $compiler "$bin_dir" $comm $n_samples $seed $conda_env
     fi
 
     j=$((j+1))
