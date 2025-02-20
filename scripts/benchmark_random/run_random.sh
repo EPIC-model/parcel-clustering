@@ -47,11 +47,12 @@ run_jobs() {
     echo "subcomm         = $subcomm"
     echo "enable_caf      = $enable_caf"
     echo "--------------------------------"
-    exit
+
     mkdir -p -v "$compiler"
     cd "$compiler"
 
-    for ntasks in $(seq $min_ntasks $inc_ntasks $max_ntasks); do
+    ntasks=$min_ntasks
+    while (($ntasks <= $max_ntasks)); do
         nodes=$((ntasks/ntasks_per_node))
 
         # avoid nodes = 0
@@ -60,7 +61,7 @@ run_jobs() {
         fi
 
         echo "Submit job with $ntasks tasks on $nodes nodes using the $compiler version"
-        
+
         if test "$enable_caf" = "yes"; then
             fn="submit_caf_random_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
         else
@@ -91,6 +92,8 @@ run_jobs() {
         sed -i "s:SUBCOMM:$subcomm:g" $fn
 
         sbatch $fn
+
+        ntasks=$((ntasks*2))
     done
 
     cd ..
@@ -140,49 +143,49 @@ machine=''
 subcomm="false"
 while getopts "h?m:l:u:j:r:i:x:y:z:a:b:c:s": option; do
     case "$option" in
+        a)
+            lx=$OPTARG
+            ;;
+        b)
+            ly=$OPTARG
+            ;;
+        c)
+            lz=$OPTARG
+            ;;
         h|\?)
-	    print_help
+            print_help
             exit 0
             ;;
-    	m)
-	    machine=$OPTARG
-      	    ;;
-	l)
-	    min_cores=$OPTARG
-	    ;;
-	u)
-	    max_cores=$OPTARG
-	    ;;
-	j)
-	    inc_cores=$OPTARG
-	    ;;
-	r)
-            nrep=$OPTARG
-	    ;;
-	i)
-	    niter=$OPTARG
-	    ;;
-	x)
-	    nx=$OPTARG
+        i)
+            niter=$OPTARG
             ;;
-	y)
-	    ny=$OPTARG
-	    ;;
-	z)
+        j)
+            inc_cores=$OPTARG
+            ;;
+        l)
+            min_cores=$OPTARG
+            ;;
+    	m)
+            machine=$OPTARG
+      	    ;;
+        r)
+            nrep=$OPTARG
+            ;;
+        s)
+            subcomm="true"
+            ;;
+        u)
+            max_cores=$OPTARG
+            ;;
+        x)
+            nx=$OPTARG
+            ;;
+        y)
+            ny=$OPTARG
+            ;;
+        z)
             nz=$OPTARG
-	    ;;
-	a)
-	    lx=$OPTARG
-	    ;;
-	b)
-	    ly=$OPTARG
-	    ;;
-        c)
-	    lz=$OPTARG
-	    ;;
-	s)
-	    subcomm="true"
-	    ;;
+            ;;
     esac
 done
 
@@ -197,12 +200,12 @@ source "../$machine.sh"
 echo "Submiting jobs on $machine with $min_cores to $max_cores cores."
 echo "Each job is repeated $nrep times with $niter iterations per repetition."
 
-i=0
+j=0
 for bin_dir in ${bins[*]}; do
-    compiler="${compilers[$i]}"
-    with_caf="${enable_caf[$i]}"
+    compiler="${compilers[$j]}"
+    with_caf="${enable_caf[$j]}"
 
     run_jobs $machine $ntasks_per_node $compiler "$bin_dir" $nrep $niter $nx $ny $nz $lx $ly $lz $min_cores $inc_cores $max_cores $subcomm $with_caf
- 
-    i=$i+1    
+
+    j=$((j+1))
 done
