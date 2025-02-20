@@ -93,7 +93,7 @@ run_jobs() {
 
         sbatch $fn
 
-        ntasks=$((ntasks*2))
+        ntasks=$((ntasks*inc_ntasks))
     done
 
     cd ..
@@ -139,8 +139,22 @@ print_help() {
     echo "    -s    use sub-communicator (optional)"
 }
 
+check_for_input() {
+    if ! test "${2}"; then
+        echo "Please specify '${1}'. Exiting."
+	exit 1
+    fi
+}
+
+
 machine=''
+
+# default options:
 subcomm="false"
+inc_cores=2
+nrep=1
+niter=1
+
 while getopts "h?m:l:u:j:r:i:x:y:z:a:b:c:s": option; do
     case "$option" in
         a)
@@ -196,6 +210,20 @@ fi
 
 # set bin directories
 source "../$machine.sh"
+
+check_for_input "ntasks_per_node" $ntasks_per_node
+check_for_input "nrep" $nrep
+check_for_input "niter" $niter
+check_for_input "nx" $nx
+check_for_input "ny" $ny
+check_for_input "nz" $nz
+check_for_input "lx" $lx
+check_for_input "ly" $ly
+check_for_input "lz" $lz
+check_for_input "min_cores" $min_cores
+check_for_input "inc_cores" $inc_cores
+check_for_input "max_cores" $max_cores
+check_for_input "subcomm" $subcomm
 
 echo "Submiting jobs on $machine with $min_cores to $max_cores cores."
 echo "Each job is repeated $nrep times with $niter iterations per repetition."
