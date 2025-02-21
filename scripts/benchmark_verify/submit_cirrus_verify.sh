@@ -72,6 +72,7 @@ echo "Run COMM_TYPE"
 if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
     python ${exe_dir}/verify_cluster_algorithm.py \
         --n_ranks 9 18 36 72 \
+	--ntasks-per-node 36 \
         --n_parcel_per_cell 40 \
         --nx 32 \
         --ny 32 \
@@ -85,6 +86,7 @@ if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
 else
     python ${exe_dir}/verify_cluster_algorithm.py \
         --n_ranks 9 18 36 72 \
+	--ntasks-per-node 36 \
         --n_parcel_per_cell 40 \
         --nx 32 \
         --ny 32 \
