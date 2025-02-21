@@ -62,6 +62,8 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     subroutine mpi_ops_free
+#ifndef ENABLE_MPI_INTEGER8
+
         integer :: err
 
         call MPI_Op_free(MPI_SUM_64BIT, err)
@@ -77,7 +79,7 @@ contains
             print *, "Error in mpi_ops::mpi_ops_free: Unable to free user-defined MPI_MAX operator."
             call MPI_Abort(MPI_COMM_WORLD, -1, err)
         endif
-
+#endif
     end subroutine mpi_ops_free
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::

@@ -46,8 +46,20 @@ run_job() {
     cd "../.."
 }
 
+print_help() {
+    echo "This script submits code verification jobs."
+    echo "Arguments:"
+    echo "    -h    print this message"
+    echo "    -c    communication layer, valid options: 'p2p', 'shmem', 'caf' and 'rma'"
+    echo "    -m    machine to run on, valid options: 'archer2' and 'cirrus'"
+    echo "    -n    number of random samples"
+    echo "    -s    seed for RNG"
+}
+
 # --------------------------------------------------------
 # User options:
+
+machine=''
 
 # number of samples
 n_samples=10
@@ -55,32 +67,75 @@ n_samples=10
 # RNG seed
 seed=42
 
-# PYTHON CONDA environment
-conda_env="epic-env"
+comm="p2p"
+
+while getopts "h?m:n:s:c:": option; do
+    case "$option" in
+	c)
+	    comm=$OPTARG
+	    ;;
+        h|\?)
+            print_help
+            exit 0
+            ;;
+        m)
+            machine=$OPTARG
+            ;;
+        n)
+            n_samples=$OPTARG
+            ;;
+        s)
+            seed=$OPTARG
+            ;;
+    esac
+done
+
+if ! test "$machine" = "archer2" && ! test "$machine" = "cirrus"; then
+    echo "Only 'archer2' and 'cirrus' machines supported. Exiting."
+    exit 1
+fi
+
+l_comm_valid=0
+for i in "p2p" "rma" "shmem" "caf"; do
+    if test "$comm" = "$i"; then
+        l_comm_valid=1
+    fi
+done
+
+if ! test $l_comm_valid = 1; then
+    echo "Invalid communication layer. Exiting."
+    exit 1
+fi
+
 
 # bin directories of executables:
-gnu_bin="/work/e710/e710/mf248/gnu/clustering/bin"
-cray_bin="/work/e710/e710/mf248/cray/clustering/bin"
-caf_bin="/work/e710/e710/mf248/cray-caf/clustering/bin"
+source "../$machine.sh"
 # --------------------------------------------------------
 
 
 if ! test "$CONDA_EXE"; then
-    echo "No CONDA environment."
-    exit 1
+    echo "No CONDA environment. Checking if 'python_exe' is set."
+
+    if ! test "$python_exe"; then
+        exit 1
+    fi
+
+    CONDA_EXE=$python_exe
 fi
 
-for i in "p2p" "rma" "shmem"; do
-    if test -d "$gnu_bin"; then
-        run_job $machine "gnu" $gnu_bin $i $n_samples $seed $conda_env
+j=0
+for bin_dir in ${bins[*]}; do
+    compiler="${compilers[$j]}"
+    with_caf="${enable_caf[$j]}"
+
+    if test "$comm" = "caf"; then
+        # Coarray Fortran (CAF) is a separate build:
+        if test "$with_caf" = "yes"; then
+            run_job $machine $compiler "$bin_dir" "caf" $n_samples $seed $conda_env
+	fi
+    else
+        run_job $machine $compiler "$bin_dir" $comm $n_samples $seed $conda_env
     fi
 
-    if test -d "$cray_bin"; then
-        run_job $machine "cray" $cray_bin $i $n_samples $seed $conda_env
-    fi
+    j=$((j+1))
 done
-
-# Coarray Fortran (CAF) is a separate build:
-if test -d "$caf_bin"; then
-    run_job $machine "cray" $caf_bin "caf" $n_samples $seed $conda_env
-fi
