@@ -53,7 +53,7 @@ if test "$ax_cv_fc_compiler_vendor" = "intel"; then
     AX_CHECK_COMPILE_FLAG([-real-size 8], [FCFLAGS="$FCFLAGS -real-size 8"])
     AX_CHECK_COMPILE_FLAG([-double-size 64], [FCFLAGS="$FCFLAGS -double-size 64"])
     # Suppress harmless warnings:
-    # > warning #8100: The actual argument is an array section or assumed-shape array, 
+    # > warning #8100: The actual argument is an array section or assumed-shape array,
     # > corresponding dummy argument that has either the VOLATILE or ASYNCHRONOUS attribute shall be an assumed-shape array.   [SEND_BUF]
     # >       call MPI_Isend(send_buf(1:send_size)
     AX_CHECK_COMPILE_FLAG([-diag-disable 8100], [FCFLAGS="$FCFLAGS -diag-disable 8100"])
@@ -215,17 +215,27 @@ if test -n "${MPI_DIR}"; then
 fi
 
 AC_SEARCH_LIBS([MPI_Init],
-               [mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
+               [mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
                [],
                [])
 
 AC_SEARCH_LIBS([MPI_Win_lock],
-               [mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
+               [mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
+               [],
+               [])
+
+AC_SEARCH_LIBS([MPI_Win_flush],
+               [mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
+               [],
+               [])
+
+AC_SEARCH_LIBS([MPI_Wtime],
+               [mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
                [],
                [])
 
 if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
-for lib in NONE mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort; do
+for lib in NONE mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort; do
     save_LIBS=$LIBS
     if test x"$lib" = xNONE; then
     AC_MSG_CHECKING([for module mpi_f08])
@@ -312,6 +322,8 @@ fi
 #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # OpenSHMEM
 
+AC_LANG_PUSH([C])
+
 AC_SEARCH_LIBS([shmem_init],
             [oshmem],
             [],
@@ -322,7 +334,12 @@ AC_SEARCH_LIBS([shmem_finalize],
             [],
             [])
 
-AC_SEARCH_LIBS([shmem_logical_put],
+AC_SEARCH_LIBS([shmem_putmem],
+            [oshmem],
+            [],
+            [])
+
+AC_SEARCH_LIBS([shmem_getmem],
             [oshmem],
             [],
             [])
@@ -330,20 +347,17 @@ AC_SEARCH_LIBS([shmem_logical_put],
 for lib in NONE oshmem; do
     save_LIBS=$LIBS
     if test x"$lib" = xNONE; then
-    AC_MSG_CHECKING([for shmem_init])
+    AC_MSG_CHECKING([whether we can compile a SHMEM C program])
     else
-    AC_MSG_CHECKING([for module shmem_init in -l$lib])
+    AC_MSG_CHECKING([whether we can compile a SHMEM C program using -l$lib])
     LIBS="-l$lib $LIBS"
     fi
     AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM([], [
-        implicit none
-        integer :: rank, nranks
-        integer :: my_pe, num_pes
-        call shmem_init
-        rank = my_pe()
-        nranks = num_pes()
-        call shmem_finalize])],
+        [AC_LANG_PROGRAM([#include <shmem.h>], [
+        shmem_init();
+        int rank = shmem_my_pe();
+        int nranks = shmem_n_pes();
+        shmem_finalize();])],
         [openshmem_found=yes],
         [openshmem_found=no])
     AC_MSG_RESULT([$openshmem_found])
@@ -353,6 +367,8 @@ for lib in NONE oshmem; do
     fi
     LIBS=$save_LIBS
 done
+
+AC_LANG_POP([C])
 
 AC_MSG_CHECKING([whether we are enabling SHMEM])
 if test "x$openshmem_found" = "xyes"; then
