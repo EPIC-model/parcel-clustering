@@ -12,5 +12,5 @@ ntasks_per_node=36
 
 # Cirrus does not use Conda
 conda_env=""
-python_exe=$(which python)
+python_exe=$(which python 2>/dev/null)
 
