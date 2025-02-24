@@ -30,21 +30,21 @@ module shmem
             use, intrinsic :: iso_c_binding
         end subroutine shmem_barrier_all
 
-        subroutine shmem_putmem_c(dest, src, nelems, pe) bind(C,name="shmem_putmem")
+        subroutine shmem_put32_c(dest, src, nelems, pe) bind(C,name="shmem_put32")
             use, intrinsic :: iso_c_binding
             type(C_PTR), value :: dest
             type(C_PTR), value :: src
             integer(kind=C_SIZE_T), value :: nelems
             integer(kind=C_INT), value :: pe
-        end subroutine shmem_putmem_c
+        end subroutine shmem_put32_c
 
-        subroutine shmem_getmem_c(dest, src, nelems, pe) bind(C,name="shmem_getmem")
+        subroutine shmem_get32_c(dest, src, nelems, pe) bind(C,name="shmem_get32")
             use, intrinsic :: iso_c_binding
             type(C_PTR), value :: dest
             type(C_PTR), value :: src
             integer(kind=C_SIZE_T), value :: nelems
             integer(kind=C_INT), value :: pe
-        end subroutine shmem_getmem_c
+        end subroutine shmem_get32_c
     end interface
 
 contains
@@ -90,7 +90,7 @@ contains
         src_cptr = c_loc(src)
         dest_cptr = c_loc(dest)
 
-        call shmem_getmem_c(dest_cptr, src_cptr, c_nelems, c_pe)
+        call shmem_get32_c(dest_cptr, src_cptr, c_nelems, c_pe)
 
     end subroutine shmem_logical_get
 
@@ -110,7 +110,7 @@ contains
         src_cptr = c_loc(src)
         dest_cptr = c_loc(dest)
 
-        call shmem_putmem_c(dest_cptr, src_cptr, c_nelems, c_pe)
+        call shmem_put32_c(dest_cptr, src_cptr, c_nelems, c_pe)
 
     end subroutine shmem_logical_put
 
