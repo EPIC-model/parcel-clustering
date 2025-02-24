@@ -5,11 +5,8 @@ AM_FCFLAGS = -I $(top_builddir)/src/		\
 	     -I $(top_builddir)/src/utils/
 
 bin_PROGRAMS = benchmark_random			\
-               benchmark_read
-
-if ENABLE_PYTHON
-bin_PROGRAMS += benchmark_verify
-endif
+               benchmark_read			\
+               benchmark_verify
 
 benchmark_random_SOURCES = 			\
 	mpi/mpi_tags.f90                        \
@@ -105,7 +102,6 @@ benchmark_read_SOURCES += 			\
 
 benchmark_read_LDADD = $(top_builddir)/src/utils/libcluster_utils.la
 
-if ENABLE_PYTHON
 benchmark_verify_SOURCES = 			\
 	mpi/mpi_tags.f90                        \
         mpi/mpi_datatypes.f90                   \
@@ -151,7 +147,6 @@ benchmark_verify_SOURCES += 			\
 	benchmark_verify.f90
 
 benchmark_verify_LDADD = $(top_builddir)/src/utils/libcluster_utils.la
-endif
 
 clean-local:
 	rm -f *.mod *.smod
