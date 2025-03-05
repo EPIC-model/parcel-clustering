@@ -8,10 +8,10 @@ module shmem
             use, intrinsic :: iso_c_binding
         end subroutine shmem_finalize
 
-        type(c_ptr) function shmem_malloc_c(n) bind(C, name="shmem_malloc")
+        type(c_ptr) function c_shmem_malloc(n) bind(C, name="shmem_malloc")
             use, intrinsic :: iso_c_binding
             integer(kind=c_size_t), value :: n
-        end function shmem_malloc_c
+        end function c_shmem_malloc
 
         subroutine c_shmem_free(ptr) bind(C, name="shmem_free")
             use, intrinsic :: iso_c_binding
@@ -37,25 +37,38 @@ module shmem
             use, intrinsic :: iso_c_binding
         end function shmem_n_pes
 
-        subroutine shmem_barrier_all() bind(C,name="shmem_barrier_all")
+        subroutine shmem_barrier_all() bind(C, name="shmem_barrier_all")
             use, intrinsic :: iso_c_binding
         end subroutine shmem_barrier_all
 
-        subroutine c_shmem_put32(dest, src, nelems, pe) bind(C,name="shmem_put32")
+        ! See function signature at
+        ! https://cpe.ext.hpe.com/docs/24.07/mpt/openshmemx/shmem_put.html
+        ! (accessed 5 March 2025)
+        subroutine c_shmem_put(dest, source, nelems, pe) &
+#ifdef ENABLE_SHMEM_PUT_GET_32
+            bind(C, name="shmem_put32")
+#else
+            bind(C, name="shmem_putmem")
+#endif
             use, intrinsic :: iso_c_binding
             type(c_ptr),            value :: dest
-            type(c_ptr),            value :: src
+            type(c_ptr),            value :: source
             integer(kind=c_size_t), value :: nelems
             integer(kind=c_int),    value :: pe
-        end subroutine c_shmem_put32
+        end subroutine c_shmem_put
 
-        subroutine c_shmem_get32(dest, src, nelems, pe) bind(C,name="shmem_get32")
+        subroutine c_shmem_get(dest, source, nelems, pe) &
+#ifdef ENABLE_SHMEM_PUT_GET_32
+            bind(C, name="shmem_get32")
+#else
+            bind(C, name="shmem_getmem")
+#endif
             use, intrinsic :: iso_c_binding
             type(c_ptr),            value :: dest
-            type(c_ptr),            value :: src
+            type(c_ptr),            value :: source
             integer(kind=c_size_t), value :: nelems
             integer(kind=c_int),    value :: pe
-        end subroutine c_shmem_get32
+        end subroutine c_shmem_get
     end interface
 
 contains
@@ -67,7 +80,7 @@ contains
         type(c_ptr)                     :: buf_ptr
         logical                         :: l_byte
 
-        buf_ptr = shmem_malloc_c(c_sizeof(l_byte)*n)
+        buf_ptr = c_shmem_malloc(c_sizeof(l_byte)*n)
         call c_f_pointer(buf_ptr, l_data, [n])
 
     end subroutine shmem_logical_malloc
@@ -87,41 +100,57 @@ contains
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine shmem_logical_get(dest, src, nelems, pe)
+    subroutine shmem_logical_get(dest, source, nelems, pe)
         use, intrinsic :: iso_c_binding, only : c_int, c_size_t, c_ptr, c_loc
-        logical, target,  intent(in) :: dest, src
+#ifndef ENABLE_SHMEM_PUT_GET_32
+        use, intrinsic :: iso_c_binding, only : c_sizeof
+#endif
+        logical, target,  intent(in) :: dest, source
         integer,          intent(in) :: nelems, pe
         integer(c_int)               :: c_pe
         integer(c_size_t)            :: c_nelems
-        type(c_ptr)                  :: src_cptr, dest_cptr
+        type(c_ptr)                  :: source_cptr, dest_cptr
+#ifndef ENABLE_SHMEM_PUT_GET_32
+        logical                      :: l_byte
 
+        c_nelems = nelems * c_sizeof(l_byte)
+#else
         c_nelems = nelems
-        c_pe     = pe
+#endif
+        c_pe = pe
 
-        src_cptr = c_loc(src)
+        source_cptr = c_loc(source)
         dest_cptr = c_loc(dest)
 
-        call c_shmem_get32(dest_cptr, src_cptr, c_nelems, c_pe)
+        call c_shmem_get(dest_cptr, source_cptr, c_nelems, c_pe)
 
     end subroutine shmem_logical_get
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine shmem_logical_put(dest, src, nelems, pe)
+    subroutine shmem_logical_put(dest, source, nelems, pe)
         use, intrinsic :: iso_c_binding, only : c_int, c_size_t, c_ptr, c_loc
-        logical, target,  intent(in) :: dest, src
+#ifndef ENABLE_SHMEM_PUT_GET_32
+        use, intrinsic :: iso_c_binding, only : c_sizeof
+#endif
+        logical, target,  intent(in) :: dest, source
         integer,          intent(in) :: nelems, pe
         integer(c_int)               :: c_pe
         integer(c_size_t)            :: c_nelems
-        type(c_ptr)                  :: src_cptr, dest_cptr
+        type(c_ptr)                  :: source_cptr, dest_cptr
+#ifndef ENABLE_SHMEM_PUT_GET_32
+        logical                      :: l_byte
 
+        c_nelems = nelems * c_sizeof(l_byte)
+#else
         c_nelems = nelems
+#endif
         c_pe     = pe
 
-        src_cptr = c_loc(src)
+        source_cptr = c_loc(source)
         dest_cptr = c_loc(dest)
 
-        call c_shmem_put32(dest_cptr, src_cptr, c_nelems, c_pe)
+        call c_shmem_put(dest_cptr, source_cptr, c_nelems, c_pe)
 
     end subroutine shmem_logical_put
 
@@ -531,7 +560,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(dest=this%l_available(ic), src=val, nelems=1, pe=pe)
+            call shmem_logical_put(dest=this%l_available(ic), source=val, nelems=1, pe=pe)
             call stop_timer(this%put_timer)
         endif
 
@@ -551,7 +580,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(dest=this%l_leaf(ic), src=val, nelems=1, pe=pe)
+            call shmem_logical_put(dest=this%l_leaf(ic), source=val, nelems=1, pe=pe)
             call stop_timer(this%put_timer)
         endif
 
@@ -571,7 +600,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(dest=this%l_merged(ic), src=val, nelems=1, pe=pe)
+            call shmem_logical_put(dest=this%l_merged(ic), source=val, nelems=1, pe=pe)
             call stop_timer(this%put_timer)
         endif
 
@@ -591,7 +620,7 @@ contains
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(dest=val, src=this%l_available(ic), nelems=1, pe=pe)
+            call shmem_logical_get(dest=val, source=this%l_available(ic), nelems=1, pe=pe)
             call stop_timer(this%get_timer)
         endif
 
@@ -611,7 +640,7 @@ contains
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(dest=val, src=this%l_leaf(ic), nelems=1, pe=pe)
+            call shmem_logical_get(dest=val, source=this%l_leaf(ic), nelems=1, pe=pe)
             call stop_timer(this%get_timer)
         endif
 
@@ -631,7 +660,7 @@ contains
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(dest=val, src=this%l_merged(ic), nelems=1, pe=pe)
+            call shmem_logical_get(dest=val, source=this%l_merged(ic), nelems=1, pe=pe)
             call stop_timer(this%get_timer)
         endif
 

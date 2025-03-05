@@ -344,6 +344,17 @@ AC_SEARCH_LIBS([shmem_getmem],
             [],
             [])
 
+
+AC_SEARCH_LIBS([shmem_put32],
+            [oshmem],
+            [],
+            [])
+
+AC_SEARCH_LIBS([shmem_get32],
+            [oshmem],
+            [],
+            [])
+
 for lib in NONE oshmem; do
     save_LIBS=$LIBS
     if test x"$lib" = xNONE; then
@@ -379,6 +390,27 @@ else
 fi
 
 AM_CONDITIONAL([ENABLE_SHMEM], [test "$openshmem_found" = "yes"])
+
+if test "x$openshmem_found" = "xyes"; then
+    AC_MSG_CHECKING([size of Fortran logical])
+    # (accessed 5 March 2025)
+    # https://www.gnu.org/software/autoconf/manual/autoconf-2.63/html_node/Runtime.html
+    AC_RUN_IFELSE([
+        AC_LANG_PROGRAM([],
+                        [use, intrinsic :: iso_c_binding
+                        implicit none
+                        logical :: var
+                        open(unit=12, file='conftest.out', status='replace')
+                        write(12, fmt='(I2)') 8*c_sizeof(var) ! write size in bits
+                        close(12)])],
+        [logical_size=$(cat conftest.out)],
+        [AC_MSG_ERROR([Could not figure out size of Fortran logical.])])
+
+    AC_MSG_RESULT([$logical_size bit])
+    if test $logical_size == 32; then
+        FCFLAGS="$FCFLAGS -DENABLE_SHMEM_PUT_GET_32"
+    fi
+fi
 
 #######################################################################################
 ##
