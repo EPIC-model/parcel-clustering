@@ -15,14 +15,25 @@ module shmem
 
         subroutine c_shmem_free(ptr) bind(C, name="shmem_free")
             use, intrinsic :: iso_c_binding
-            type(C_PTR), value :: ptr
+            type(c_ptr), value :: ptr
         end subroutine c_shmem_free
+
+        integer(kind=c_int) function shmem_pe_accessible(pe) bind(C, name="shmem_pe_accessible")
+            use, intrinsic :: iso_c_binding
+            integer(kind=c_int), value :: pe
+        end function shmem_pe_accessible
+
+        integer(kind=c_int) function shmem_addr_accessible(addr, pe) bind(C, name="shmem_addr_accessible")
+            use, intrinsic :: iso_c_binding
+            type(c_ptr),         value :: addr
+            integer(kind=c_int), value :: pe
+        end function shmem_addr_accessible
 
         integer(kind=c_int) function shmem_my_pe() bind(C, name="shmem_my_pe")
             use, intrinsic :: iso_c_binding
         end function shmem_my_pe
 
-        integer(kind=C_INT) function shmem_n_pes() bind(C, name="shmem_n_pes")
+        integer(kind=c_int) function shmem_n_pes() bind(C, name="shmem_n_pes")
             use, intrinsic :: iso_c_binding
         end function shmem_n_pes
 
@@ -30,21 +41,21 @@ module shmem
             use, intrinsic :: iso_c_binding
         end subroutine shmem_barrier_all
 
-        subroutine shmem_put32_c(dest, src, nelems, pe) bind(C,name="shmem_put32")
+        subroutine c_shmem_put32(dest, src, nelems, pe) bind(C,name="shmem_put32")
             use, intrinsic :: iso_c_binding
-            type(C_PTR), value :: dest
-            type(C_PTR), value :: src
-            integer(kind=C_SIZE_T), value :: nelems
-            integer(kind=C_INT), value :: pe
-        end subroutine shmem_put32_c
+            type(c_ptr),            value :: dest
+            type(c_ptr),            value :: src
+            integer(kind=c_size_t), value :: nelems
+            integer(kind=c_int),    value :: pe
+        end subroutine c_shmem_put32
 
-        subroutine shmem_get32_c(dest, src, nelems, pe) bind(C,name="shmem_get32")
+        subroutine c_shmem_get32(dest, src, nelems, pe) bind(C,name="shmem_get32")
             use, intrinsic :: iso_c_binding
-            type(C_PTR), value :: dest
-            type(C_PTR), value :: src
-            integer(kind=C_SIZE_T), value :: nelems
-            integer(kind=C_INT), value :: pe
-        end subroutine shmem_get32_c
+            type(c_ptr),            value :: dest
+            type(c_ptr),            value :: src
+            integer(kind=c_size_t), value :: nelems
+            integer(kind=c_int),    value :: pe
+        end subroutine c_shmem_get32
     end interface
 
 contains
@@ -90,7 +101,7 @@ contains
         src_cptr = c_loc(src)
         dest_cptr = c_loc(dest)
 
-        call shmem_get32_c(dest_cptr, src_cptr, c_nelems, c_pe)
+        call c_shmem_get32(dest_cptr, src_cptr, c_nelems, c_pe)
 
     end subroutine shmem_logical_get
 
@@ -110,7 +121,7 @@ contains
         src_cptr = c_loc(src)
         dest_cptr = c_loc(dest)
 
-        call shmem_put32_c(dest_cptr, src_cptr, c_nelems, c_pe)
+        call c_shmem_put32(dest_cptr, src_cptr, c_nelems, c_pe)
 
     end subroutine shmem_logical_put
 
@@ -127,7 +138,6 @@ module parcel_nearest_shmem_graph
     use mpi_environment, only : l_ignore_mpi_finalize
     use shmem
     implicit none
-!     include 'shmem.fh'
 
     private
 
@@ -167,6 +177,7 @@ module parcel_nearest_shmem_graph
 
         procedure, private :: init_cart2shmem
         procedure, private :: get_pe
+        procedure, private :: address_check
 
     end type
 
@@ -178,6 +189,7 @@ contains
         class(shmem_graph_t), intent(inout) :: this
         integer,              intent(in)    :: num
         logical,              intent(in)    :: l_subcomm
+        integer                             :: n, valid
 
         if (this%l_shmem_allocated) then
             return
@@ -217,6 +229,24 @@ contains
         call shmem_logical_malloc(this%l_merged, num)
 
         call this%reset
+
+
+        !--------------------------------------------------
+        ! Initial checks to ensure everything works:
+
+        do n = 0, world%size - 1
+            if (n /= world%rank) then
+                valid = shmem_pe_accessible(n)
+                if (valid /= 1) then
+                    print *, "Processing element: ", n, " not accessible from ", world%rank
+                    call MPI_Abort(MPI_COMM_WORLD, -1, world%err)
+                endif
+
+                call this%address_check(this%l_available, n)
+                call this%address_check(this%l_leaf, n)
+                call this%address_check(this%l_merged, n)
+            endif
+       enddo
 
     end subroutine shmem_graph_initialise
 
@@ -690,5 +720,23 @@ contains
         pe = this%cart2shmem(n)
 
     end function get_pe
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine address_check(this, l_array, pe)
+        class(shmem_graph_t), intent(in) :: this
+        logical, pointer,     intent(in) :: l_array(:)
+        integer,              intent(in) :: pe
+        integer                          :: valid
+        type(c_ptr)                      :: buf_ptr
+
+        buf_ptr = c_loc(l_array)
+        valid = shmem_addr_accessible(buf_ptr, pe)
+        if (valid /= 1) then
+            print *, "Address on PE ", pe, " not accessible from ", world%rank
+            call MPI_Abort(MPI_COMM_WORLD, -1, world%err)
+        endif
+
+    end subroutine address_check
 
 end module parcel_nearest_shmem_graph
