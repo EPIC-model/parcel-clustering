@@ -216,17 +216,27 @@ if test -n "${MPI_DIR}"; then
 fi
 
 AC_SEARCH_LIBS([MPI_Init],
-               [mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
+               [mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
                [],
                [])
 
 AC_SEARCH_LIBS([MPI_Win_lock],
-               [mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
+               [mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
+               [],
+               [])
+
+AC_SEARCH_LIBS([MPI_Win_flush],
+               [mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
+               [],
+               [])
+
+AC_SEARCH_LIBS([MPI_Wtime],
+               [mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort],
                [],
                [])
 
 if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
-for lib in NONE mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort; do
+for lib in NONE mpi mpi_usempif08 mpi_usempi_ignore_tkr mpi_mpifh mpichf90 mpifort_cray fmpich mpifort; do
     save_LIBS=$LIBS
     if test x"$lib" = xNONE; then
     AC_MSG_CHECKING([for module mpi_f08])
@@ -313,6 +323,8 @@ fi
 #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # OpenSHMEM
 
+AC_LANG_PUSH([C])
+
 AC_SEARCH_LIBS([shmem_init],
             [oshmem],
             [],
@@ -323,7 +335,23 @@ AC_SEARCH_LIBS([shmem_finalize],
             [],
             [])
 
-AC_SEARCH_LIBS([shmem_logical_put],
+AC_SEARCH_LIBS([shmem_putmem],
+            [oshmem],
+            [],
+            [])
+
+AC_SEARCH_LIBS([shmem_getmem],
+            [oshmem],
+            [],
+            [])
+
+
+AC_SEARCH_LIBS([shmem_put32],
+            [oshmem],
+            [],
+            [])
+
+AC_SEARCH_LIBS([shmem_get32],
             [oshmem],
             [],
             [])
@@ -331,20 +359,17 @@ AC_SEARCH_LIBS([shmem_logical_put],
 for lib in NONE oshmem; do
     save_LIBS=$LIBS
     if test x"$lib" = xNONE; then
-    AC_MSG_CHECKING([for shmem_init])
+    AC_MSG_CHECKING([whether we can compile a SHMEM C program])
     else
-    AC_MSG_CHECKING([for module shmem_init in -l$lib])
+    AC_MSG_CHECKING([whether we can compile a SHMEM C program using -l$lib])
     LIBS="-l$lib $LIBS"
     fi
     AC_LINK_IFELSE(
-        [AC_LANG_PROGRAM([], [
-        implicit none
-        integer :: rank, nranks
-        integer :: my_pe, num_pes
-        call shmem_init
-        rank = my_pe()
-        nranks = num_pes()
-        call shmem_finalize])],
+        [AC_LANG_PROGRAM([#include <shmem.h>], [
+        shmem_init();
+        int rank = shmem_my_pe();
+        int nranks = shmem_n_pes();
+        shmem_finalize();])],
         [openshmem_found=yes],
         [openshmem_found=no])
     AC_MSG_RESULT([$openshmem_found])
@@ -355,6 +380,8 @@ for lib in NONE oshmem; do
     LIBS=$save_LIBS
 done
 
+AC_LANG_POP([C])
+
 AC_MSG_CHECKING([whether we are enabling SHMEM])
 if test "x$openshmem_found" = "xyes"; then
     AC_MSG_RESULT([yes])
@@ -364,6 +391,27 @@ else
 fi
 
 AM_CONDITIONAL([ENABLE_SHMEM], [test "$openshmem_found" = "yes"])
+
+if test "x$openshmem_found" = "xyes"; then
+    AC_MSG_CHECKING([size of Fortran logical])
+    # (accessed 5 March 2025)
+    # https://www.gnu.org/software/autoconf/manual/autoconf-2.63/html_node/Runtime.html
+    AC_RUN_IFELSE([
+        AC_LANG_PROGRAM([],
+                        [use, intrinsic :: iso_c_binding
+                        implicit none
+                        logical :: var
+                        open(unit=12, file='conftest.out', status='replace')
+                        write(12, fmt='(I2)') 8*c_sizeof(var) ! write size in bits
+                        close(12)])],
+        [logical_size=$(cat conftest.out)],
+        [AC_MSG_ERROR([Could not figure out size of Fortran logical.])])
+
+    AC_MSG_RESULT([$logical_size bit])
+    if test $logical_size == 32; then
+        FCFLAGS="$FCFLAGS -DENABLE_SHMEM_PUT_GET_32"
+    fi
+fi
 
 #######################################################################################
 ##
@@ -395,14 +443,14 @@ fi
 ## https://gitlab.psi.ch/H5hut/src/-/blob/master/configure.ac
 ##
 
-ENABLE_PYTHON='no'
+ENABLE_PYTHON_CHECK='no'
 AC_ARG_ENABLE([python],
-              [AS_HELP_STRING([--enable-python], [enable Python (default=no)])],
-              [ENABLE_PYTHON=$enableval])
+              [AS_HELP_STRING([--enable-python-check], [enable Python check (default=no)])],
+              [ENABLE_PYTHON_CHECK=$enableval])
 
-AM_CONDITIONAL([ENABLE_PYTHON], [test "$ENABLE_PYTHON" = "yes"])
+AM_CONDITIONAL([ENABLE_PYTHON_CHECK], [test "$ENABLE_PYTHON_CHECK" = "yes"])
 
-if test "x$ENABLE_PYTHON" = "xyes"; then
+if test "x$ENABLE_PYTHON_CHECK" = "xyes"; then
     AM_PATH_PYTHON([3.11])
     #
     # argparse

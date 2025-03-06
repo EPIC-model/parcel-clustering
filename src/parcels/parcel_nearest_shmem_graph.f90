@@ -1,17 +1,159 @@
 module shmem
     interface
-            type(c_ptr) function shmem_malloc(n) bind(C, name="shmem_malloc")
-                use, intrinsic :: iso_c_binding
-                integer(kind=c_size_t), value :: n
-            end function shmem_malloc
-        end interface
+        subroutine shmem_init() bind(C, name="shmem_init")
+            use, intrinsic :: iso_c_binding
+        end subroutine shmem_init
 
-        interface
-            subroutine shmem_free(ptr) bind(C,name="shmem_free")
-                use, intrinsic :: iso_c_binding
-                type(C_PTR), value :: ptr
-            end subroutine shmem_free
-        end interface
+        subroutine shmem_finalize() bind(C, name="shmem_finalize")
+            use, intrinsic :: iso_c_binding
+        end subroutine shmem_finalize
+
+        type(c_ptr) function c_shmem_malloc(n) bind(C, name="shmem_malloc")
+            use, intrinsic :: iso_c_binding
+            integer(kind=c_size_t), value :: n
+        end function c_shmem_malloc
+
+        subroutine c_shmem_free(ptr) bind(C, name="shmem_free")
+            use, intrinsic :: iso_c_binding
+            type(c_ptr), value :: ptr
+        end subroutine c_shmem_free
+
+        integer(kind=c_int) function shmem_pe_accessible(pe) bind(C, name="shmem_pe_accessible")
+            use, intrinsic :: iso_c_binding
+            integer(kind=c_int), value :: pe
+        end function shmem_pe_accessible
+
+        integer(kind=c_int) function shmem_addr_accessible(addr, pe) bind(C, name="shmem_addr_accessible")
+            use, intrinsic :: iso_c_binding
+            type(c_ptr),         value :: addr
+            integer(kind=c_int), value :: pe
+        end function shmem_addr_accessible
+
+        integer(kind=c_int) function shmem_my_pe() bind(C, name="shmem_my_pe")
+            use, intrinsic :: iso_c_binding
+        end function shmem_my_pe
+
+        integer(kind=c_int) function shmem_n_pes() bind(C, name="shmem_n_pes")
+            use, intrinsic :: iso_c_binding
+        end function shmem_n_pes
+
+        subroutine shmem_barrier_all() bind(C, name="shmem_barrier_all")
+            use, intrinsic :: iso_c_binding
+        end subroutine shmem_barrier_all
+
+        ! See function signature at
+        ! https://cpe.ext.hpe.com/docs/24.07/mpt/openshmemx/shmem_put.html
+        ! (accessed 5 March 2025)
+        subroutine c_shmem_put(dest, source, nelems, pe) &
+#ifdef ENABLE_SHMEM_PUT_GET_32
+            bind(C, name="shmem_put32")
+#else
+            bind(C, name="shmem_putmem")
+#endif
+            use, intrinsic :: iso_c_binding
+            type(c_ptr),            value :: dest
+            type(c_ptr),            value :: source
+            integer(kind=c_size_t), value :: nelems
+            integer(kind=c_int),    value :: pe
+        end subroutine c_shmem_put
+
+        subroutine c_shmem_get(dest, source, nelems, pe) &
+#ifdef ENABLE_SHMEM_PUT_GET_32
+            bind(C, name="shmem_get32")
+#else
+            bind(C, name="shmem_getmem")
+#endif
+            use, intrinsic :: iso_c_binding
+            type(c_ptr),            value :: dest
+            type(c_ptr),            value :: source
+            integer(kind=c_size_t), value :: nelems
+            integer(kind=c_int),    value :: pe
+        end subroutine c_shmem_get
+    end interface
+
+contains
+
+    subroutine shmem_logical_malloc(l_data, n)
+        use, intrinsic :: iso_c_binding, only : c_ptr, c_sizeof, c_f_pointer
+        logical, pointer, intent(inout) :: l_data(:)
+        integer,          intent(in)    :: n
+        type(c_ptr)                     :: buf_ptr
+        logical                         :: l_byte
+
+        buf_ptr = c_shmem_malloc(c_sizeof(l_byte)*n)
+        call c_f_pointer(buf_ptr, l_data, [n])
+
+    end subroutine shmem_logical_malloc
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine shmem_free(l_data)
+        use, intrinsic :: iso_c_binding, only : c_ptr, c_f_pointer, c_loc
+        logical, pointer, intent(inout) :: l_data(:)
+        type(c_ptr)                     :: buf_ptr
+
+        buf_ptr = c_loc(l_data)
+        call c_shmem_free(buf_ptr)
+        call c_f_pointer(buf_ptr, l_data, [0])
+
+    end subroutine shmem_free
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine shmem_logical_get(dest, source, nelems, pe)
+        use, intrinsic :: iso_c_binding, only : c_int, c_size_t, c_ptr, c_loc
+#ifndef ENABLE_SHMEM_PUT_GET_32
+        use, intrinsic :: iso_c_binding, only : c_sizeof
+#endif
+        logical, target,  intent(in) :: dest, source
+        integer,          intent(in) :: nelems, pe
+        integer(c_int)               :: c_pe
+        integer(c_size_t)            :: c_nelems
+        type(c_ptr)                  :: source_cptr, dest_cptr
+#ifndef ENABLE_SHMEM_PUT_GET_32
+        logical                      :: l_byte
+
+        c_nelems = nelems * c_sizeof(l_byte)
+#else
+        c_nelems = nelems
+#endif
+        c_pe = pe
+
+        source_cptr = c_loc(source)
+        dest_cptr = c_loc(dest)
+
+        call c_shmem_get(dest_cptr, source_cptr, c_nelems, c_pe)
+
+    end subroutine shmem_logical_get
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine shmem_logical_put(dest, source, nelems, pe)
+        use, intrinsic :: iso_c_binding, only : c_int, c_size_t, c_ptr, c_loc
+#ifndef ENABLE_SHMEM_PUT_GET_32
+        use, intrinsic :: iso_c_binding, only : c_sizeof
+#endif
+        logical, target,  intent(in) :: dest, source
+        integer,          intent(in) :: nelems, pe
+        integer(c_int)               :: c_pe
+        integer(c_size_t)            :: c_nelems
+        type(c_ptr)                  :: source_cptr, dest_cptr
+#ifndef ENABLE_SHMEM_PUT_GET_32
+        logical                      :: l_byte
+
+        c_nelems = nelems * c_sizeof(l_byte)
+#else
+        c_nelems = nelems
+#endif
+        c_pe     = pe
+
+        source_cptr = c_loc(source)
+        dest_cptr = c_loc(dest)
+
+        call c_shmem_put(dest_cptr, source_cptr, c_nelems, c_pe)
+
+    end subroutine shmem_logical_put
+
 end module shmem
 
 module parcel_nearest_shmem_graph
@@ -25,7 +167,6 @@ module parcel_nearest_shmem_graph
     use mpi_environment, only : l_ignore_mpi_finalize
     use shmem
     implicit none
-!     include 'shmem.fh'
 
     private
 
@@ -65,6 +206,7 @@ module parcel_nearest_shmem_graph
 
         procedure, private :: init_cart2shmem
         procedure, private :: get_pe
+        procedure, private :: address_check
 
     end type
 
@@ -76,9 +218,7 @@ contains
         class(shmem_graph_t), intent(inout) :: this
         integer,              intent(in)    :: num
         logical,              intent(in)    :: l_subcomm
-        type(c_ptr)                         :: buf_ptr
-        logical                             :: l_byte
-!         integer                             :: error
+        integer                             :: n, valid
 
         if (this%l_shmem_allocated) then
             return
@@ -111,19 +251,31 @@ contains
 
         !--------------------------------------------------
 
-!         call shpalloc(buf_ptr, num, error, 0)
-        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
-        call c_f_pointer(buf_ptr, this%l_available, [num])
+        call shmem_logical_malloc(this%l_available, num)
 
-!         call shpalloc(buf_ptr, num, error, 0)
-        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
-        call c_f_pointer(buf_ptr, this%l_leaf, [num])
+        call shmem_logical_malloc(this%l_leaf, num)
 
-!         call shpalloc(buf_ptr, num, error, 0)
-        buf_ptr = shmem_malloc(c_sizeof(l_byte)*num)
-        call c_f_pointer(buf_ptr, this%l_merged, [num])
+        call shmem_logical_malloc(this%l_merged, num)
 
         call this%reset
+
+
+        !--------------------------------------------------
+        ! Initial checks to ensure everything works:
+
+        do n = 0, world%size - 1
+            if (n /= world%rank) then
+                valid = shmem_pe_accessible(n)
+                if (valid /= 1) then
+                    print *, "Processing element: ", n, " not accessible from ", world%rank
+                    call MPI_Abort(MPI_COMM_WORLD, -1, world%err)
+                endif
+
+                call this%address_check(this%l_available, n)
+                call this%address_check(this%l_leaf, n)
+                call this%address_check(this%l_merged, n)
+            endif
+       enddo
 
     end subroutine shmem_graph_initialise
 
@@ -131,7 +283,6 @@ contains
 
     subroutine shmem_graph_finalise(this)
         class(shmem_graph_t), intent(inout) :: this
-        type(c_ptr)                         :: buf_ptr
 
         if (.not. this%l_shmem_allocated) then
             return
@@ -141,17 +292,9 @@ contains
 
         call shmem_barrier_all
 
-        buf_ptr = c_loc(this%l_available)
-        call shmem_free(buf_ptr)
-        call c_f_pointer(buf_ptr, this%l_available, [0])
-
-        buf_ptr = c_loc(this%l_leaf)
-        call shmem_free(buf_ptr)
-        call c_f_pointer(buf_ptr, this%l_leaf, [0])
-
-        buf_ptr = c_loc(this%l_merged)
-        call shmem_free(buf_ptr)
-        call c_f_pointer(buf_ptr, this%l_merged, [0])
+        call shmem_free(this%l_available)
+        call shmem_free(this%l_leaf)
+        call shmem_free(this%l_merged)
 
         call shmem_finalize
 
@@ -417,7 +560,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(this%l_available(ic), val, 1, pe)
+            call shmem_logical_put(dest=this%l_available(ic), source=val, nelems=1, pe=pe)
             call stop_timer(this%put_timer)
         endif
 
@@ -437,7 +580,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(this%l_leaf(ic), val, 1, pe)
+            call shmem_logical_put(dest=this%l_leaf(ic), source=val, nelems=1, pe=pe)
             call stop_timer(this%put_timer)
         endif
 
@@ -457,7 +600,7 @@ contains
         else
             call start_timer(this%put_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_put(this%l_merged(ic), val, 1, pe)
+            call shmem_logical_put(dest=this%l_merged(ic), source=val, nelems=1, pe=pe)
             call stop_timer(this%put_timer)
         endif
 
@@ -477,7 +620,7 @@ contains
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(val, this%l_available(ic), 1, pe)
+            call shmem_logical_get(dest=val, source=this%l_available(ic), nelems=1, pe=pe)
             call stop_timer(this%get_timer)
         endif
 
@@ -497,7 +640,7 @@ contains
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(val, this%l_leaf(ic), 1, pe)
+            call shmem_logical_get(dest=val, source=this%l_leaf(ic), nelems=1, pe=pe)
             call stop_timer(this%get_timer)
         endif
 
@@ -517,7 +660,7 @@ contains
         else
             call start_timer(this%get_timer)
             pe = this%get_pe(rank)
-            call shmem_logical_get(val, this%l_merged(ic), 1, pe)
+            call shmem_logical_get(dest=val, source=this%l_merged(ic), nelems=1, pe=pe)
             call stop_timer(this%get_timer)
         endif
 
@@ -543,11 +686,10 @@ contains
         type(MPI_Request)                   :: requests(8)
         type(MPI_Status)                    :: statuses(8)
         integer                             :: n
-        integer                             :: my_pe
         integer                             :: me
 
         ! *this* OpenSHMEM PE (= processing element)
-        me = my_pe()
+        me = shmem_my_pe()
 
         ! check if MPI comm world rank == OpenSHMEM rank
         if (world%rank /= me) then
@@ -607,5 +749,23 @@ contains
         pe = this%cart2shmem(n)
 
     end function get_pe
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine address_check(this, l_array, pe)
+        class(shmem_graph_t), intent(in) :: this
+        logical, pointer,     intent(in) :: l_array(:)
+        integer,              intent(in) :: pe
+        integer                          :: valid
+        type(c_ptr)                      :: buf_ptr
+
+        buf_ptr = c_loc(l_array)
+        valid = shmem_addr_accessible(buf_ptr, pe)
+        if (valid /= 1) then
+            print *, "Address on PE ", pe, " not accessible from ", world%rank
+            call MPI_Abort(MPI_COMM_WORLD, -1, world%err)
+        endif
+
+    end subroutine address_check
 
 end module parcel_nearest_shmem_graph
