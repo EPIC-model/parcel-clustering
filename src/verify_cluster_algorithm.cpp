@@ -1,9 +1,16 @@
+// g++ -std=c++23 -I $NETCDF_C_INCLUDE_DIR netcdf_reader.h netcdf_reader.cpp verify_cluster_algorithm.cpp -L $NETCDF_C_LIBRARY_DIR -lnetcdf
 #include <iostream>
 #include <string>
 #include <tuple>
 #include <list>
 #include <cstdlib>
 #include <filesystem>
+#include <exception>
+#include <numeric>
+#include <algorithm>
+#include <vector>
+
+#include "netcdf_reader.h"
 
 namespace fs = std::filesystem;
 
@@ -136,187 +143,274 @@ void parse_command_line(int argc, char* argv[], args_t& args) {
     }
 }
 
-int main(int argc, char* argv[]) {
+void sort(const NetcdfReader& ncr, std::vector<int>& indices) {
 
-    args_t args;
+    std::vector<double> x = ncr.get_dataset("x_position");
+    std::vector<double> y = ncr.get_dataset("y_position");
+    std::vector<double> z = ncr.get_dataset("z_position");
 
-    parse_command_line(argc, argv, args);
+    indices.clear();
 
-    int nppc = std::get<2>(args.nParcelPerCell);
-    int nx = std::get<2>(args.nx);
-    int ny = std::get<2>(args.ny);
-    int nz = std::get<2>(args.nz);
-    int nParcels = nppc * nx * ny * nz;
+    indices.resize(x.size());
+    std::iota(indices.begin(), indices.end(), 0);
 
-    std::list<int> nRanks = std::get<2>(args.nRanks);
+    std::stable_sort(indices.begin(), indices.end(),
+                     [&x, &y, &z](int i, int j) {
+                         return (x[i] < x[j]) && (y[i] < y[j]) && (z[i] < z[j]);
+                    });
+}
 
-    double vcell = 1.0 / (nx * ny * nz);
-    double minVratio = std::get<2>(args.minVratio);
-    double vmin = vcell / minVratio;
 
+bool compare_results(int nRank) {
     double tol = 1.0e-14;
 
-    int nFails = 0;
-    int nMerges = 0;
-    int modulo = 100;
+    NetcdfReader ncrs, ncrp;
 
-    int nTasksPerNode = std::get<2>(args.nTasksPerNode);
-    int nSamples = std::get<2>(args.nSamples);
-    int seed = std::get<2>(args.seed);
-    bool verbose = std::get<2>(args.verbose);
-    std::string commType = std::get<2>(args.commType);
-
-    std::string exe;
-
-    std::string flags = " --nx " + std::to_string(nx)
-                      + " --ny " + std::to_string(ny)
-                      + " --nz " + std::to_string(nz)
-                      + " --n_per_cell " + std::to_string(nppc)
-                      + " --min_vratio " + std::to_string(minVratio);
-
-    if (std::get<2>(args.shuffle)) {
-        flags = flags + " --shuffle";
+    if (!ncrs.open("serial_final_0000000001_parcels.nc")) {
+        throw std::runtime_error("Unable to open 'serial_final_0000000001_parcels.nc'.");
     }
 
-    std::string pflags = flags + " --comm-type " + commType;
-
-    if (std::get<2>(args.subcomm)) {
-        pflags = pflags + " --subcomm";
+    if (!ncrp.open("parallel_final_0000000001_parcels.nc")) {
+        throw std::runtime_error("Unable to open 'parallel_final_0000000001_parcels.nc'.");
     }
 
 
-    for (int n = 0; n < nSamples; ++n) {
+    size_t world_size = ncrp.get_dimension("world%size");
 
-        try {
-            std::string cmd = "mpirun -np 1 ";
-            if (std::get<2>(args.cmd) == "srun") {
-                cmd = "srun --nodes=1 --ntasks=1 --ntasks-per-node=1 --exact ";
-            }
-            cmd = cmd + exe + " --seed " + std::to_string(seed) + " --setup-parcels";
-            cmd = cmd + " > /dev/null 2>&1";
-            std::system(cmd.c_str());
-//             using namespace std::chrono_literals;
-//             std::this_thread::sleep_for(120s);
+    if (nRank != world_size) {
+        std::cout << "Warning: Failed to run with requested number of MPI cores"
+                  << std::endl << std::flush;
+    }
 
-        } catch(std::exception& e) {
-            std::cout << "Error in running the serial version." << std::endl;
-            return 0;
+    size_t count = ncrs.get_dimension("n_parcels");
+
+    if (count != ncrp.get_dimension("n_parcels")) {
+        return true;
+    }
+
+    std::vector<int> ind1, ind2;
+    sort(ncrs, ind1);
+    sort(ncrp, ind1);
+
+    std::list<std::string> attributes =
+    {
+        "x_position", "y_position", "z_position",
+        "x_vorticity", "y_vorticity", "z_vorticity",
+        "buoyancy", "volume", "B11", "B12", "B13", "B22", "B23"
+    };
+
+    for (const std::string& attr : attributes) {
+
+        std::vector<double> ds1 = ncrs.get_dataset(attr);
+        std::vector<double> ds2 = ncrp.get_dataset(attr);
+
+        double error = 0.0;
+
+        for(size_t j = 0; j < count; ++j) {
+            int k = ind1[j];
+            int l = ind2[j];
+            error = std::max(error, std::abs(ds1[k] - ds2[l]));
         }
 
-        // Note: Because the 1 MPI run writes the initial parcel setup; the actual
-        // solve has number 2 instead of 1.
-        fs::path filename = "serial_final_0000000002_parcels.nc";
-        if (fs::exists(filename)) {
-            fs::rename(filename, "serial_final_0000000001_parcels.nc");
+        if (error > tol) {
+            return true;
+        }
+    }
 
-            std::cout << "Sample " << n << " generated." << std::endl;
+
+    if (!ncrs.close()) {
+        throw std::runtime_error("Unable to close 'serial_final_0000000001_parcels.nc'.");
+    }
+
+    if (!ncrp.close()) {
+        throw std::runtime_error("Unable to close 'serial_final_0000000001_parcels.nc'.");
+    }
+
+    return false;
+}
+
+int main(int argc, char* argv[]) {
+
+    try {
+        args_t args;
+
+        parse_command_line(argc, argv, args);
+
+        int nppc = std::get<2>(args.nParcelPerCell);
+        int nx = std::get<2>(args.nx);
+        int ny = std::get<2>(args.ny);
+        int nz = std::get<2>(args.nz);
+        int nParcels = nppc * nx * ny * nz;
+
+        std::list<int> nRanks = std::get<2>(args.nRanks);
+
+        double vcell = 1.0 / (nx * ny * nz);
+        double minVratio = std::get<2>(args.minVratio);
+        double vmin = vcell / minVratio;
+
+        int nFails = 0;
+        int nMerges = 0;
+        int modulo = 100;
+
+        int nTasksPerNode = std::get<2>(args.nTasksPerNode);
+        int nSamples = std::get<2>(args.nSamples);
+        int seed = std::get<2>(args.seed);
+        bool verbose = std::get<2>(args.verbose);
+        std::string commType = std::get<2>(args.commType);
+
+        std::string exe;
+
+        std::string flags = " --nx " + std::to_string(nx)
+                          + " --ny " + std::to_string(ny)
+                          + " --nz " + std::to_string(nz)
+                          + " --n_per_cell " + std::to_string(nppc)
+                          + " --min_vratio " + std::to_string(minVratio);
+
+        if (std::get<2>(args.shuffle)) {
+            flags = flags + " --shuffle";
         }
 
-        for (int nRank : nRanks) {
+        std::string pflags = flags + " --comm-type " + commType;
 
-            int nodes = int(nRank / nTasksPerNode + 0.5);
+        if (std::get<2>(args.subcomm)) {
+            pflags = pflags + " --subcomm";
+        }
 
-            // -------------------------------------------------------------
-            // Run the serial and parallel versions of the nearest + merging algorithm:
-            // We wait 2 minutes per process. If they exceed this time limit, we
-            // assume the nearest algorithm is in an endless loop, i.e. deadlocked.
-            bool failed = false;
+        for (int n = 0; n < nSamples; ++n) {
 
             try {
-                std::string cmd = "mpirun -np  " + std::to_string(nRank) + " ";
+                std::string cmd = "mpirun -np 1 ";
                 if (std::get<2>(args.cmd) == "srun") {
-                    cmd = "srun --nodes=" + std::to_string(nodes)
-                        + " --ntasks=" + std::to_string(nRank);
-                    cmd = cmd + " --cpus-per-task=1 --exact ";
+                    cmd = "srun --nodes=1 --ntasks=1 --ntasks-per-node=1 --exact ";
                 }
-                cmd = cmd + exe + " " + pflags + " > /dev/null 2>&1";
+                cmd = cmd + exe + " --seed " + std::to_string(seed) + " --setup-parcels";
+                cmd = cmd + " > /dev/null 2>&1";
                 std::system(cmd.c_str());
-//                 using namespace std::chrono_literals;
-//                 std::this_thread::sleep_for(120s);
+    //             using namespace std::chrono_literals;
+    //             std::this_thread::sleep_for(120s);
 
-            } catch(std::exception& e) {
-                std::cout << "Error in running the parallel version." << std::endl;
-                failed = true;
+            } catch(const std::exception& e) {
+                throw std::runtime_error("Error in running the serial version.");
             }
 
-            failed = failed ||
-                     !fs::exists("serial_final_0000000001_parcels.nc") ||
-                     !fs::exists("parallel_final_0000000001_parcels.nc");
+            // Note: Because the 1 MPI run writes the initial parcel setup; the actual
+            // solve has number 2 instead of 1.
+            fs::path filename = "serial_final_0000000002_parcels.nc";
+            if (fs::exists(filename)) {
+                fs::rename(filename, "serial_final_0000000001_parcels.nc");
 
-            if (!failed) {
-                // ----------------------------------------
-                // Compare the results:
-                //FIXME
+                std::cout << "Sample " << n << " generated." << std::endl << std::flush;
+            }
 
+            for (int nRank : nRanks) {
+
+                int nodes = int(nRank / nTasksPerNode + 0.5);
+
+                // -------------------------------------------------------------
+                // Run the serial and parallel versions of the nearest + merging algorithm:
+                // We wait 2 minutes per process. If they exceed this time limit, we
+                // assume the nearest algorithm is in an endless loop, i.e. deadlocked.
+                bool failed = false;
+
+                try {
+                    std::string cmd = "mpirun -np  " + std::to_string(nRank) + " ";
+                    if (std::get<2>(args.cmd) == "srun") {
+                        cmd = "srun --nodes=" + std::to_string(nodes)
+                            + " --ntasks=" + std::to_string(nRank);
+                        cmd = cmd + " --cpus-per-task=1 --exact ";
+                    }
+                    cmd = cmd + exe + " " + pflags + " > /dev/null 2>&1";
+                    std::system(cmd.c_str());
+    //                 using namespace std::chrono_literals;
+    //                 std::this_thread::sleep_for(120s);
+
+                } catch(const std::exception& e) {
+                    throw std::runtime_error("Error in running the parallel version.");
+                }
+
+                failed = failed ||
+                        !fs::exists("serial_final_0000000001_parcels.nc") ||
+                        !fs::exists("parallel_final_0000000001_parcels.nc");
+
+                if (!failed) {
+                    // ----------------------------------------
+                    // Compare the results:
+                    //FIXME
+                    failed = compare_results(nRank);
+                }
+
+                // -------------------------------------------------------------
+                // Do clean up:
+                if (failed) {
+                    failed = false;
+                    nFails = nFails + 1;
+                    std::string nstr = std::to_string(nFails);
+                    nstr.insert(0, 10-nstr.size(), '0');
+
+                    if (fs::exists("initial_0000000001_parcels.nc")) {
+                        fs::rename("initial_0000000001_parcels.nc",
+                                "initial_fail_" + nstr + "_parcels.nc");
+                    }
+
+                    if (fs::exists("serial_final_0000000001_parcels.nc")) {
+                        fs::copy_file("serial_final_0000000001_parcels.nc",
+                                    "serial_fail_" + nstr + "_parcels.nc");
+                    }
+
+                    if (fs::exists("parallel_final_0000000001_parcels.nc")) {
+                        fs::rename("parallel_final_0000000001_parcels.nc",
+                                "parallel_fail_" + nstr + "_parcels.nc");
+                    }
+                } else {
+                    bool isRemoved = fs::remove("parallel_final_0000000001_parcels.nc");
+                    if (!isRemoved) {
+                        throw std::runtime_error(
+                            "Unable to delete 'parallel_final_0000000001_parcels.nc'.");
+                    }
+                }
             }
 
             // -------------------------------------------------------------
-            // Do clean up:
-            if (failed) {
-                failed = false;
-                nFails = nFails + 1;
-                std::string nstr = std::to_string(nFails);
-                nstr.insert(0, 10-nstr.size(), '0');
-
-                if (fs::exists("initial_0000000001_parcels.nc")) {
-                    fs::rename("initial_0000000001_parcels.nc",
-                               "initial_fail_" + nstr + "_parcels.nc");
-                }
-
-                if (fs::exists("serial_final_0000000001_parcels.nc")) {
-                    fs::copy_file("serial_final_0000000001_parcels.nc",
-                                  "serial_fail_" + nstr + "_parcels.nc");
-                }
-
-                if (fs::exists("parallel_final_0000000001_parcels.nc")) {
-                    fs::rename("parallel_final_0000000001_parcels.nc",
-                               "parallel_fail_" + nstr + "_parcels.nc");
-                }
-            } else {
-                bool isRemoved = fs::remove("parallel_final_0000000001_parcels.nc");
-                if (!isRemoved) {
-                    std::cerr << "Unable to delete 'parallel_final_0000000001_parcels.nc'. "
-                              << "File does not exist." << std::endl;
-                }
+            // Intermediate info:
+            if (verbose && (n % modulo == 0)) {
+                std::cout << "#samples, #fails, #merges: "
+                          << n << " " << nFails << " " << nMerges
+                          << std::endl << std::flush;
             }
-        }
 
-        // -------------------------------------------------------------
-        // Intermediate info:
-        if (verbose && (n % modulo == 0)) {
-            std::cout << "#samples, #fails, #merges: " << n << " " << nFails << " " << nMerges << std::endl;
-        }
-
-        bool isRemoved = fs::remove("initial_0000000001_parcels.nc");
-        if (!isRemoved) {
-            std::cerr << "Unable to delete 'initial_0000000001_parcels.nc'. "
-                      << "File does not exist." << std::endl;
-        }
-        if (fs::exists("serial_final_0000000001_parcels.nc")) {
-            isRemoved = fs::remove("serial_final_0000000001_parcels.nc");
+            bool isRemoved = fs::remove("initial_0000000001_parcels.nc");
             if (!isRemoved) {
-                std::cerr << "Unable to delete 'serial_final_0000000001_parcels.nc'. "
-                          << "File does not exist." << std::endl;
+                throw std::runtime_error(
+                    "Unable to delete 'initial_0000000001_parcels.nc'.");
             }
+            if (fs::exists("serial_final_0000000001_parcels.nc")) {
+                isRemoved = fs::remove("serial_final_0000000001_parcels.nc");
+                if (!isRemoved) {
+                    throw std::runtime_error(
+                        "Unable to delete 'serial_final_0000000001_parcels.nc'.");
+                }
+            }
+
+            seed++;
         }
 
-        seed++;
-    }
+        // -------------------------------------------------------------------------
+        // Print summary:
+        std::cout << "--------------------------------------------------------------------"
+                << "Total number of samples:      " << nSamples << std::endl;
+        std::cout << "MPI ranks:                    ";
+        for (int nRank : nRanks) {
+            std::cout << nRank << " ";
+        }
+        std::cout << std::endl
+                << "Number of parcels per sample: " << nParcels << std::endl
+                << "Number of parcels per cell:   " << nppc << std::endl
+                << "Number of fails:              " << nFails << std::endl
+                << "Number of merges:             " << nMerges << std::endl;
 
-
-    // -------------------------------------------------------------------------
-    // Print summary:
-    std::cout << "--------------------------------------------------------------------"
-              << "Total number of samples:      " << nSamples << std::endl;
-    std::cout << "MPI ranks:                    ";
-    for (int nRank : nRanks) {
-        std::cout << nRank << " ";
+    } catch(const std::exception& e) {
+        std::cout << e.what() << std::endl;
     }
-    std::cout << std::endl
-              << "Number of parcels per sample: " << nParcels << std::endl
-              << "Number of parcels per cell:   " << nppc << std::endl
-              << "Number of fails:              " << nFails << std::endl
-              << "Number of merges:             " << nMerges << std::endl;
 
     return 0;
 }
