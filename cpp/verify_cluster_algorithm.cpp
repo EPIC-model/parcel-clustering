@@ -258,7 +258,7 @@ int main(int argc, char* argv[]) {
         bool verbose = std::get<2>(args.verbose);
         std::string commType = std::get<2>(args.commType);
 
-        std::string exe;
+        std::string exe = "benchmark_verify";
 
         std::string flags = " --nx " + std::to_string(nx)
                           + " --ny " + std::to_string(ny)
