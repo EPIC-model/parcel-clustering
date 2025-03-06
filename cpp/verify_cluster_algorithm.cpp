@@ -37,7 +37,7 @@ struct args_t {
 };
 
 void check_single_argument(char* argv[], int i) {
-    if (argv[i+1] == nullptr || std::string(argv[i+1]).contains("--")) {
+    if (argv[i+1] == nullptr || std::string(argv[i+1]).find("--") != std::string::npos) {
         throw std::invalid_argument("No value provided for " + std::string(argv[i]));
     }
 }
@@ -46,7 +46,7 @@ int check_multiple_argument(char* argv[], int i) {
     int result = 0;
 
     int j = i+1;
-    while (argv[j] != nullptr && !std::string(argv[j]).contains("--")) {
+    while (argv[j] != nullptr && !std::string(argv[j]).find("--") != std::string::npos) {
         j++;
         result++;
     }

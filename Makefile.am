@@ -1,4 +1,4 @@
-SUBDIRS = src pytools
+SUBDIRS = src cpp pytools
 
 ACLOCAL_AMFLAGS = -I m4
 
