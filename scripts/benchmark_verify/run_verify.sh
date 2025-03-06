@@ -10,8 +10,6 @@ run_job() {
     local comm_type=${4}
     local n_samples=${5}
     local seed=${6}
-    local conda_dir=${CONDA_EXE%/*}
-    local conda_env=${7}
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
@@ -21,8 +19,6 @@ run_job() {
     echo "comm_type  = $comm_type"
     echo "n_samples  = $n_samples"
     echo "seed       = $seed"
-    echo "conda_dir  = $conda_dir"
-    echo "conda_env  = $conda_env"
     echo "--------------------------------"
 
     mkdir -p "$compiler"
@@ -38,8 +34,6 @@ run_job() {
     sed -i "s:N_SAMPLES:$n_samples:g" $fname
     sed -i "s:SEED:$seed:g" $fname
     sed -i "s:BIN_DIR:$bin_dir:g" $fname
-    sed -i "s:CONDA_DIR:$conda_dir:g" $fname
-    sed -i "s:CONDA_ENV:$conda_env:g" $fname
 
     echo "Submit job $comm_type with $compiler. Running $n_samples samples with seed $seed."
     sbatch $fname
@@ -112,17 +106,6 @@ fi
 source "../$machine.sh"
 # --------------------------------------------------------
 
-
-if ! test "$CONDA_EXE"; then
-    echo "No CONDA environment. Checking if 'python_exe' is set."
-
-    if ! test "$python_exe"; then
-        exit 1
-    fi
-
-    CONDA_EXE=$python_exe
-fi
-
 j=0
 for bin_dir in ${bins[*]}; do
     compiler="${compilers[$j]}"
@@ -131,10 +114,10 @@ for bin_dir in ${bins[*]}; do
     if test "$comm" = "caf"; then
         # Coarray Fortran (CAF) is a separate build:
         if test "$with_caf" = "yes"; then
-            run_job $machine $compiler "$bin_dir" "caf" $n_samples $seed $conda_env
+            run_job $machine $compiler "$bin_dir" "caf" $n_samples $seed
 	fi
     else
-        run_job $machine $compiler "$bin_dir" $comm $n_samples $seed $conda_env
+        run_job $machine $compiler "$bin_dir" $comm $n_samples $seed
     fi
 
     j=$((j+1))

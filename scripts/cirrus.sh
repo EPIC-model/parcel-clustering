@@ -9,8 +9,3 @@ declare -a compilers=("gnu" "intel-mpi" "intel-mpt")
 declare -a enable_caf=("no" "no" "no")
 
 ntasks_per_node=36
-
-# Cirrus does not use Conda
-conda_env=""
-python_exe=$(which python 2>/dev/null)
-
