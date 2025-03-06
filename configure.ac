@@ -20,6 +20,7 @@ AC_CONFIG_MACRO_DIRS([m4])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([
     Makefile
+    cpp/Makefile
     src/Makefile
     src/utils/Makefile
     pytools/Makefile
@@ -53,7 +54,7 @@ if test "$ax_cv_fc_compiler_vendor" = "intel"; then
     AX_CHECK_COMPILE_FLAG([-real-size 8], [FCFLAGS="$FCFLAGS -real-size 8"])
     AX_CHECK_COMPILE_FLAG([-double-size 64], [FCFLAGS="$FCFLAGS -double-size 64"])
     # Suppress harmless warnings:
-    # > warning #8100: The actual argument is an array section or assumed-shape array, 
+    # > warning #8100: The actual argument is an array section or assumed-shape array,
     # > corresponding dummy argument that has either the VOLATILE or ASYNCHRONOUS attribute shall be an assumed-shape array.   [SEND_BUF]
     # >       call MPI_Isend(send_buf(1:send_size)
     AX_CHECK_COMPILE_FLAG([-diag-disable 8100], [FCFLAGS="$FCFLAGS -diag-disable 8100"])
