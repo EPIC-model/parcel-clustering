@@ -219,6 +219,7 @@ contains
         integer,              intent(in)    :: num
         logical,              intent(in)    :: l_subcomm
         integer                             :: n, valid
+        integer                             :: max_num
 
         if (this%l_shmem_allocated) then
             return
@@ -231,6 +232,7 @@ contains
         this%l_shmem_allocated = .true.
 
 #ifndef NULL_ASSIGNMENT_WORKS
+        ! this will be set later in parcel_nearest.f90 with a call to create_comm.
         this%comm%comm = MPI_COMM_NULL
 #endif
 
@@ -250,12 +252,27 @@ contains
         call this%init_cart2shmem
 
         !--------------------------------------------------
+        ! The routine 'shmem_malloc' must be called with identical
+        ! arguments on all processing elements (PEs). This includes the size
+        ! of the allocated memory. Otherwise the behaviour of any
+        ! following OpenSHMEM call is undefined. Please also see
+        ! https://cpe.ext.hpe.com/docs/24.07/mpt/openshmemx/shmem_malloc.html#shmem-malloc
+        ! (last accessed 7 March 2025) for further information.
+        max_num = num
 
-        call shmem_logical_malloc(this%l_available, num)
+        call MPI_Allreduce(MPI_IN_PLACE,    &
+                           max_num,         &
+                           1,               &
+                           MPI_INTEGER,     &
+                           MPI_MAX,         &
+                           world%comm,      &
+                           world%err)
 
-        call shmem_logical_malloc(this%l_leaf, num)
+        call shmem_logical_malloc(this%l_available, max_num)
 
-        call shmem_logical_malloc(this%l_merged, num)
+        call shmem_logical_malloc(this%l_leaf, max_num)
+
+        call shmem_logical_malloc(this%l_merged, max_num)
 
         call this%reset
 
