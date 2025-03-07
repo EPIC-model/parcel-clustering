@@ -1,4 +1,3 @@
-// g++ -std=c++23 -I $NETCDF_C_INCLUDE_DIR netcdf_reader.h netcdf_reader.cpp verify_cluster_algorithm.cpp -L $NETCDF_C_LIBRARY_DIR -lnetcdf
 #include <iostream>
 #include <string>
 #include <tuple>
