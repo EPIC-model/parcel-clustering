@@ -36,7 +36,7 @@ export MPICXX_CXX=icpc
 CXX="mpicxx -cxx=icpc -lsma" CC="mpicc -cc=icc -lsma" FC="mpif08 -fc=ifort -lsma" ../configure --prefix=$PREFIX
 ```
 
-#### Intel MPI with Intel compiler suite
+<!-- #### Intel MPI with Intel compiler suite
 ```bash
 module load intel-20.4/mpi
 module load intel-20.4/compilers
@@ -45,6 +45,7 @@ export NETCDF_C_DIR=$NETCDF_DIR
 export NETCDF_FORTRAN_DIR=$NETCDF_DIR
 CXX=mpiicpc CC=mpiicc FC=mpiifort ../configure
 ```
+-->
 
 #### OpenMPI with GNU compiler suite
 ```bash
