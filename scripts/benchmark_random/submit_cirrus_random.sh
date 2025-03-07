@@ -80,8 +80,8 @@ for i in $(seq 1 NREPEAT); do
              --xlen LX \
              --ylen LY \
              --zlen LZ \
-             --min_vratio 20.0 \
-             --n_per_cell 20 \
+             --min-vratio 20.0 \
+             --nppc 20 \
              --niter NITER \
              --shuffle \
              --ncfname "COMPILER-caf-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
@@ -102,8 +102,8 @@ for i in $(seq 1 NREPEAT); do
              --xlen LX \
              --ylen LY \
              --zlen LZ \
-             --min_vratio 20.0 \
-             --n_per_cell 20 \
+             --min-vratio 20.0 \
+             --nppc 20 \
              --niter NITER \
              --shuffle \
              --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
@@ -125,8 +125,8 @@ for i in $(seq 1 NREPEAT); do
                  --xlen LX \
                  --ylen LY \
                  --zlen LZ \
-                 --min_vratio 20.0 \
-                 --n_per_cell 20 \
+                 --min-vratio 20.0 \
+                 --nppc 20 \
                  --niter NITER \
                  --shuffle \
                  --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
@@ -149,8 +149,8 @@ for i in $(seq 1 NREPEAT); do
                      --xlen LX \
                      --ylen LY \
                      --zlen LZ \
-                     --min_vratio 20.0 \
-                     --n_per_cell 20 \
+                     --min-vratio 20.0 \
+                     --nppc 20 \
                      --niter NITER \
                      --shuffle \
                      --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \

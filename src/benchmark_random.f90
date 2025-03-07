@@ -189,15 +189,15 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(i6)') niter
-            else if (arg == '--n_per_cell') then
+            else if (arg == '--nppc') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(i6)') parcel%n_per_cell
-            else if (arg == '--min_vratio') then
+            else if (arg == '--min-vratio') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(f16.0)') parcel%min_vratio
-            else if (arg == '--size_factor') then
+            else if (arg == '--size-factor') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(f16.0)') parcel%size_factor
@@ -252,8 +252,8 @@ contains
                              "--nx [int] --ny [int] --nz [int] ",                &
                              "--lx [float] --ly [float] --lz [float] ",          &
                              "--xlen [float] --ylen [float] --zlen [float] ",    &
-                             "--niter [int] --n_per_cell [int] ",                &
-                             "--min_vratio [float] --size_factor [float] ",      &
+                             "--niter [int] --nppc [int] ",                      &
+                             "--min-vratio [float] --size-factor [float] ",      &
                              "--shuffle (optional) --variable-nppc (optional) ", &
                              "--subcomm (optional, disabled for shmem) ",        &
                              "--seed [int] ",                                    &
