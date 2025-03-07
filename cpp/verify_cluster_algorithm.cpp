@@ -9,6 +9,7 @@
 #include <numeric>
 #include <algorithm>
 #include <vector>
+#include <cmath>
 
 #include "netcdf_reader.h"
 
@@ -190,7 +191,7 @@ bool compare_results(int nRank) {
 
     std::vector<int> ind1, ind2;
     sort(ncrs, ind1);
-    sort(ncrp, ind1);
+    sort(ncrp, ind2);
 
     std::list<std::string> attributes =
     {
@@ -236,29 +237,29 @@ int main(int argc, char* argv[]) {
 
         parse_command_line(argc, argv, args);
 
-        int nppc = std::get<2>(args.nParcelPerCell);
-        int nx = std::get<2>(args.nx);
-        int ny = std::get<2>(args.ny);
-        int nz = std::get<2>(args.nz);
-        int nParcels = nppc * nx * ny * nz;
+        const int nppc = std::get<2>(args.nParcelPerCell);
+        const int nx = std::get<2>(args.nx);
+        const int ny = std::get<2>(args.ny);
+        const int nz = std::get<2>(args.nz);
+        const int nParcels = nppc * nx * ny * nz;
 
-        std::list<int> nRanks = std::get<2>(args.nRanks);
+        const std::list<int> nRanks = std::get<2>(args.nRanks);
 
-        double vcell = 1.0 / (nx * ny * nz);
-        double minVratio = std::get<2>(args.minVratio);
-        double vmin = vcell / minVratio;
+        const double vcell = 1.0 / (nx * ny * nz);
+        const double minVratio = std::get<2>(args.minVratio);
+        const double vmin = vcell / minVratio;
 
         int nFails = 0;
         int nMerges = 0;
         int modulo = 100;
 
-        int nTasksPerNode = std::get<2>(args.nTasksPerNode);
-        int nSamples = std::get<2>(args.nSamples);
+        const int nTasksPerNode = std::get<2>(args.nTasksPerNode);
+        const int nSamples = std::get<2>(args.nSamples);
         int seed = std::get<2>(args.seed);
-        bool verbose = std::get<2>(args.verbose);
-        std::string commType = std::get<2>(args.commType);
+        const bool verbose = std::get<2>(args.verbose);
+        const std::string commType = std::get<2>(args.commType);
 
-        std::string exe = "benchmark_verify";
+        const std::string exe = "benchmark_verify";
 
         std::string flags = " --nx " + std::to_string(nx)
                           + " --ny " + std::to_string(ny)
@@ -286,31 +287,29 @@ int main(int argc, char* argv[]) {
                 cmd = cmd + exe + " --seed " + std::to_string(seed) + " --setup-parcels";
                 cmd = cmd + " > /dev/null 2>&1";
                 std::system(cmd.c_str());
-    //             using namespace std::chrono_literals;
-    //             std::this_thread::sleep_for(120s);
 
             } catch(const std::exception& e) {
                 throw std::runtime_error("Error in running the serial version.");
             }
 
+            if (!fs:exists("initial_0000000001_parcels.nc")) {
+                throw std::runtime_error("Input netCDF file not generated.");
+            }
+
             // Note: Because the 1 MPI run writes the initial parcel setup; the actual
             // solve has number 2 instead of 1.
             fs::path filename = "serial_final_0000000002_parcels.nc";
-            if (fs::exists(filename)) {
-                fs::rename(filename, "serial_final_0000000001_parcels.nc");
-
-                std::cout << "Sample " << n << " generated." << std::endl << std::flush;
+            if (!fs::exists(filename)) {
+                throw std::runtime_error("Serial output netCDF file not generated.");
             }
+
+            fs::rename(filename, "serial_final_0000000001_parcels.nc");
+
+            std::cout << "Sample " << n << " generated." << std::endl << std::flush;
 
             for (int nRank : nRanks) {
 
-                int nodes = int(nRank / nTasksPerNode + 0.5);
-
-                // -------------------------------------------------------------
-                // Run the serial and parallel versions of the nearest + merging algorithm:
-                // We wait 2 minutes per process. If they exceed this time limit, we
-                // assume the nearest algorithm is in an endless loop, i.e. deadlocked.
-                bool failed = false;
+                const int nodes = int(std::ceil(double(nRank) / double(nTasksPerNode)));
 
                 try {
                     std::string cmd = "mpirun -np  " + std::to_string(nRank) + " ";
@@ -321,46 +320,33 @@ int main(int argc, char* argv[]) {
                     }
                     cmd = cmd + exe + " " + pflags + " > /dev/null 2>&1";
                     std::system(cmd.c_str());
-    //                 using namespace std::chrono_literals;
-    //                 std::this_thread::sleep_for(120s);
 
                 } catch(const std::exception& e) {
                     throw std::runtime_error("Error in running the parallel version.");
                 }
 
-                failed = failed ||
-                        !fs::exists("serial_final_0000000001_parcels.nc") ||
-                        !fs::exists("parallel_final_0000000001_parcels.nc");
-
-                if (!failed) {
-                    // ----------------------------------------
-                    // Compare the results:
-                    //FIXME
-                    failed = compare_results(nRank);
+                if (!fs::exists("parallel_final_0000000001_parcels.nc")) {
+                    throw std::runtime_error("Parallel output netCDF file not generated.");
                 }
+
+                bool failed = compare_results(nRank);
 
                 // -------------------------------------------------------------
                 // Do clean up:
                 if (failed) {
-                    failed = false;
                     nFails = nFails + 1;
                     std::string nstr = std::to_string(nFails);
                     nstr.insert(0, 10-nstr.size(), '0');
 
-                    if (fs::exists("initial_0000000001_parcels.nc")) {
-                        fs::rename("initial_0000000001_parcels.nc",
-                                "initial_fail_" + nstr + "_parcels.nc");
-                    }
+                    fs::copy_file("initial_0000000001_parcels.nc",
+                                  "initial_fail_" + nstr + "_parcels.nc");
 
-                    if (fs::exists("serial_final_0000000001_parcels.nc")) {
-                        fs::copy_file("serial_final_0000000001_parcels.nc",
-                                    "serial_fail_" + nstr + "_parcels.nc");
-                    }
+                    fs::copy_file("serial_final_0000000001_parcels.nc",
+                                  "serial_fail_" + nstr + "_parcels.nc");
 
-                    if (fs::exists("parallel_final_0000000001_parcels.nc")) {
-                        fs::rename("parallel_final_0000000001_parcels.nc",
-                                "parallel_fail_" + nstr + "_parcels.nc");
-                    }
+                    fs::rename("parallel_final_0000000001_parcels.nc",
+                               "parallel_" + std::to_string(nRank) + "_fail_" + nstr + "_parcels.nc");
+
                 } else {
                     bool isRemoved = fs::remove("parallel_final_0000000001_parcels.nc");
                     if (!isRemoved) {
@@ -383,12 +369,11 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error(
                     "Unable to delete 'initial_0000000001_parcels.nc'.");
             }
-            if (fs::exists("serial_final_0000000001_parcels.nc")) {
-                isRemoved = fs::remove("serial_final_0000000001_parcels.nc");
-                if (!isRemoved) {
-                    throw std::runtime_error(
-                        "Unable to delete 'serial_final_0000000001_parcels.nc'.");
-                }
+
+            isRemoved = fs::remove("serial_final_0000000001_parcels.nc");
+            if (!isRemoved) {
+                throw std::runtime_error(
+                    "Unable to delete 'serial_final_0000000001_parcels.nc'.");
             }
 
             seed++;
