@@ -21,6 +21,7 @@
 Note: The `$PREFIX` variable denotes the installation directory. The flags `CXX`, `CC` and `FC` may also be other compiler wrappers.
 
 ### Installation on ARCHER2
+Please also consult the [ARCHER2 documentation](https://docs.archer2.ac.uk).
 
 #### Cray Compiling Environment (CCE) suite
 ```bash
