@@ -5,8 +5,8 @@ AC_INIT([parcel-clustering],
         [https://github.com/EPIC-model/parcel-clustering])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_PREREQ([2.69])
-AC_PROG_FC([ftn gfortran])
-AC_PROG_CC([cc gcc])
+AC_PROG_FC([ftn mpifort])
+AC_PROG_CC([cc mpicc])
 AC_LANG(Fortran)
 AM_PROG_AR
 LT_INIT
@@ -20,6 +20,7 @@ AC_CONFIG_MACRO_DIRS([m4])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_FILES([
     Makefile
+    cpp/Makefile
     src/Makefile
     src/utils/Makefile
     pytools/Makefile
@@ -571,5 +572,11 @@ if test "x$ENABLE_OPENMP" = "xyes"; then
 else
     AC_MSG_RESULT([no])
 fi
+
+AC_PROG_CXX([CC mpic++])
+AC_LANG_PUSH([C++])
+AX_CHECK_COMPILE_FLAG([-std=c++17], [CXXFLAGS="$CXXFLAGS -std=c++17"])
+AC_LANG_POP([C++])
+
 
 AC_OUTPUT

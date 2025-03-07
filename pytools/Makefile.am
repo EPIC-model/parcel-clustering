@@ -5,5 +5,4 @@ pytoolsdir = $(bindir)/pytools
 nobase_pytools_DATA =                	\
 	nc_base_reader.py         	\
 	nc_reader.py			\
-	verify_cluster_algorithm.py	\
 	plot_scaling.py

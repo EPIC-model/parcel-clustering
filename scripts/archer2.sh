@@ -13,6 +13,3 @@ declare -a compilers=("$gnu_compiler" "$cray_compiler" "$caf_compiler")
 declare -a enable_caf=("no" "no" "yes")
 
 ntasks_per_node=128
-
-# PYTHON CONDA environment
-conda_env="epic-env"

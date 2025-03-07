@@ -19,8 +19,6 @@ export OMP_PLACES=cores
 export FI_OFI_RXM_SAR_LIMIT=64K
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
-export MPLCONFIGDIR=$PWD
-
 if test "COMPILER" = "gnu"; then
     echo "Loading the GNU Compiler Collection (GCC)"
     module load PrgEnv-gnu
@@ -70,40 +68,37 @@ export SLURM_CPU_FREQ_REQ=2000000
 module load craype-hugepages2M
 export HUGETLB_VERBOSE=2
 
-source CONDA_DIR/activate CONDA_ENV
 bin_dir=BIN_DIR
-exe_dir=${bin_dir}/pytools
-export PYTHONPATH=$PYTHONPATH:${exe_dir}
 
 PATH=${bin_dir}:$PATH
 
 echo "Run COMM_TYPE"
 
 if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
-    python ${exe_dir}/verify_cluster_algorithm.py \
-        --n_ranks 16 32 64 128 256 \
-	--ntasks-per-node 128 \
-        --n_parcel_per_cell 40 \
+    ${bin_dir}/verify_cluster_algorithm \
+        --nranks 16 32 64 128 256 \
+        --ntasks-per-node 128 \
+        --nppc 40 \
         --nx 32 \
         --ny 32 \
         --nz 32 \
-        --min_vratio 40.0 \
+        --min-vratio 40.0 \
         --verbose \
-        --n_samples N_SAMPLES \
+        --nsamples N_SAMPLES \
         --cmd srun \
         --seed SEED \
         --comm-type "COMM_TYPE"
 else
-    python ${exe_dir}/verify_cluster_algorithm.py \
-        --n_ranks 16 32 64 128 256 \
-	--ntasks-per-node 128 \
-        --n_parcel_per_cell 40 \
+    ${bin_dir}/verify_cluster_algorithm \
+        --nranks 16 32 64 128 256 \
+        --ntasks-per-node 128 \
+        --nppc 40 \
         --nx 32 \
         --ny 32 \
         --nz 32 \
-        --min_vratio 40.0 \
+        --min-vratio 40.0 \
         --verbose \
-        --n_samples N_SAMPLES \
+        --nsamples N_SAMPLES \
         --cmd srun \
         --seed SEED \
         --comm-type "COMM_TYPE" \
