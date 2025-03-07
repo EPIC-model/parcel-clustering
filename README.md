@@ -15,10 +15,10 @@
 ## Installation
 1. `./bootstrap`
 2. `mkdir build; cd build`
-3. `../configure --prefix=$PREFIX --enable-python`
+3. `CXX=mpic++ CC=mpicc FC=mpifort ../configure --prefix=$PREFIX`
 4. `make; make install`
 
-Note: The `$PREFIX` variable denotes the installation directory.
+Note: The `$PREFIX` variable denotes the installation directory. The flags `CXX`, `CC` and `FC` may also be other compiler wrappers.
 
 ### Installation on Cirrus
 Please also consult the [Cirrus documentation](https://docs.cirrus.ac.uk/user-guide/development/).
