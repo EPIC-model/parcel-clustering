@@ -182,15 +182,15 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(i6)') nz
-            else if (arg == '--n_per_cell') then
+            else if (arg == '--nppc') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(i6)') parcel%n_per_cell
-            else if (arg == '--min_vratio') then
+            else if (arg == '--min-vratio') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(f16.0)') parcel%min_vratio
-            else if (arg == '--size_factor') then
+            else if (arg == '--size-factor') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(f16.0)') parcel%size_factor
@@ -226,8 +226,8 @@ contains
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_verify --nx [int] --ny [int] --nz [int] ",  &
-                             "--n_per_cell [int] ",                                   &
-                             "--min_vratio [float] ",                                 &
+                             "--nppc [int] ",                                         &
+                             "--min-vratio [float] ",                                 &
                              "--shuffle (optional) ",                                 &
                              "--seed [int] ",                                         &
                              "--subcomm (optional, disabled for shmem) ",             &
@@ -249,13 +249,13 @@ contains
             print *, "lx", lx
             print *, "ly", ly
             print *, "lz", lz
-            print *, "n_per_cell", parcel%n_per_cell
-            print *, "min_vratio", parcel%min_vratio
-            print *, "size_factor", parcel%size_factor
+            print *, "nppc", parcel%n_per_cell
+            print *, "min-vratio", parcel%min_vratio
+            print *, "size-factor", parcel%size_factor
             print *, "shuffle parcels", l_shuffle
             print *, "seed", seed
             print *, "enabled subcommunicator", l_subcomm
-            print *, "comm type: " // comm_type
+            print *, "comm-type: " // comm_type
         endif
 
     end subroutine parse_command_line

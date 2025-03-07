@@ -167,7 +167,7 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(i6)') nfiles
-            else if (arg == '--size_factor') then
+            else if (arg == '--size-factor') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(f16.0)') parcel%size_factor
@@ -194,7 +194,7 @@ contains
                              "--subcomm (optional, disabled for shmem) ",       &
                              "--comm-type [p2p, rma, shmem] ",                  &
                              "--ncfname [string]",                              &
-                             "--size_factor [float]"
+                             "--size-factor [float]"
                 endif
                 call mpi_stop
             endif
@@ -214,9 +214,9 @@ contains
             print *, "offset", offset
             print *, "number of files", nfiles
             print *, "niter", niter
-            print *, "size_factor", parcel%size_factor
+            print *, "size-factor", parcel%size_factor
             print *, "enabled subcommunicator", l_subcomm
-            print *, "comm type: " // comm_type
+            print *, "comm-type: " // comm_type
             print *, "netCDF output file name: " // trim(ncfname)
         endif
 
