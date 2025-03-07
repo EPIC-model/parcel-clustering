@@ -47,7 +47,7 @@ int check_multiple_argument(char* argv[], int i) {
     int result = 0;
 
     int j = i+1;
-    while (argv[j] != nullptr && !std::string(argv[j]).find("--") != std::string::npos) {
+    while (argv[j] != nullptr && (std::string(argv[j]).find("--") == std::string::npos)) {
         j++;
         result++;
     }
@@ -155,10 +155,9 @@ void sort(const NetcdfReader& ncr, std::vector<int>& indices) {
     indices.resize(x.size());
     std::iota(indices.begin(), indices.end(), 0);
 
-    std::stable_sort(indices.begin(), indices.end(),
-                     [&x, &y, &z](int i, int j) {
-                         return (x[i] < x[j]) && (y[i] < y[j]) && (z[i] < z[j]);
-                    });
+    std::sort(indices.begin(), indices.end(), [&x](int i, int j) { return x[i] < x[j]; });
+    std::sort(indices.begin(), indices.end(), [&y](int i, int j) { return y[i] < y[j]; });
+    std::sort(indices.begin(), indices.end(), [&z](int i, int j) { return z[i] < z[j]; });
 }
 
 
@@ -258,6 +257,29 @@ int main(int argc, char* argv[]) {
         int seed = std::get<2>(args.seed);
         const bool verbose = std::get<2>(args.verbose);
         const std::string commType = std::get<2>(args.commType);
+	const bool shuffle = std::get<2>(args.shuffle);
+	const bool subcomm = std::get<2>(args.subcomm);
+
+	std::cout << "You are about to run the verification benchmark "
+		  << "with the following settings:"
+		  << std::boolalpha
+		  << std::endl << " - number of parcels per cell: " << nppc
+		  << std::endl << " - number of grid cells nx:    " << nx
+		  << std::endl << " - number of grid cells ny:    " << ny
+		  << std::endl << " - number of grid cells nz:    " << nz
+		  << std::endl << " - number of parcles:          " << nParcels
+		  << std::endl << " - initial rng seed:           " << seed
+		  << std::endl << " - minimum volume ratio:       " << minVratio
+		  << std::endl << " - number of tasks per node:   " << nTasksPerNode
+		  << std::endl << " - use subcommunicator:        " << subcomm
+		  << std::endl << " - shuffle parcels:            " << shuffle
+		  << std::endl << " - number of random samples:   " << nSamples
+		  << std::endl << " - communication layer:        " << commType
+		  << std::endl << " - number of ranks:            " << std::flush;
+	for (const int nRank : nRanks) {
+		std::cout << nRank << " " << std::flush;
+	}
+	std::cout << std::endl << std::flush;
 
         const std::string exe = "benchmark_verify";
 
@@ -267,13 +289,13 @@ int main(int argc, char* argv[]) {
                           + " --n_per_cell " + std::to_string(nppc)
                           + " --min_vratio " + std::to_string(minVratio);
 
-        if (std::get<2>(args.shuffle)) {
+        if (shuffle) {
             flags = flags + " --shuffle";
         }
 
         std::string pflags = flags + " --comm-type " + commType;
 
-        if (std::get<2>(args.subcomm)) {
+        if (subcomm) {
             pflags = pflags + " --subcomm";
         }
 
@@ -292,7 +314,7 @@ int main(int argc, char* argv[]) {
                 throw std::runtime_error("Error in running the serial version.");
             }
 
-            if (!fs:exists("initial_0000000001_parcels.nc")) {
+            if (!fs::exists("initial_0000000001_parcels.nc")) {
                 throw std::runtime_error("Input netCDF file not generated.");
             }
 
