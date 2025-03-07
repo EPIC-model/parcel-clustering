@@ -58,6 +58,8 @@ if test "COMM_TYPE" = "shmem"; then
     export SHMEM_ENV_DISPLAY=0
 fi
 
+module list
+
 bin_dir=BIN_DIR
 
 PATH=${bin_dir}:$PATH

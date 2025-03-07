@@ -60,6 +60,8 @@ export SHMEM_ENV_DISPLAY=0
 
 echo "Running on $SLURM_NNODES nodes with $SLURM_NTASKS tasks."
 
+module list
+
 bin_dir=BIN_DIR
 PATH=${bin_dir}:$PATH
 
