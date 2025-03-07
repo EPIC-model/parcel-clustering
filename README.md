@@ -33,7 +33,7 @@ export NETCDF_FORTRAN_DIR=$NETCDF_DIR
 export NETCDF_C_DIR=$NETCDF_DIR
 export MPICC_CC=icc
 export MPICXX_CXX=icpc
-CXX="mpicxx -cxx=icpc -lsma" CC="mpicc -cc=icc -lsma" FC="mpif08 -fc=ifort -lsma" ../configure --prefix=$PREFIX --enable-python
+CXX="mpicxx -cxx=icpc -lsma" CC="mpicc -cc=icc -lsma" FC="mpif08 -fc=ifort -lsma" ../configure --prefix=$PREFIX
 ```
 
 #### Intel MPI with Intel compiler suite
@@ -43,7 +43,7 @@ module load intel-20.4/compilers
 module load netcdf-parallel/4.9.2-intel20-impi20
 export NETCDF_C_DIR=$NETCDF_DIR
 export NETCDF_FORTRAN_DIR=$NETCDF_DIR
-CXX=mpiicpc CC=mpiicc FC=mpiifort ../configure --enable-python
+CXX=mpiicpc CC=mpiicc FC=mpiifort ../configure
 ```
 
 #### OpenMPI with GNU compiler suite
@@ -56,5 +56,7 @@ export NETCDF_C_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
 export NETCDF_FORTRAN_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
 export PATH=$PATH:$NETCDF_C_DIR/bin
 export MPI_DIR=/work/y07/shared/cirrus-software/openmpi/4.1.6
-CC=mpicc CXX=mpicxx FC=mpif90 ../configure --enable-python
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR
+export CPLUS_INCLUDE_PATH=$NETCDF_C_DIR/include:$CPLUS_INCLUDE_PATH
+CC=mpicc CXX=mpicxx FC=mpif90 ../configure --prefix=/work/e710/e710/mf248/gnu
 ```
