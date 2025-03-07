@@ -76,29 +76,29 @@ echo "Run COMM_TYPE"
 
 if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
     ${bin_dir}/verify_cluster_algorithm \
-        --n_ranks 16 32 64 128 256 \
-	    --ntasks-per-node 128 \
-        --n_parcel_per_cell 40 \
+        --nranks 16 32 64 128 256 \
+        --ntasks-per-node 128 \
+        --nppc 40 \
         --nx 32 \
         --ny 32 \
         --nz 32 \
-        --min_vratio 40.0 \
+        --min-vratio 40.0 \
         --verbose \
-        --n_samples N_SAMPLES \
+        --nsamples N_SAMPLES \
         --cmd srun \
         --seed SEED \
         --comm-type "COMM_TYPE"
 else
     ${bin_dir}/verify_cluster_algorithm \
-        --n_ranks 16 32 64 128 256 \
-	    --ntasks-per-node 128 \
-        --n_parcel_per_cell 40 \
+        --nranks 16 32 64 128 256 \
+        --ntasks-per-node 128 \
+        --nppc 40 \
         --nx 32 \
         --ny 32 \
         --nz 32 \
-        --min_vratio 40.0 \
+        --min-vratio 40.0 \
         --verbose \
-        --n_samples N_SAMPLES \
+        --nsamples N_SAMPLES \
         --cmd srun \
         --seed SEED \
         --comm-type "COMM_TYPE" \

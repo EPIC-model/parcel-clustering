@@ -305,6 +305,11 @@ int main(int argc, char* argv[]) {
 
             fs::rename(filename, "serial_final_0000000001_parcels.nc");
 
+            NetcdfReader ncrs;
+            ncrs.open("serial_final_0000000001_parcels.nc");
+            nMerges = nMerges + nParcels - ncrs.get_dimension("n_parcels");
+            ncrs.close();
+
             std::cout << "Sample " << n << " generated." << std::endl << std::flush;
 
             for (int nRank : nRanks) {
@@ -381,8 +386,8 @@ int main(int argc, char* argv[]) {
 
         // -------------------------------------------------------------------------
         // Print summary:
-        std::cout << "--------------------------------------------------------------------"
-                << "Total number of samples:      " << nSamples << std::endl;
+        std::cout << "--------------------------------------------------------------------" << std::endl
+                  << "Total number of samples:      " << nSamples << std::endl;
         std::cout << "MPI ranks:                    ";
         for (int nRank : nRanks) {
             std::cout << nRank << " ";
