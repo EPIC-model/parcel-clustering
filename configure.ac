@@ -538,19 +538,21 @@ if test "x$ENABLE_DEBUG" = "xyes"; then
     AX_CHECK_COMPILE_FLAG([-debug full], [FCFLAGS="$FCFLAGS -debug full"])
 else
     AC_MSG_RESULT([no])
-    if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
-        AX_CHECK_COMPILE_FLAG([-O3], [FCFLAGS="$FCFLAGS -O3"])
-    fi
     AX_CHECK_COMPILE_FLAG([-DNDEBUG], [FCFLAGS="$FCFLAGS -DNDEBUG"])
+    AX_CHECK_COMPILE_FLAG([-O2],  [FCFLAGS="$FCFLAGS -O2"])
 
     # gfortran compiler flags
     AX_CHECK_COMPILE_FLAG([-funroll-all-loops], [FCFLAGS="$FCFLAGS -funroll-all-loops"])
-    #AX_CHECK_COMPILE_FLAG([-flto], [FCFLAGS="$FCFLAGS -flto"])
 
     # intel compiler flags
     AX_CHECK_COMPILE_FLAG([-funroll-loops], [FCFLAGS="$FCFLAGS -funroll-loops"])
     AX_CHECK_COMPILE_FLAG([-ipo], [FCFLAGS="$FCFLAGS -ipo"])
     AX_CHECK_COMPILE_FLAG([-ffat-lto-objects], [FCFLAGS="$FCFLAGS -ffat-lto-objects"])
+
+    # Cray fortran compiler flags
+    AX_CHECK_COMPILE_FLAG([-h ipa3], [FCFLAGS="$FCFLAGS -h ipa3"])
+    AX_CHECK_COMPILE_FLAG([-h fp2], [FCFLAGS="$FCFLAGS -h fp2"])
+    AX_CHECK_COMPILE_FLAG([-h unroll2],  [FCFLAGS="$FCFLAGS -h unroll2"])
 fi
 
 
