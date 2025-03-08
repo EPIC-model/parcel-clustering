@@ -542,17 +542,22 @@ else
     AX_CHECK_COMPILE_FLAG([-O2],  [FCFLAGS="$FCFLAGS -O2"])
 
     # gfortran compiler flags
-    AX_CHECK_COMPILE_FLAG([-funroll-all-loops], [FCFLAGS="$FCFLAGS -funroll-all-loops"])
+    if test "$ax_cv_fc_compiler_vendor" = "gnu"; then
+        AX_CHECK_COMPILE_FLAG([-funroll-all-loops], [FCFLAGS="$FCFLAGS -funroll-all-loops"])
+    fi
 
     # intel compiler flags
-    AX_CHECK_COMPILE_FLAG([-funroll-loops], [FCFLAGS="$FCFLAGS -funroll-loops"])
-    AX_CHECK_COMPILE_FLAG([-ipo], [FCFLAGS="$FCFLAGS -ipo"])
-    AX_CHECK_COMPILE_FLAG([-ffat-lto-objects], [FCFLAGS="$FCFLAGS -ffat-lto-objects"])
+    if test "$ax_cv_fc_compiler_vendor" = "intel"; then
+        AX_CHECK_COMPILE_FLAG([-funroll-loops], [FCFLAGS="$FCFLAGS -funroll-loops"])
+        AX_CHECK_COMPILE_FLAG([-ipo], [FCFLAGS="$FCFLAGS -ipo"])
+    fi
 
     # Cray fortran compiler flags
-    AX_CHECK_COMPILE_FLAG([-h ipa3], [FCFLAGS="$FCFLAGS -h ipa3"])
-    AX_CHECK_COMPILE_FLAG([-h fp2], [FCFLAGS="$FCFLAGS -h fp2"])
-    AX_CHECK_COMPILE_FLAG([-h unroll2],  [FCFLAGS="$FCFLAGS -h unroll2"])
+    if test "$ax_cv_fc_compiler_vendor" = "cray"; then
+        AX_CHECK_COMPILE_FLAG([-h ipa3], [FCFLAGS="$FCFLAGS -h ipa3"])
+        AX_CHECK_COMPILE_FLAG([-h fp2], [FCFLAGS="$FCFLAGS -h fp2"])
+        AX_CHECK_COMPILE_FLAG([-h unroll2],  [FCFLAGS="$FCFLAGS -h unroll2"])
+    fi
 fi
 
 
