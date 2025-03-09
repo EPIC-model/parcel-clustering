@@ -28,10 +28,17 @@ if test "COMPILER" = "gnu"; then
     echo "Loading the GNU Compiler Collection (GCC)"
     module load libtool/2.4.7
     module load gcc/10.2.0
-    module load openmpi/4.1.6
-    module load hdf5parallel/1.14.3-gcc10-ompi416
+    export MPI_ROOT=/work/e710/e710/mf248/gcc/10.2.0/openmpi/5.0.7
+    export PATH=$MPI_ROOT/bin:$PATH
+    export MPIF90=$MPI_ROOT/bin/mpifort
+    export MPICC=$MPI_ROOT/bin/mpicc
+    export MPICXX=$MPI_ROOT/bin/mpic++
     export NETCDF_C_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
     export NETCDF_FORTRAN_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
+    export PATH=$PATH:$NETCDF_C_DIR/bin
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR/lib:$MPI_ROOT/lib
+    export CPLUS_INCLUDE_PATH=$NETCDF_C_DIR/include:$MPI_ROOT/include:$CPLUS_INCLUDE_PATH
+    export C_INCLUDE_PATH=$NETCDF_C_DIR/include:$MPI_ROOT/include:$C_INCLUDE_PATH
 elif test "COMPILER" = "intel-mpi"; then
     echo "Loading the Intel Compiler Environment"
     module load libtool/2.4.7
