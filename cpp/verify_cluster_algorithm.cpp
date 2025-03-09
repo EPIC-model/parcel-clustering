@@ -247,38 +247,39 @@ int main(int argc, char* argv[]) {
         const double minVratio = std::get<2>(args.minVratio);
         const double vmin = vcell / minVratio;
 
-        int nFails = 0;
-        int nMerges = 0;
-        int modulo = 100;
-
         const int nTasksPerNode = std::get<2>(args.nTasksPerNode);
         const int nSamples = std::get<2>(args.nSamples);
         int seed = std::get<2>(args.seed);
         const bool verbose = std::get<2>(args.verbose);
         const std::string commType = std::get<2>(args.commType);
-	const bool shuffle = std::get<2>(args.shuffle);
-	const bool subcomm = std::get<2>(args.subcomm);
+        const bool shuffle = std::get<2>(args.shuffle);
+        const bool subcomm = std::get<2>(args.subcomm);
 
-	std::cout << "You are about to run the verification benchmark "
-		  << "with the following settings:"
-		  << std::boolalpha
-		  << std::endl << " - number of parcels per cell: " << nppc
-		  << std::endl << " - number of grid cells nx:    " << nx
-		  << std::endl << " - number of grid cells ny:    " << ny
-		  << std::endl << " - number of grid cells nz:    " << nz
-		  << std::endl << " - number of parcles:          " << nParcels
-		  << std::endl << " - initial rng seed:           " << seed
-		  << std::endl << " - minimum volume ratio:       " << minVratio
-		  << std::endl << " - number of tasks per node:   " << nTasksPerNode
-		  << std::endl << " - use subcommunicator:        " << subcomm
-		  << std::endl << " - shuffle parcels:            " << shuffle
-		  << std::endl << " - number of random samples:   " << nSamples
-		  << std::endl << " - communication layer:        " << commType
-		  << std::endl << " - number of ranks:            " << std::flush;
-	for (const int nRank : nRanks) {
-		std::cout << nRank << " " << std::flush;
-	}
-	std::cout << std::endl << std::flush;
+        int nFails = 0;
+        int nMerges = 0;
+        int nextInfoAtSample = 0;
+        int printInfoEvery = std::max(nSamples / 10, 10);
+
+        std::cout << "You are about to run the verification benchmark "
+                  << "with the following settings:"
+                  << std::boolalpha
+                  << std::endl << " - number of parcels per cell: " << nppc
+                  << std::endl << " - number of grid cells nx:    " << nx
+                  << std::endl << " - number of grid cells ny:    " << ny
+                  << std::endl << " - number of grid cells nz:    " << nz
+                  << std::endl << " - number of parcles:          " << nParcels
+                  << std::endl << " - initial rng seed:           " << seed
+                  << std::endl << " - minimum volume ratio:       " << minVratio
+                  << std::endl << " - number of tasks per node:   " << nTasksPerNode
+                  << std::endl << " - use subcommunicator:        " << subcomm
+                  << std::endl << " - shuffle parcels:            " << shuffle
+                  << std::endl << " - number of random samples:   " << nSamples
+                  << std::endl << " - communication layer:        " << commType
+                  << std::endl << " - number of ranks:            " << std::flush;
+        for (const int nRank : nRanks) {
+            std::cout << nRank << " " << std::flush;
+        }
+        std::cout << std::endl << std::flush;
 
         const std::string exe = "benchmark_verify";
 
@@ -384,7 +385,8 @@ int main(int argc, char* argv[]) {
 
             // -------------------------------------------------------------
             // Intermediate info:
-            if (verbose && (n % modulo == 0)) {
+            if (verbose && (n == nextInfoAtSample)) {
+                nextInfoAtSample += printInfoEvery;
                 std::cout << "#samples, #fails, #merges: "
                           << n << " " << nFails << " " << nMerges
                           << std::endl << std::flush;
