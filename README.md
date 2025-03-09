@@ -113,7 +113,8 @@ module load libtool/2.4.7
 module load gcc/10.2.0
 export MPI_ROOT=/work/e710/e710/mf248/gcc/10.2.0/openmpi/5.0.7
 export PATH=$MPI_ROOT/bin:$PATH
-export MPIF90=$MPI_ROOT/bin/mpifort
+export MPIF90=$MPI_ROOT/bin/mpif90
+export MPIFORT=$MPI_ROOT/bin/mpifort
 export MPICC=$MPI_ROOT/bin/mpicc
 export MPICXX=$MPI_ROOT/bin/mpic++
 export NETCDF_C_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
