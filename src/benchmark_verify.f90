@@ -163,7 +163,7 @@ contains
         seed = 42
 
 
-        i = 0
+        i = 1
         do
             call get_command_argument(i, arg)
             if (len_trim(arg) == 0) then

@@ -138,13 +138,13 @@ contains
         character(len=512) :: arg
 
         niter = 10
-        i = 0
         offset = 0
         nfiles = 0
         comm_type = 'p2p'
         l_subcomm = .false.
         ncfname = ''
 
+        i = 1
         do
             call get_command_argument(i, arg)
             if (len_trim(arg) == 0) then
@@ -197,6 +197,8 @@ contains
                              "--size-factor [float]"
                 endif
                 call mpi_stop
+            else
+                call mpi_stop("Unknown input argument.")
             endif
             i = i+1
         enddo
