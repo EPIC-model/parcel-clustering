@@ -107,3 +107,59 @@ CC=mpicc CXX=mpic++ FC=mpifort ../configure --prefix=/work/e710/e710/mf248/gnu
 
 However, we use the latest version OpenMPI/5.0.7 which we build following the
 instructios of the [Cirrus MPI build](https://github.com/hpc-uk/build-instructions/blob/main/libs/openmpi/build_openmpi_5.0.0_cirrus_gcc10.md).
+
+UCX version: 1.16.0
+HWLOC version: 2.9.3
+PMIX version: 5.0.6
+OpenMPI version: 5.0.7
+```bash
+Open MPI configuration:
+-----------------------
+Version: 5.0.7
+MPI Standard Version: 3.1
+Build MPI C bindings: yes
+Build MPI Fortran bindings: mpif.h, use mpi, use mpi_f08
+Build MPI Java bindings (experimental): no
+Build Open SHMEM support: yes
+Debug build: no
+Platform file: (none)
+ 
+Miscellaneous
+-----------------------
+Atomics: GCC built-in style atomics
+Fault Tolerance support: mpi
+HTML docs and man pages: installing packaged docs
+hwloc: external
+libevent: external
+Open UCC: no
+pmix: external
+PRRTE: internal
+Threading Package: pthreads
+ 
+Transports
+-----------------------
+Cisco usNIC: no
+Cray uGNI (Gemini/Aries): no
+Intel Omnipath (PSM2): no (not found)
+Open UCX: yes
+OpenFabrics OFI Libfabric: no (not found)
+Portals4: no (not found)
+Shared memory/copy in+copy out: yes
+Shared memory/Linux CMA: yes
+Shared memory/Linux KNEM: yes
+Shared memory/XPMEM: no
+TCP: yes
+ 
+Accelerators
+-----------------------
+CUDA support: no
+ROCm support: no
+ 
+OMPIO File Systems
+-----------------------
+DDN Infinite Memory Engine: no
+Generic Unix FS: yes
+IBM Spectrum Scale/GPFS: no (not found)
+Lustre: no (not found)
+PVFS2/OrangeFS: no
+```
