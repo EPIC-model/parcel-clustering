@@ -89,6 +89,8 @@ CXX=mpiicpc CC=mpiicc FC=mpiifort ../configure
 -->
 
 #### OpenMPI with GNU compiler suite
+
+That is the build with OpenMPI/4.1.6.
 ```bash
 module load libtool/2.4.7
 module load gcc/10.2.0
@@ -102,3 +104,6 @@ export CPLUS_INCLUDE_PATH=$NETCDF_C_DIR/include:$CPLUS_INCLUDE_PATH
 export C_INCLUDE_PATH=$NETCDF_C_DIR/include:$C_INCLUDE_PATH
 CC=mpicc CXX=mpic++ FC=mpifort ../configure --prefix=/work/e710/e710/mf248/gnu
 ```
+
+However, we use the latest version OpenMPI/5.0.7 which we build following the
+instructios of the [Cirrus documentation](https://github.com/hpc-uk/build-instructions/blob/main/libs/openmpi/build_openmpi_4.1.6_cirrus_gcc10.md).
