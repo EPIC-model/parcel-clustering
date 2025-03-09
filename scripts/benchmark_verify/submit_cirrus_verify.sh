@@ -68,9 +68,9 @@ echo "Run COMM_TYPE"
 
 if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
     ${bin_dir}/verify_cluster_algorithm \
-        --nranks 18 36 54 72 \
+        --nranks 9 18 27 36 45 54 63 72 \
         --ntasks-per-node 36 \
-        --n_parcel_per_cell 40 \
+        --nppc 40 \
         --nx 32 \
         --ny 32 \
         --nz 32 \
@@ -82,9 +82,9 @@ if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
         --comm-type "COMM_TYPE"
 else
     ${bin_dir}/verify_cluster_algorithm \
-        --nranks 18 36 54 72 \
+        --nranks 9 18 27 36 45 54 63 72 \
         --ntasks-per-node 36 \
-        --n_parcel_per_cell 40 \
+        --nppc 40 \
         --nx 32 \
         --ny 32 \
         --nz 32 \
