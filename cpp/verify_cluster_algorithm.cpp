@@ -285,8 +285,8 @@ int main(int argc, char* argv[]) {
         std::string flags = " --nx " + std::to_string(nx)
                           + " --ny " + std::to_string(ny)
                           + " --nz " + std::to_string(nz)
-                          + " --n_per_cell " + std::to_string(nppc)
-                          + " --min_vratio " + std::to_string(minVratio);
+                          + " --nppc " + std::to_string(nppc)
+                          + " --min-vratio " + std::to_string(minVratio);
 
         if (shuffle) {
             flags = flags + " --shuffle";

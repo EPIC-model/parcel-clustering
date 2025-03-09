@@ -261,6 +261,8 @@ contains
                              "--comm-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
+            else
+                call mpi_stop("Unknown input argument.")
             endif
             i = i+1
         end do
@@ -284,7 +286,7 @@ contains
             print *, "ylen", ylen
             print *, "zlen", zlen
             print *, "niter", niter
-            print *, "n_per_cell", parcel%n_per_cell
+            print *, "nppc", parcel%n_per_cell
             print *, "min_vratio", parcel%min_vratio
             print *, "size_factor", parcel%size_factor
             print *, "shuffle parcels", l_shuffle

@@ -234,6 +234,8 @@ contains
                              "--comm-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
+            else
+                call mpi_stop("Unknown input argument.")
             endif
             i = i+1
         end do
