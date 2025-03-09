@@ -106,4 +106,4 @@ CC=mpicc CXX=mpic++ FC=mpifort ../configure --prefix=/work/e710/e710/mf248/gnu
 ```
 
 However, we use the latest version OpenMPI/5.0.7 which we build following the
-instructios of the [Cirrus documentation](https://github.com/hpc-uk/build-instructions/blob/main/libs/openmpi/build_openmpi_4.1.6_cirrus_gcc10.md).
+instructios of the [Cirrus MPI build](https://github.com/hpc-uk/build-instructions/blob/main/libs/openmpi/build_openmpi_5.0.0_cirrus_gcc10.md).
