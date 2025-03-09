@@ -97,8 +97,8 @@ module load hdf5parallel/1.14.3-gcc10-ompi416
 export NETCDF_C_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
 export NETCDF_FORTRAN_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
 export PATH=$PATH:$NETCDF_C_DIR/bin
-export MPI_DIR=/work/y07/shared/cirrus-software/openmpi/4.1.6
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR/lib
 export CPLUS_INCLUDE_PATH=$NETCDF_C_DIR/include:$CPLUS_INCLUDE_PATH
-CC=mpicc CXX=mpicxx FC=mpif90 ../configure --prefix=/work/e710/e710/mf248/gnu
+export C_INCLUDE_PATH=$NETCDF_C_DIR/include:$C_INCLUDE_PATH
+CC=mpicc CXX=mpic++ FC=mpifort ../configure --prefix=/work/e710/e710/mf248/gnu
 ```
