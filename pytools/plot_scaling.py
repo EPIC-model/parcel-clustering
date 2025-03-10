@@ -26,8 +26,7 @@ try:
             self.titles = {
                 'p2p':   r'P2P + P2P',
                 'rma':   r'P2P + RMA',
-                'shmem': r'P2P + SHMEM',
-                'caf':   r'P2P + CAF' #Coarray Fortran (CAF)'
+                'shmem': r'P2P + SHMEM'
             }
 
             tc = '-' + test_case + '-'
@@ -120,8 +119,6 @@ try:
         # (see https://docs.python.org/3.10/whatsnew/3.10.html#pep-634-structural-pattern-matching, 28 Jan 2025)
         method = ''
         match config['comm']:
-            case 'caf':
-                method = 'CAF'
             case 'p2p':
                 method = 'MPI-3 P2P'
             case 'rma':
@@ -518,7 +515,7 @@ try:
         type=str,
         nargs='+',
         default=['p2p', 'rma', 'shmem'],
-        choices=['p2p', 'rma', 'shmem', 'caf'],
+        choices=['p2p', 'rma', 'shmem'],
         help="Communication method.",
     )
 

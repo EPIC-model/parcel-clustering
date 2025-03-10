@@ -73,12 +73,34 @@ bin_dir=BIN_DIR
 PATH=${bin_dir}:$PATH
 
 for i in $(seq 1 NREPEAT); do
-    if test "ENABLE_CAF" = "yes"; then
+    srun --kill-on-bad-exit \
+         --nodes=NODES \
+         --ntasks=NTASKS \
+         --unbuffered \
+         --distribution=block:block \
+         ${bin_dir}/benchmark_random \
+         --nx NX \
+         --ny NY \
+         --nz NZ \
+         --lx LX \
+         --ly LY \
+         --lz LZ \
+         --xlen LX \
+         --ylen LY \
+         --zlen LZ \
+         --min-vratio 20.0 \
+         --nppc 20 \
+         --niter NITER \
+         --shuffle \
+         --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+         --comm-type "shmem"
+    for g in "p2p" "rma"; do
         srun --kill-on-bad-exit \
-	     --nodes=NODES \
+             --nodes=NODES \
              --ntasks=NTASKS \
              --unbuffered \
              --distribution=block:block \
+             --hint=nomultithread \
              ${bin_dir}/benchmark_random \
              --nx NX \
              --ny NY \
@@ -93,33 +115,12 @@ for i in $(seq 1 NREPEAT); do
              --nppc 20 \
              --niter NITER \
              --shuffle \
-             --ncfname "COMPILER-caf-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
-             --comm-type "caf"
-    else
-        srun --kill-on-bad-exit \
-	     --nodes=NODES \
-             --ntasks=NTASKS \
-             --unbuffered \
-             --distribution=block:block \
-             ${bin_dir}/benchmark_random \
-             --nx NX \
-             --ny NY \
-             --nz NZ \
-             --lx LX \
-             --ly LY \
-             --lz LZ \
-             --xlen LX \
-             --ylen LY \
-             --zlen LZ \
-             --min-vratio 20.0 \
-             --nppc 20 \
-             --niter NITER \
-             --shuffle \
-             --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
-             --comm-type "shmem"
-        for g in "p2p" "rma"; do
+             --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+             --comm-type "$g"
+
+        if test "SUBCOMM" = "true"; then
             srun --kill-on-bad-exit \
-	         --nodes=NODES \
+                 --nodes=NODES \
                  --ntasks=NTASKS \
                  --unbuffered \
                  --distribution=block:block \
@@ -138,35 +139,10 @@ for i in $(seq 1 NREPEAT); do
                  --nppc 20 \
                  --niter NITER \
                  --shuffle \
-                 --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
-                 --comm-type "$g"
-
-            if test "SUBCOMM" = "true"; then
-                srun --kill-on-bad-exit \
-	             --nodes=NODES \
-                     --ntasks=NTASKS \
-                     --unbuffered \
-                     --distribution=block:block \
-                     --hint=nomultithread \
-                     ${bin_dir}/benchmark_random \
-                     --nx NX \
-                     --ny NY \
-                     --nz NZ \
-                     --lx LX \
-                     --ly LY \
-                     --lz LZ \
-                     --xlen LX \
-                     --ylen LY \
-                     --zlen LZ \
-                     --min-vratio 20.0 \
-                     --nppc 20 \
-                     --niter NITER \
-                     --shuffle \
-                     --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \
-                     --comm-type "$g" \
-                     --subcomm
-            fi
-        done
-    fi
+                 --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \
+                 --comm-type "$g" \
+                 --subcomm
+        fi
+    done
 done
 

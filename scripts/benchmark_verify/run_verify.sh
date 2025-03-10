@@ -44,7 +44,7 @@ print_help() {
     echo "This script submits code verification jobs."
     echo "Arguments:"
     echo "    -h    print this message"
-    echo "    -c    communication layer, valid options: 'p2p', 'shmem', 'caf' and 'rma'"
+    echo "    -c    communication layer, valid options: 'p2p', 'shmem' and 'rma'"
     echo "    -m    machine to run on, valid options: 'archer2' and 'cirrus'"
     echo "    -n    number of random samples"
     echo "    -s    seed for RNG"
@@ -90,7 +90,7 @@ if ! test "$machine" = "archer2" && ! test "$machine" = "cirrus"; then
 fi
 
 l_comm_valid=0
-for i in "p2p" "rma" "shmem" "caf"; do
+for i in "p2p" "rma" "shmem"; do
     if test "$comm" = "$i"; then
         l_comm_valid=1
     fi
@@ -109,16 +109,8 @@ source "../$machine.sh"
 j=0
 for bin_dir in ${bins[*]}; do
     compiler="${compilers[$j]}"
-    with_caf="${enable_caf[$j]}"
 
-    if test "$comm" = "caf"; then
-        # Coarray Fortran (CAF) is a separate build:
-        if test "$with_caf" = "yes"; then
-            run_job $machine $compiler "$bin_dir" "caf" $n_samples $seed
-	fi
-    else
-        run_job $machine $compiler "$bin_dir" $comm $n_samples $seed
-    fi
+    run_job $machine $compiler "$bin_dir" $comm $n_samples $seed
 
     j=$((j+1))
 done

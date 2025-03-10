@@ -69,7 +69,7 @@ PATH=${bin_dir}:$PATH
 
 echo "Run COMM_TYPE"
 
-if test "COMM_TYPE" = "shmem" || test "COMM_TYPE" = "caf"; then
+if test "COMM_TYPE" = "shmem"; then
     ${bin_dir}/verify_cluster_algorithm \
         --nranks 32 64 96 128 160 192 224 256 \
         --ntasks-per-node 128 \

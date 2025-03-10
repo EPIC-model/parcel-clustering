@@ -78,11 +78,32 @@ PATH=${bin_dir}:$PATH
 
 sbcast --compress=none ${bin_dir}/benchmark_random /tmp/benchmark_random
 for i in $(seq 1 NREPEAT); do
-    if test "ENABLE_CAF" = "yes"; then
+    srun --nodes=NODES \
+        --ntasks=NTASKS \
+        --unbuffered \
+        --distribution=block:block \
+        /tmp/benchmark_random \
+        --nx NX \
+        --ny NY \
+        --nz NZ \
+        --lx LX \
+        --ly LY \
+        --lz LZ \
+        --xlen LX \
+        --ylen LY \
+        --zlen LZ \
+        --min-vratio 20.0 \
+        --nppc 20 \
+        --niter NITER \
+        --shuffle \
+        --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+        --comm-type "shmem"
+    for g in "p2p" "rma"; do
         srun --nodes=NODES \
             --ntasks=NTASKS \
             --unbuffered \
             --distribution=block:block \
+            --hint=nomultithread \
             /tmp/benchmark_random \
             --nx NX \
             --ny NY \
@@ -97,30 +118,10 @@ for i in $(seq 1 NREPEAT); do
             --nppc 20 \
             --niter NITER \
             --shuffle \
-            --ncfname "COMPILER-caf-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
-            --comm-type "caf"
-    else
-        srun --nodes=NODES \
-            --ntasks=NTASKS \
-            --unbuffered \
-            --distribution=block:block \
-            /tmp/benchmark_random \
-            --nx NX \
-            --ny NY \
-            --nz NZ \
-            --lx LX \
-            --ly LY \
-            --lz LZ \
-            --xlen LX \
-            --ylen LY \
-            --zlen LZ \
-            --min-vratio 20.0 \
-            --nppc 20 \
-            --niter NITER \
-            --shuffle \
-            --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
-            --comm-type "shmem"
-        for g in "p2p" "rma"; do
+            --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+            --comm-type "$g"
+
+        if test "SUBCOMM" = "true"; then
             srun --nodes=NODES \
                 --ntasks=NTASKS \
                 --unbuffered \
@@ -140,34 +141,10 @@ for i in $(seq 1 NREPEAT); do
                 --nppc 20 \
                 --niter NITER \
                 --shuffle \
-                --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
-                --comm-type "$g"
-
-            if test "SUBCOMM" = "true"; then
-                srun --nodes=NODES \
-                    --ntasks=NTASKS \
-                    --unbuffered \
-                    --distribution=block:block \
-                    --hint=nomultithread \
-                    /tmp/benchmark_random \
-                    --nx NX \
-                    --ny NY \
-                    --nz NZ \
-                    --lx LX \
-                    --ly LY \
-                    --lz LZ \
-                    --xlen LX \
-                    --ylen LY \
-                    --zlen LZ \
-                    --min-vratio 20.0 \
-                    --nppc 20 \
-                    --niter NITER \
-                    --shuffle \
-                    --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \
-                    --comm-type "$g" \
-                    --subcomm
-            fi
-        done
-    fi
+                --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \
+                --comm-type "$g" \
+                --subcomm
+        fi
+    done
 done
 
