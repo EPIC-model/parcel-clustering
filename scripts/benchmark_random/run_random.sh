@@ -115,7 +115,8 @@ print_help() {
     echo "where the number of cores is doubled in each"
     echo "iteration from '-l' to '-u'"
     echo "Arguments:"
-    echo "    -m    machine to run on, either 'cirrus' or 'archer2'"
+    echo "    -m    machine to run on, e.g. 'cirrus', 'archer2', 'hotlum'"
+    echo "          (requirement: <machine>.sh and 'submit_<machine>_random.sh)"
     echo "    -h    print this help message"
     echo "    -l    lower bound of cores"
     echo "    -j    increment of cores"
@@ -195,8 +196,13 @@ while getopts "h?m:l:u:j:r:i:x:y:z:a:b:c:s": option; do
     esac
 done
 
-if ! test "$machine" = "archer2" && ! test "$machine" = "cirrus"; then
-    echo "Only 'archer2' and 'cirrus' machines supported. Exiting."
+if ! test -f "../$machine.sh"; then
+    echo "Unable to run on $machine. The file ${machine}.sh does not exist. Exiting."
+    exit 1
+fi
+
+if ! test -f "submit_${machine}_random.sh" ; then
+    echo "Unable to run on $machine. The file submit_${machine}_random.sh does not exist. Exiting."
     exit 1
 fi
 
