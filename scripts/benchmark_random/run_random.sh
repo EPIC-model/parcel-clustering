@@ -21,7 +21,6 @@ run_jobs() {
     local inc_ntasks=${14}
     local max_ntasks=${15}
     local subcomm=${16}
-    local enable_caf=${17}
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
@@ -45,7 +44,6 @@ run_jobs() {
         subcomm="false"
     fi
     echo "subcomm         = $subcomm"
-    echo "enable_caf      = $enable_caf"
     echo "--------------------------------"
 
     mkdir -p -v "$compiler"
@@ -62,11 +60,7 @@ run_jobs() {
 
         echo "Submit job with $ntasks tasks on $nodes nodes using the $compiler version"
 
-        if test "$enable_caf" = "yes"; then
-            fn="submit_caf_random_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
-        else
-            fn="submit_random_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
-        fi
+        fn="submit_random_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
 
         cp "../$fname" $fn
         sed -i "s:JOBNAME:$compiler-random:g" $fn
@@ -88,7 +82,6 @@ run_jobs() {
         sed -i "s:--zlen LZ:--zlen $lz:g" $fn
 
         sed -i "s:BIN_DIR:$bin_dir:g" $fn
-        sed -i "s:ENABLE_CAF:$enable_caf:g" $fn
         sed -i "s:SUBCOMM:$subcomm:g" $fn
 
         sbatch $fn
@@ -116,7 +109,6 @@ run_jobs() {
 # inc_ntasks
 # max_ntasks
 # subcomm
-# enable_caf : "no" or "yes"
 
 print_help() {
     echo "Script to submit strong / weak scaling jobs"
@@ -231,9 +223,8 @@ echo "Each job is repeated $nrep times with $niter iterations per repetition."
 j=0
 for bin_dir in ${bins[*]}; do
     compiler="${compilers[$j]}"
-    with_caf="${enable_caf[$j]}"
 
-    run_jobs $machine $ntasks_per_node $compiler "$bin_dir" $nrep $niter $nx $ny $nz $lx $ly $lz $min_cores $inc_cores $max_cores $subcomm $with_caf
+    run_jobs $machine $ntasks_per_node $compiler "$bin_dir" $nrep $niter $nx $ny $nz $lx $ly $lz $min_cores $inc_cores $max_cores $subcomm
 
     j=$((j+1))
 done
