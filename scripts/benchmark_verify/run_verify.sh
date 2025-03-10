@@ -45,7 +45,8 @@ print_help() {
     echo "Arguments:"
     echo "    -h    print this message"
     echo "    -c    communication layer, valid options: 'p2p', 'shmem' and 'rma'"
-    echo "    -m    machine to run on, valid options: 'archer2' and 'cirrus'"
+    echo "    -m    machine to run on, e.g. 'archer2', 'cirrus', 'hotlum'"
+    echo "          (requirement: <machine>.sh and 'submit_<machine>_verify.sh)"
     echo "    -n    number of random samples"
     echo "    -s    seed for RNG"
 }
@@ -84,8 +85,13 @@ while getopts "h?m:n:s:c:": option; do
     esac
 done
 
-if ! test "$machine" = "archer2" && ! test "$machine" = "cirrus"; then
-    echo "Only 'archer2' and 'cirrus' machines supported. Exiting."
+if ! test -f "../$machine.sh"; then
+    echo "Unable to run on $machine. The file ${machine}.sh does not exist. Exiting."
+    exit 1
+fi
+
+if ! test -f "submit_${machine}_verify.sh" ; then
+    echo "Unable to run on $machine. The file submit_${machine}_verify.sh does not exist. Exiting."
     exit 1
 fi
 
