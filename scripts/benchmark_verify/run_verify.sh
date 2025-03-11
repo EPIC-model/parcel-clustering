@@ -51,6 +51,13 @@ print_help() {
     echo "    -s    seed for RNG"
 }
 
+check_for_input() {
+    if ! test "${2}"; then
+        echo "Please specify '${1}'. Exiting."
+	exit 1
+    fi
+}
+
 # --------------------------------------------------------
 # User options:
 
@@ -85,15 +92,10 @@ while getopts "h?m:n:s:c:": option; do
     esac
 done
 
-if ! test -f "../$machine.sh"; then
-    echo "Unable to run on $machine. The file ${machine}.sh does not exist. Exiting."
-    exit 1
-fi
-
-if ! test -f "submit_${machine}_verify.sh" ; then
-    echo "Unable to run on $machine. The file submit_${machine}_verify.sh does not exist. Exiting."
-    exit 1
-fi
+check_for_input "machine" $machine
+check_for_input "number of samples" $n_samples
+check_for_input "seed" $seed
+check_for_input "communication layer" $comm
 
 l_comm_valid=0
 for i in "p2p" "rma" "shmem"; do
@@ -104,6 +106,16 @@ done
 
 if ! test $l_comm_valid = 1; then
     echo "Invalid communication layer. Exiting."
+    exit 1
+fi
+
+if ! test -f "../$machine.sh"; then
+    echo "Unable to run on $machine. The file ${machine}.sh does not exist. Exiting."
+    exit 1
+fi
+
+if ! test -f "submit_${machine}_verify.sh" ; then
+    echo "Unable to run on $machine. The file submit_${machine}_verify.sh does not exist. Exiting."
     exit 1
 fi
 
