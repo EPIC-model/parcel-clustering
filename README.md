@@ -20,4 +20,5 @@
 
 Note: The `$PREFIX` variable denotes the installation directory. The flags `CXX`, `CC` and `FC` may also be other compiler wrappers.
 
-
+* [Installation on ARCHER2](ARCHER2.md)
+* [Installation on Cirrus](Cirrus.md)
