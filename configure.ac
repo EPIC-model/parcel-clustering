@@ -594,3 +594,19 @@ AC_LANG_POP([C++])
 
 
 AC_OUTPUT
+
+echo ""
+echo "Compilers:"
+echo "----------"
+echo "Fortran compiler: $(which $FC)"
+echo "C compiler:       $(which $CC)"
+echo "C++ compiler:     $(which $CXX)"
+echo ""
+echo "Compiler flags:"
+echo "---------------"
+echo "FCLAGS: $FCFLAGS"
+echo ""
+echo "CFLAGS: $CFLAGS"
+echo ""
+echo "CXXFLAGS: $CXXFLAGS"
+echo ""
