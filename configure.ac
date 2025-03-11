@@ -5,6 +5,13 @@ AC_INIT([parcel-clustering],
         [https://github.com/EPIC-model/parcel-clustering])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 AC_PREREQ([2.69])
+
+# reset default options:
+# (see also https://www.gnu.org/savannah-checkouts/gnu/autoconf/manual/autoconf-2.72/autoconf.pdf)
+: ${CFLAGS=""}
+: ${FCFLAGS=""}
+: ${CXXFLAGS=""}
+
 AC_PROG_FC([ftn mpifort])
 AC_PROG_CC([cc mpicc])
 AC_LANG(Fortran)
