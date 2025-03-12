@@ -561,7 +561,7 @@ else
 
     # Cray fortran compiler flags
     if test "$ax_cv_fc_compiler_vendor" = "cray"; then
-        AX_CHECK_COMPILE_FLAG([-h ipa3], [FCFLAGS="$FCFLAGS -h ipa3"])
+        AX_CHECK_COMPILE_FLAG([-h ipa2], [FCFLAGS="$FCFLAGS -h ipa2"])
         AX_CHECK_COMPILE_FLAG([-h fp2], [FCFLAGS="$FCFLAGS -h fp2"])
         AX_CHECK_COMPILE_FLAG([-h unroll2],  [FCFLAGS="$FCFLAGS -h unroll2"])
     fi
