@@ -9,8 +9,8 @@ module load cray-hdf5-parallel/1.12.2.1
 module load cray-openshmemx/11.5.7
 module load cray-netcdf-hdf5parallel/4.9.0.1
 module load cpe/23.09
-export NETCDF_C_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
-export NETCDF_FORTRAN_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
+export NETCDF_C_DIR=$CRAY_NETCDF_HDF5PARALLEL_PREFIX
+export NETCDF_FORTRAN_DIR=$CRAY_NETCDF_HDF5PARALLEL_PREFIX
 export CXX=CC
 export CC=cc
 export FC=ftn
@@ -30,8 +30,8 @@ module load cray-openshmemx
 module load load-epcc-module;
 module load  extra-compilers/1.0
 module load cpe/23.09
-export NETCDF_C_DIR=$NETCDF_DIR
-export NETCDF_FORTRAN_DIR=$NETCDF_DIR
+export NETCDF_C_DIR=$CRAY_NETCDF_HDF5PARALLEL_PREFIX
+export NETCDF_FORTRAN_DIR=$CRAY_NETCDF_HDF5PARALLEL_PREFIX
 export CXX=CC
 export CC=cc
 export FC=ftn
