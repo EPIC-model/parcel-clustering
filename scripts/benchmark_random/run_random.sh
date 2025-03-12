@@ -119,7 +119,7 @@ print_help() {
     echo "          (requirement: <machine>.sh and 'submit_<machine>_random.sh)"
     echo "    -h    print this help message"
     echo "    -l    lower bound of cores"
-    echo "    -j    increment of cores"
+    echo "    -j    increment factor of cores"
     echo "    -u    upper bound of cores"
     echo "    -r    number of repetitions"
     echo "    -i    number of iterations per repetition"
