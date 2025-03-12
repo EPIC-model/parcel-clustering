@@ -33,10 +33,9 @@ if test "COMPILER" = "gnu"; then
     module load cray-dsmml
     module load cray-openshmemx
 
-    export NETCDF_C_DIR=$NETCDF_DIR
-    export NETCDF_FORTRAN_DIR=$NETCDF_DIR
     export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 elif test "COMPILER" = "cray"; then
     echo "Loading the Cray Compiling Environment (CCE)"
     module load PrgEnv-cray/8.3.3
@@ -49,10 +48,9 @@ elif test "COMPILER" = "cray"; then
 
     # load latest modules
     module load cpe/23.09
-    export NETCDF_C_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
-    export NETCDF_FORTRAN_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
     export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 fi
 
 #export PGAS_MEMINFO_DISPLAY=1

@@ -34,7 +34,6 @@ if test "COMPILER" = "gnu"; then
     export MPICC=$MPI_ROOT/bin/mpicc
     export MPICXX=$MPI_ROOT/bin/mpic++
     export NETCDF_C_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
-    export NETCDF_FORTRAN_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
     export PATH=$PATH:$NETCDF_C_DIR/bin
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR/lib:$MPI_ROOT/lib
     export CPLUS_INCLUDE_PATH=$NETCDF_C_DIR/include:$MPI_ROOT/include:$CPLUS_INCLUDE_PATH
@@ -45,15 +44,13 @@ elif test "COMPILER" = "intel-mpi"; then
     module load intel-20.4/mpi
     module load intel-20.4/compilers
     module load netcdf-parallel/4.9.2-intel20-impi20
-    export NETCDF_C_DIR=$NETCDF_DIR
-    export NETCDF_FORTRAN_DIR=$NETCDF_DIR
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_DIR/lib
 elif test "COMPILER" = "intel-mpt"; then
     echo "Loading the HPE MPT Environment with the Intel compiler"
     module load mpt/2.25
     module load intel-20.4/compilers
     module load netcdf-parallel/4.9.2-intel20-mpt225
-    export NETCDF_FORTRAN_DIR=$NETCDF_DIR
-    export NETCDF_C_DIR=$NETCDF_DIR
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_DIR/lib
     export MPICC_CC=icc
     export MPICXX_CXX=icpc
 fi
