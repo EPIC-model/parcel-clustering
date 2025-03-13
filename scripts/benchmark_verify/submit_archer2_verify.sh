@@ -26,7 +26,6 @@ if test "COMPILER" = "gnu"; then
     module load cray-netcdf-hdf5parallel
     module load cray-dsmml
     module load cray-openshmemx
-    export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 elif test "COMPILER" = "cray"; then
@@ -41,7 +40,6 @@ elif test "COMPILER" = "cray"; then
 
     module load cpe/23.09
 
-    export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 fi

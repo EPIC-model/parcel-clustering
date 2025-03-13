@@ -468,7 +468,7 @@ if test "x$ENABLE_PYTHON_CHECK" = "xyes"; then
         AC_MSG_RESULT([yes])
     else
         AC_MSG_RESULT([no])
-        AC_MSG_NOTICE([Install argparse with "conda install -c conda-forge argparse".])
+        AC_MSG_NOTICE([Install argparse with "conda install conda-forge::argparse".])
         exit 1
     fi
 
@@ -481,20 +481,20 @@ if test "x$ENABLE_PYTHON_CHECK" = "xyes"; then
         AC_MSG_RESULT([yes])
     else
         AC_MSG_RESULT([no])
-        AC_MSG_NOTICE([Install numpy with "conda install -c conda-forge numpy".])
+        AC_MSG_NOTICE([Install numpy with "conda install conda-forge::numpy".])
         exit 1
     fi
 
     #
-    # netcdf
+    # pandas
     #
-    AC_MSG_CHECKING([for python netcdf library])
-    `${PYTHON} -c 'import netCDF4' 2> config.log`
+    AC_MSG_CHECKING([for python pandas library])
+    `${PYTHON} -c 'import pandas' 2> config.log`
     if test "x$?" = "x0" ; then
         AC_MSG_RESULT([yes])
     else
         AC_MSG_RESULT([no])
-        AC_MSG_NOTICE([Install netcdf with "conda install -c conda-forge netcdf4".])
+        AC_MSG_NOTICE([Install pandas with "conda install conda-forge::pandas".])
         exit 1
     fi
 fi

@@ -94,8 +94,8 @@ contains
 
     subroutine write_timings(fname)
         character(*), intent(in)     :: fname
-        character(len=len(fname)+12) :: asc_timer_file
-        character(len=len(fname)+11) :: asc_ncall_file
+        character(len=len(fname)+12) :: csv_timer_file
+        character(len=len(fname)+11) :: csv_ncall_file
         logical                      :: l_exist = .false.
         character(len=3)             :: status = 'new'
         integer                      :: i
@@ -110,52 +110,52 @@ contains
             return
         endif
 
-        asc_timer_file = trim(fname) // '-timings.asc'
+        csv_timer_file = trim(fname) // '-timings.csv'
 
-        inquire(file=asc_timer_file, exist=l_exist)
+        inquire(file=csv_timer_file, exist=l_exist)
 
         if (l_exist) then
             status = 'old'
         endif
 
-        open(unit=1234, file=asc_timer_file, status=status, position='append')
+        open(unit=1234, file=csv_timer_file, status=status, position='append')
 
         if (.not. l_exist) then
             do i = 1, n_timers-1
-                write(1234, '(a)', advance='no') trim(timings(i)%name) // ', '
+                write(1234, '(a)', advance='no') trim(timings(i)%name) // ','
             enddo
             write(1234, '(a)', advance='yes') trim(timings(n_timers)%name)
         endif
 
         do i = 1, n_timers-1
-            write(1234, '(g22.9,a2)', advance='no') timings(i)%max_time, ", "
+            write(1234, '(es24.16e3,a1)', advance='no') timings(i)%max_time, ","
         enddo
-        write(1234, '(g22.9)') timings(n_timers)%max_time
+        write(1234, '(es24.16e3)') timings(n_timers)%max_time
 
         close(1234)
 
 
-        asc_ncall_file = trim(fname) // '-ncalls.asc'
+        csv_ncall_file = trim(fname) // '-ncalls.csv'
 
-        inquire(file=asc_ncall_file, exist=l_exist)
+        inquire(file=csv_ncall_file, exist=l_exist)
 
         if (l_exist) then
             status = 'old'
         endif
 
-        open(unit=1235, file=asc_ncall_file, status=status, position='append')
+        open(unit=1235, file=csv_ncall_file, status=status, position='append')
 
         if (.not. l_exist) then
             do i = 1, n_timers-1
-                write(1235, '(a)', advance='no') trim(timings(i)%name) // ', '
+                write(1235, '(a)', advance='no') trim(timings(i)%name) // ','
             enddo
             write(1235, '(a)', advance='yes') trim(timings(n_timers)%name)
         endif
 
         do i = 1, n_timers-1
-            write(1235, '(i16, a2)', advance='no') timings(i)%n_calls, ", "
+            write(1235, "(i0,a1)", advance='no') timings(i)%n_calls, ","
         enddo
-        write(1235, '(i16)') timings(n_timers)%n_calls
+        write(1235, "(i0)") timings(n_timers)%n_calls
 
         close(1235)
 
