@@ -10,11 +10,8 @@ module parcel_merge_serial
     use parcels_mod, only : parcels
     use options, only : parcel, verbose
     use parcel_bc
-    use mpi_timer, only : start_timer, stop_timer
 
     implicit none
-
-    integer :: serial_merge_timer = -1
 
     ! number of parcel merges (is reset in every write step)
     integer :: n_parcel_merges = 0
@@ -38,8 +35,6 @@ module parcel_merge_serial
 
             n_parcel_merges = n_parcel_merges + n_merge
 
-            call start_timer(serial_merge_timer)
-
 #ifdef ENABLE_VERBOSE
             if (verbose) then
                 print "(a36, i0, a3, i0)",                                       &
@@ -60,8 +55,6 @@ module parcel_merge_serial
                 deallocate(isma)
                 deallocate(iclo)
             endif
-
-            call stop_timer(serial_merge_timer)
 
         end subroutine merge_parcels
 

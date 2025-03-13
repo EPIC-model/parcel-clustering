@@ -1,4 +1,4 @@
-import netCDF4 as nc
+import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -30,7 +30,7 @@ try:
             }
 
             tc = '-' + test_case + '-'
-            pattern = re.compile(r"(\w*)-(\w*)" + tc + r"(nx-\d*-ny-\d*-nz-\d*)-nodes-(\d*).nc")
+            pattern = re.compile(r"(\w*)-(\w*)" + tc + r"(nx-\d*-ny-\d*-nz-\d*)-nodes-(\d*)-timings.csv")
 
             self.configs = {}
             for fname in os.listdir(path=path):
@@ -73,23 +73,20 @@ try:
                 std_data[long_name] = np.zeros(len(nodes))
 
             for i, node in enumerate(nodes):
-                fname = config['basename'] + str(node) + '.nc'
+                fname = config['basename'] + str(node) + '-timings.csv'
 
-                nc_file = nc.Dataset(fname, "r", format="NETCDF4")
+                df = pd.read_csv(fname, dtype=np.float64)
 
-                lvars = list(nc_file.variables.keys())
+                long_names = list(df.columns)
+                for timing in timings:
+                    if not timing in long_names:
+                        raise RuntimeError("Timing '" + timing + "' not in data set.")
 
-                for var in lvars:
-                    name = nc_file.variables[var].name
-                    if 'wtime' in name:
-                        long_name = nc_file.variables[var].long_name
+                for long_name in timings:
+                    data = np.array(df.loc[:, long_name])
+                    avg_data[long_name][i] = data.mean()
+                    std_data[long_name][i] = data.std()
 
-                        if long_name in timings:
-                            data = np.array(nc_file[name])
-                            avg_data[long_name][i] = data.mean()
-                            std_data[long_name][i] = data.std()
-
-                nc_file.close()
             return avg_data, std_data
 
 

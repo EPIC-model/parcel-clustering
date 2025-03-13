@@ -65,7 +65,7 @@ run_jobs() {
         sed -i "s:NODES:$nodes:g" $fn
         sed -i "s:NTASKS:$ntasks:g" $fn
         sed -i "s:--niter NITER:--niter $niter:g" $fn
-        sed -i "s:--basename BASENAME:--basename $bname:g" $fn
+        sed -i "s:--ncbasename NC_BASENAME:--ncbasename $bname:g" $fn
         sed -i "s:--offset OFFSET:--offset $offset:g" $fn
         sed -i "s:--nfiles NFILES:--nfiles $nfiles:g" $fn
 

@@ -33,7 +33,6 @@ if test "COMPILER" = "gnu"; then
     module load cray-dsmml
     module load cray-openshmemx
 
-    export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 elif test "COMPILER" = "cray"; then
@@ -48,7 +47,6 @@ elif test "COMPILER" = "cray"; then
 
     # load latest modules
     module load cpe/23.09
-    export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 fi
@@ -94,7 +92,7 @@ for i in $(seq 1 NREPEAT); do
         --nppc 20 \
         --niter NITER \
         --shuffle \
-        --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+        --csvfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
@@ -116,7 +114,7 @@ for i in $(seq 1 NREPEAT); do
             --nppc 20 \
             --niter NITER \
             --shuffle \
-            --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+            --csvfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
             --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
@@ -139,7 +137,7 @@ for i in $(seq 1 NREPEAT); do
                 --nppc 20 \
                 --niter NITER \
                 --shuffle \
-                --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \
+                --csvfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
                 --comm-type "$g" \
                 --subcomm
         fi

@@ -8,6 +8,7 @@ program benchmark_random
     use parcel_mpi, only : parcel_communicate
     use mpi_environment
     use mpi_layout
+    use mpi_timer, only : write_timings
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
@@ -24,13 +25,12 @@ program benchmark_random
     use parcel_nearest_shmem_graph, only : shmem_graph_t
 #endif
 #endif
-    use netcdf_timings
     implicit none
 
     integer              :: k, niter, seed
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc, l_subcomm
-    character(len=512)   :: ncfname
+    character(len=512)   :: csvfname
     character(len=5)     :: comm_type ! shmem, rma, p2p or caf
     character(len=1)     :: snum
     integer(kind=int64)  :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
@@ -134,7 +134,7 @@ program benchmark_random
         enddo
     endif
 
-    call write_netcdf_timings(trim(ncfname))
+    call write_timings(trim(csvfname))
 
     call tree%finalise
 
@@ -163,7 +163,7 @@ contains
         l_subcomm = .false.
         comm_type = 'p2p'
         seed = 42
-        ncfname = ''
+        csvfname = ''
 
 
         i = 1
@@ -242,10 +242,10 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(i6)') seed
-            else if (arg == '--ncfname') then
+            else if (arg == '--csvfname') then
                 i = i + 1
                 call get_command_argument(i, arg)
-                ncfname = trim(arg)
+                csvfname = trim(arg)
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_random ",                              &
@@ -257,7 +257,7 @@ contains
                              "--shuffle (optional) --variable-nppc (optional) ", &
                              "--subcomm (optional, disabled for shmem) ",        &
                              "--seed [int] ",                                    &
-                             "--ncfname [string]",                               &
+                             "--csvfname [string]",                              &
                              "--comm-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
@@ -267,8 +267,8 @@ contains
             i = i+1
         end do
 
-        if (ncfname == '') then
-            call mpi_stop("No netCDF output file name provided.")
+        if (csvfname == '') then
+            call mpi_stop("No timing output file name provided.")
         endif
 
 #ifdef ENABLE_COARRAY
@@ -294,7 +294,7 @@ contains
             print *, "enabled subcommunicator", l_subcomm
             print *, "variable number of parcels/cell:", l_variable_nppc
             print *, "comm type: " // comm_type
-            print *, "netCDF file name: " // trim(ncfname)
+            print *, "ASCII file name: " // trim(csvfname)
         endif
 
     end subroutine parse_command_line

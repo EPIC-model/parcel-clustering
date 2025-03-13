@@ -9,15 +9,12 @@ module parcel_init
     use parameters, only : dx, vcell, ncell,            &
                            extent, lower, nx, ny, nz,   &
                            max_num_parcels
-    use mpi_timer, only : start_timer, stop_timer
     use omp_lib
     use mpi_environment
     use mpi_layout, only : box
     use mpi_utils, only : mpi_print, mpi_exit_on_error
     use mpi_collectives, only : mpi_blocking_reduce
     implicit none
-
-    integer :: init_timer = -1
 
     private :: init_refine
 
@@ -28,8 +25,6 @@ contains
     subroutine parcel_default
         double precision             :: lam, l23
         integer                      :: n
-
-        call start_timer(init_timer)
 
         call parcels%allocate(max_num_parcels)
 
@@ -91,8 +86,6 @@ contains
         enddo
         !$omp end do
         !$omp end parallel
-
-        call stop_timer(init_timer)
 
     end subroutine parcel_default
 

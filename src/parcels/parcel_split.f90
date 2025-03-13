@@ -12,7 +12,6 @@ module parcel_split_mod
     use parcels_mod, only : parcels
     use parcel_bc, only : apply_reflective_bc
     use parcel_mpi, only : parcel_communicate
-    use mpi_timer, only : start_timer, stop_timer, timings
     use omp_lib
     use mpi_environment, only : world, MPI_SUM
     use mpi_collectives, only : mpi_blocking_reduce
@@ -21,8 +20,6 @@ module parcel_split_mod
     double precision, parameter :: dh = f12 * sqrt(three / five)
 
     private :: dh
-
-    integer :: split_timer = -1
 
     ! number of parcel splits (is reset in every write step)
     integer(kind=int64) :: n_parcel_splits = 0
@@ -48,7 +45,6 @@ contains
 
         orig_num = parcels%total_num
 #endif
-        call start_timer(split_timer)
 
         !------------------------------------------------------------------
         ! Check which parcels split and store the indices in *pid*:
@@ -88,16 +84,12 @@ contains
 
         shrunk_size = nint(parcel%shrink_factor * n_required)
 
-        call stop_timer(split_timer)
-
         if (n_required > parcels%max_num) then
             grown_size = nint(parcel%grow_factor * n_required)
             call parcels%resize(grown_size)
         else if (n_required < nint(f34 * shrunk_size)) then
             call parcels%resize(shrunk_size)
         endif
-
-        call start_timer(split_timer)
 
         !------------------------------------------------------------------
         ! Loop over all parcels that really split:
@@ -186,11 +178,6 @@ contains
                     "no. parcels before and after split: ", orig_num, "...", parcels%total_num
         endif
 #endif
-        call stop_timer(split_timer)
-
-        ! subtract one call as we start and stop the timer twice here:
-        timings(split_timer)%n_calls = timings(split_timer)%n_calls - 1
-
     end subroutine parcel_split
 
 end module parcel_split_mod

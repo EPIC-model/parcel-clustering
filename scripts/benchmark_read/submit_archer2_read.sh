@@ -33,10 +33,8 @@ if test "COMPILER" = "gnu"; then
     module load cray-dsmml
     module load cray-openshmemx
 
-    export NETCDF_C_DIR=$NETCDF_DIR
-    export NETCDF_FORTRAN_DIR=$NETCDF_DIR
-    export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 elif test "COMPILER" = "cray"; then
     echo "Loading the Cray Compiling Environment (CCE)"
     module load PrgEnv-cray/8.3.3
@@ -49,10 +47,8 @@ elif test "COMPILER" = "cray"; then
 
     # load latest modules
     module load cpe/23.09
-    export NETCDF_C_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
-    export NETCDF_FORTRAN_DIR=$CRAY_NETCDF_HDF5PARALLEL_DIR/crayclang/14.0
-    export FC=ftn
     export LD_LIBRARY_PATH=$CRAY_LD_LIBRARY_PATH:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 fi
 
 #export PGAS_MEMINFO_DISPLAY=1
@@ -83,11 +79,11 @@ for i in $(seq 1 NREPEAT); do
         --unbuffered \
         --distribution=block:block \
         /tmp/benchmark_read \
-        --basename BASENAME \
+        --ncbasename NC_BASENAME \
         --niter NITER \
         --offset OFFSET \
         --nfiles NFILES \
-        --ncfname "COMPILER-shmem-read-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+        --csvfname "COMPILER-shmem-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
@@ -96,11 +92,11 @@ for i in $(seq 1 NREPEAT); do
             --distribution=block:block \
             --hint=nomultithread \
             /tmp/benchmark_read \
-            --basename BASENAME \
+            --ncbasename NC_BASENAME \
             --niter NITER \
             --offset OFFSET \
             --nfiles NFILES \
-            --ncfname "COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+            --csvfname "COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
             --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
@@ -110,11 +106,11 @@ for i in $(seq 1 NREPEAT); do
                 --distribution=block:block \
                 --hint=nomultithread \
                 /tmp/benchmark_read \
-                --basename BASENAME \
+                --ncbasename NC_BASENAME \
                 --niter NITER \
                 --offset OFFSET \
                 --nfiles NFILES \
-                --ncfname "COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \
+                --csvfname "COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
                 --comm-type "$g" \
                 --subcomm
         fi
