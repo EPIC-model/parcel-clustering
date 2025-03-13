@@ -9,10 +9,7 @@ module parcel_container
     use mpi_collectives, only : mpi_blocking_reduce
     use mpi_utils, only : mpi_exit_on_error
     use armanip, only : resize_array
-    use mpi_timer, only : start_timer, stop_timer
     implicit none
-
-    integer :: resize_timer = -1
 
     ! Parcel container type
     type, abstract :: pc_type
@@ -200,8 +197,6 @@ contains
         class(pc_type), intent(inout) :: this
         integer,        intent(in)    :: new_size
 
-        call start_timer(resize_timer)
-
         if (new_size < this%local_num) then
             call mpi_exit_on_error(&
                 "in parcel_container::parcel_base_resize: losing parcels when resizing.")
@@ -215,8 +210,6 @@ contains
         call resize_array(this%B, new_size, this%local_num)
         call resize_array(this%volume, new_size, this%local_num)
         call resize_array(this%buoyancy, new_size, this%local_num)
-
-        call stop_timer(resize_timer)
 
     end subroutine parcel_base_resize
 

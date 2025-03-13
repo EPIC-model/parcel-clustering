@@ -2,13 +2,9 @@ module utils
     use constants, only : zero, f12, f23, one, two, pi, twopi
     use parameters, only : lower, vmin, dx, nz, center
     use mpi_timer
-    use parcel_container, only : resize_timer
     use parcels_mod, only : parcels
-    use parcel_split_mod, only : split_timer
     use parcel_merging, only : merge_timer
     use parcel_nearest, only : find_nearest_timer, build_graphs_timer, tree
-    use parcel_netcdf, only : parcel_io_timer
-    use parcel_init, only : init_timer
     use mpi_environment
     use mpi_layout
     use options, only : parcel
@@ -19,19 +15,18 @@ module utils
 
     integer, allocatable :: seed(:)
 
-    public :: print_timer           &
-            , register_all_timers   &
+    public :: register_all_timers   &
             , init_rng              &
             , setup_parcels
 
 contains
 
     subroutine register_all_timers
-        call register_timer('parcel container resize', resize_timer)
-        call register_timer('parcel split', split_timer)
+
+        ! We have 3 + 6 (in trees) timers
+        allocate(timings(9))
+
         call register_timer('parcel merge (total)', merge_timer)
-        call register_timer('parcel initialisation', init_timer)
-        call register_timer('parcel I/O', parcel_io_timer)
         call register_timer('find nearest', find_nearest_timer)
         call register_timer('build graphs', build_graphs_timer)
     end subroutine register_all_timers

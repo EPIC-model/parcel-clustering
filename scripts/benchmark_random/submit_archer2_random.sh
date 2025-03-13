@@ -94,7 +94,7 @@ for i in $(seq 1 NREPEAT); do
         --nppc 20 \
         --niter NITER \
         --shuffle \
-        --ncfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+        --fname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
@@ -116,7 +116,7 @@ for i in $(seq 1 NREPEAT); do
             --nppc 20 \
             --niter NITER \
             --shuffle \
-            --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES.nc" \
+            --fname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
             --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
@@ -139,7 +139,7 @@ for i in $(seq 1 NREPEAT); do
                 --nppc 20 \
                 --niter NITER \
                 --shuffle \
-                --ncfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm.nc" \
+                --fname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
                 --comm-type "$g" \
                 --subcomm
         fi

@@ -7,7 +7,6 @@ module parcel_netcdf
     use parcels_mod, only : parcels
     use parameters, only : nx, ny, nz, extent, lower
     use config, only : package_version, cf_version
-    use mpi_timer, only : start_timer, stop_timer
     use iomanip, only : zfill
     use mpi_environment
     use mpi_datatypes, only : MPI_INTEGER_64BIT
@@ -19,8 +18,6 @@ module parcel_netcdf
     implicit none
 
     private
-
-    integer :: parcel_io_timer = -1
 
     integer :: n_writes = 1
     character(len=512) :: ncbasename
@@ -59,8 +56,7 @@ module parcel_netcdf
 
     public :: create_netcdf_parcel_file &
             , write_netcdf_parcels      &
-            , read_netcdf_parcels       &
-            , parcel_io_timer
+            , read_netcdf_parcels
 
 contains
 
@@ -180,17 +176,13 @@ contains
         integer                      :: recvcounts(world%size)
         integer                      :: sendbuf(world%size), start_index
 
-        call start_timer(parcel_io_timer)
-
         if (t <= restart_time) then
-            call stop_timer(parcel_io_timer)
             return
         endif
 
         call create_netcdf_parcel_file(trim(ncbasename), .true., .false.)
 
         if (l_unable) then
-            call stop_timer(parcel_io_timer)
             return
         endif
 
@@ -272,8 +264,6 @@ contains
 
         call close_netcdf_file(ncid)
 
-        call stop_timer(parcel_io_timer)
-
     end subroutine write_netcdf_parcels
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -299,8 +289,6 @@ contains
         integer                      :: avail_size, n_remaining, n_read
         integer                      :: start(2), xlo, xhi, ylo, yhi
         logical                      :: l_same_world_size
-
-        call start_timer(parcel_io_timer)
 
         call set_netcdf_parcel_info
 
@@ -440,8 +428,6 @@ contains
             call mpi_exit_on_error(&
                 "Local number of parcels does not sum up to total number!")
         endif
-
-        call stop_timer(parcel_io_timer)
 
     end subroutine read_netcdf_parcels
 

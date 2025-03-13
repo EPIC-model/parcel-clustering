@@ -7,6 +7,7 @@ program benchmark_read
     use parcel_nearest, only : tree
     use parcel_mpi, only : parcel_communicate
     use mpi_environment
+    use mpi_timer, only : write_timings
     use mpi_layout
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
@@ -27,7 +28,6 @@ program benchmark_read
     use parcel_nearest_shmem_graph, only : shmem_graph_t
 #endif
 #endif
-    use netcdf_timings
     implicit none
 
     character(64)    :: basename
@@ -47,8 +47,8 @@ program benchmark_read
 
     call parse_command_line
 
-    fname = trim(basename) // '_' // zfill(offset) // '_parcels.nc'
-    call open_netcdf_file(trim(fname), NF90_NOWRITE, ncid)
+    ncfname = trim(basename) // '_' // zfill(offset) // '_parcels.nc'
+    call open_netcdf_file(trim(ncfname), NF90_NOWRITE, ncid)
 
     call get_netcdf_box(ncid, lower, extent, ncells)
     call close_netcdf_file(ncid)
@@ -86,11 +86,11 @@ program benchmark_read
 
         m = mod(n, nfiles) + offset
 
-        fname = trim(basename) // '_' // zfill(m) // '_parcels.nc'
+        ncfname = trim(basename) // '_' // zfill(m) // '_parcels.nc'
         if (world%rank == world%root) then
-           print *, "Read:", trim(fname)
+           print *, "Read:", trim(ncfname)
         endif
-        call read_netcdf_parcels(fname)
+        call read_netcdf_parcels(ncfname)
 
         parcels%total_num = 0
 
@@ -125,7 +125,7 @@ program benchmark_read
 
     call parcels%deallocate
 
-    call write_netcdf_timings(trim(ncfname))
+    call write_timings(trim(fname))
 
     call tree%finalise
 
@@ -180,10 +180,10 @@ contains
 #endif
             else if (arg == '--subcomm') then
                 l_subcomm = .true.
-            else if (arg == '--ncfname') then
+            else if (arg == '--fname') then
                 i = i + 1
                 call get_command_argument(i, arg)
-                ncfname = trim(arg)
+                fname = trim(arg)
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_read ",                               &
@@ -193,7 +193,7 @@ contains
                              "--nfiles [int] ",                                 &
                              "--subcomm (optional, disabled for shmem) ",       &
                              "--comm-type [p2p, rma, shmem] ",                  &
-                             "--ncfname [string]",                              &
+                             "--fname [string]",                                &
                              "--size-factor [float]"
                 endif
                 call mpi_stop
@@ -203,8 +203,8 @@ contains
             i = i+1
         enddo
 
-        if (ncfname == '') then
-            call mpi_stop("No netCDF output file name provided.")
+        if (fname == '') then
+            call mpi_stop("No timing output file name provided.")
         endif
 
 #ifdef ENABLE_COARRAY
@@ -219,7 +219,7 @@ contains
             print *, "size-factor", parcel%size_factor
             print *, "enabled subcommunicator", l_subcomm
             print *, "comm-type: " // comm_type
-            print *, "netCDF output file name: " // trim(ncfname)
+            print *, "ASCII file name: " // trim(fname)
         endif
 
     end subroutine parse_command_line
