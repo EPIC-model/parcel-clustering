@@ -30,7 +30,7 @@ program benchmark_random
     integer              :: k, niter, seed
     double precision     :: lx, ly, lz, xlen, ylen, zlen
     logical              :: l_shuffle, l_variable_nppc, l_subcomm
-    character(len=512)   :: fname
+    character(len=512)   :: csvfname
     character(len=5)     :: comm_type ! shmem, rma, p2p or caf
     character(len=1)     :: snum
     integer(kind=int64)  :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
@@ -134,7 +134,7 @@ program benchmark_random
         enddo
     endif
 
-    call write_timings(trim(fname))
+    call write_timings(trim(csvfname))
 
     call tree%finalise
 
@@ -163,7 +163,7 @@ contains
         l_subcomm = .false.
         comm_type = 'p2p'
         seed = 42
-        fname = ''
+        csvfname = ''
 
 
         i = 1
@@ -242,10 +242,10 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(i6)') seed
-            else if (arg == '--fname') then
+            else if (arg == '--csvfname') then
                 i = i + 1
                 call get_command_argument(i, arg)
-                fname = trim(arg)
+                csvfname = trim(arg)
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_random ",                              &
@@ -257,7 +257,7 @@ contains
                              "--shuffle (optional) --variable-nppc (optional) ", &
                              "--subcomm (optional, disabled for shmem) ",        &
                              "--seed [int] ",                                    &
-                             "--fname [string]",                                 &
+                             "--csvfname [string]",                              &
                              "--comm-type [p2p, rma, shmem]"
                 endif
                 call mpi_stop
@@ -267,7 +267,7 @@ contains
             i = i+1
         end do
 
-        if (fname == '') then
+        if (csvfname == '') then
             call mpi_stop("No timing output file name provided.")
         endif
 
@@ -294,7 +294,7 @@ contains
             print *, "enabled subcommunicator", l_subcomm
             print *, "variable number of parcels/cell:", l_variable_nppc
             print *, "comm type: " // comm_type
-            print *, "ASCII file name: " // trim(fname)
+            print *, "ASCII file name: " // trim(csvfname)
         endif
 
     end subroutine parse_command_line

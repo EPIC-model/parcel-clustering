@@ -31,7 +31,7 @@ program benchmark_read
     implicit none
 
     character(64)    :: basename
-    character(512)   :: fname, ncfname
+    character(512)   :: csvfname, ncfname
     integer          :: ncid, n, m, niter
     integer          :: ncells(3), offset, nfiles
     character(len=5) :: comm_type ! p2p, rma, shmem or caf
@@ -125,7 +125,7 @@ program benchmark_read
 
     call parcels%deallocate
 
-    call write_timings(trim(fname))
+    call write_timings(trim(csvfname))
 
     call tree%finalise
 
@@ -142,7 +142,7 @@ contains
         nfiles = 0
         comm_type = 'p2p'
         l_subcomm = .false.
-        ncfname = ''
+        csvfname = ''
 
         i = 1
         do
@@ -151,7 +151,7 @@ contains
                 exit
             endif
 
-            if (arg == '--basename') then
+            if (arg == '--ncbasename') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 basename = trim(arg)
@@ -180,20 +180,20 @@ contains
 #endif
             else if (arg == '--subcomm') then
                 l_subcomm = .true.
-            else if (arg == '--fname') then
+            else if (arg == '--csvfname') then
                 i = i + 1
                 call get_command_argument(i, arg)
-                fname = trim(arg)
+                csvfname = trim(arg)
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_read ",                               &
-                             "--basename [basename] ",                          &
+                             "--ncbasename [basename] ",                        &
                              "--niter [int] ",                                  &
                              "--offset [int] ",                                 &
                              "--nfiles [int] ",                                 &
                              "--subcomm (optional, disabled for shmem) ",       &
                              "--comm-type [p2p, rma, shmem] ",                  &
-                             "--fname [string]",                                &
+                             "--csvfname [string]",                             &
                              "--size-factor [float]"
                 endif
                 call mpi_stop
@@ -203,7 +203,7 @@ contains
             i = i+1
         enddo
 
-        if (fname == '') then
+        if (csvfname == '') then
             call mpi_stop("No timing output file name provided.")
         endif
 
@@ -219,7 +219,7 @@ contains
             print *, "size-factor", parcel%size_factor
             print *, "enabled subcommunicator", l_subcomm
             print *, "comm-type: " // comm_type
-            print *, "ASCII file name: " // trim(fname)
+            print *, "ASCII file name: " // trim(csvfname)
         endif
 
     end subroutine parse_command_line
