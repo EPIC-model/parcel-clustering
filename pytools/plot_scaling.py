@@ -77,9 +77,12 @@ try:
 
                 df = pd.read_csv(fname, dtype=np.float64)
 
-                long_names = np.asarray(df.columns)
+                long_names = list(df.columns)
+                for timing in timings:
+                    if not timing in long_names:
+                        raise RuntimeError("Timing '" + timing + "' not in data set.")
 
-                for long_name in long_names:
+                for long_name in timings:
                     data = np.array(df.loc[:, long_name])
                     avg_data[long_name][i] = data.mean()
                     std_data[long_name][i] = data.std()
