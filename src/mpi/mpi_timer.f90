@@ -98,13 +98,15 @@ contains
         character(len=len(fname)+11) :: csv_ncall_file
         logical                      :: l_exist = .false.
         character(len=3)             :: status = 'new'
+        integer                      :: num_calls(n_timers)
         integer                      :: i
 
         timings(1:n_timers)%max_time = get_statistics(MPI_MAX)
 
         ! we need to take the maximum number because of the subcommunicator in the
         ! parcel nearest algorithm
-        call mpi_blocking_reduce(timings(1:n_timers)%n_calls, MPI_MAX, world)
+        num_calls = timings(1:n_timers)%n_calls
+        call mpi_blocking_reduce(num_calls, MPI_MAX, world)
 
         if (.not. world%rank == world%root) then
             return
@@ -153,9 +155,9 @@ contains
         endif
 
         do i = 1, n_timers-1
-            write(1235, "(i0,a1)", advance='no') timings(i)%n_calls, ","
+            write(1235, "(i0,a1)", advance='no') num_calls(i), ","
         enddo
-        write(1235, "(i0)") timings(n_timers)%n_calls
+        write(1235, "(i0)") num_calls(n_timers)
 
         close(1235)
 

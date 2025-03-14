@@ -8,7 +8,7 @@ module utils
     use mpi_environment
     use mpi_layout
     use options, only : parcel
-    use mpi_utils, only : mpi_exit_on_error
+    use mpi_utils, only : mpi_exit_on_error, mpi_stop
     implicit none
 
     private
@@ -95,28 +95,19 @@ contains
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine setup_parcels(xlen, ylen, zlen, l_shuffle, l_variable_nppc)
-        double precision, intent(in) :: xlen, ylen, zlen
+    subroutine setup_parcels(ratio, l_shuffle, l_variable_nppc)
+        double precision, intent(in) :: ratio
         logical,          intent(in) :: l_shuffle, l_variable_nppc
         double precision             :: rn(10), lam, lam2, abc, a2, b2, c2, theta, phi
-        double precision             :: st, ct, sp, cp, corner(3), xhw, yhw, zhw, x, y, z
-        double precision             :: xlo, xhi, ylo, yhi, zlo, zhi
+        double precision             :: st, ct, sp, cp, corner(3), x, y, z
         integer                      :: ix, iy, iz, m, l, npp, n_per_cell
 
         npp = parcel%n_per_cell
         n_per_cell = max(10, parcel%n_per_cell - 10)
 
-        xhw = f12 * xlen
-        xlo = center(1) - xhw
-        xhi = xlo + xlen
-
-        yhw = f12 * ylen
-        ylo = center(2) - yhw
-        yhi = ylo + ylen
-
-        zhw = f12 * zlen
-        zlo = center(3) - zhw
-        zhi = zlo + zlen
+        if ((ratio < 0.0d0) .or. (ratio > 1.0d0)) then
+            call mpi_stop("Fraction of small parcels must be in [0, 1].")
+        endif
 
         l = 1
         do iz = 0, nz-1
@@ -147,17 +138,10 @@ contains
                         ! buoyancy between -1 and 1: y = 2 * x - 1
                         parcels%buoyancy(l) = 2.0d0 * rn(7) - 1.d0
 
-                        if ((x >= xlo) .and. (x <= xhi)  .and. &
-                            (y >= ylo) .and. (y <= yhi)  .and. &
-                            (z >= zlo) .and. (z <= zhi)) then
-
-                            ! volume between 0.5 * vmin and 1.5 * vmin
-                            parcels%volume(l) = vmin * rn(8) + f12 * vmin
-                        else
-                            ! volume between vmin and 2 * vmin
-                            parcels%volume(l) = vmin * rn(8) + vmin
-                        endif
-
+                        ! volume between [0, 1] * vmin + (1 - r) * vmin
+                        ! where r in [0, 1] is the fraction of small parcels
+                        ! we ensure that no parcel is smaller than 1/4 of vmin
+                        parcels%volume(l) = max(0.25d0 * vmin, vmin * rn(8) + (1.0d0 - ratio) * vmin)
 
                         ! lam = a / c in [1, 4]
                         lam = 3.d0 * rn(9) + 1.0d0

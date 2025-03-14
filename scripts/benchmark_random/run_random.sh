@@ -21,29 +21,31 @@ run_jobs() {
     local inc_ntasks=${14}
     local max_ntasks=${15}
     local subcomm=${16}
+    local ratio=${17}
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
-    echo "machine         = $machine"
-    echo "ntasks_per_node = $ntasks_per_node"
-    echo "fname           = $fname"
-    echo "compiler        = $compiler"
-    echo "bin_dir         = $bin_dir"
-    echo "nrepeat         = $nrepeat"
-    echo "niter           = $niter"
-    echo "nx              = $nx"
-    echo "ny              = $ny"
-    echo "nz              = $nz"
-    echo "lx              = $lx"
-    echo "ly              = $ly"
-    echo "lz              = $lz"
-    echo "min_ntasks      = $min_ntasks"
-    echo "inc_ntasks      = $inc_ntasks"
-    echo "max_ntasks      = $max_ntasks"
+    echo "machine               = $machine"
+    echo "ntasks_per_node       = $ntasks_per_node"
+    echo "fname                 = $fname"
+    echo "compiler              = $compiler"
+    echo "bin_dir               = $bin_dir"
+    echo "nrepeat               = $nrepeat"
+    echo "niter                 = $niter"
+    echo "small_parcel_fraction = $ratio"
+    echo "nx                    = $nx"
+    echo "ny                    = $ny"
+    echo "nz                    = $nz"
+    echo "lx                    = $lx"
+    echo "ly                    = $ly"
+    echo "lz                    = $lz"
+    echo "min_ntasks            = $min_ntasks"
+    echo "inc_ntasks            = $inc_ntasks"
+    echo "max_ntasks            = $max_ntasks"
     if ! test "$subcomm" = "true"; then
         subcomm="false"
     fi
-    echo "subcomm         = $subcomm"
+    echo "subcomm               = $subcomm"
     echo "--------------------------------"
 
     mkdir -p -v "$compiler"
@@ -77,9 +79,7 @@ run_jobs() {
         sed -i "s:--lx LX:--lx $lx:g" $fn
         sed -i "s:--ly LY:--ly $ly:g" $fn
         sed -i "s:--lz LZ:--lz $lz:g" $fn
-        sed -i "s:--xlen LX:--xlen $lx:g" $fn
-        sed -i "s:--ylen LY:--ylen $ly:g" $fn
-        sed -i "s:--zlen LZ:--zlen $lz:g" $fn
+        sed -i "s:--small-parcel-fraction SMALL_PARCEL_FRACTION:--small-parcel-fraction $ratio:g" $fn
 
         sed -i "s:BIN_DIR:$bin_dir:g" $fn
         sed -i "s:SUBCOMM:$subcomm:g" $fn
@@ -109,6 +109,7 @@ run_jobs() {
 # inc_ntasks
 # max_ntasks
 # subcomm
+# small_parcel_fraction
 
 print_help() {
     echo "Script to submit strong / weak scaling jobs"
@@ -123,6 +124,7 @@ print_help() {
     echo "    -u    upper bound of cores"
     echo "    -r    number of repetitions"
     echo "    -i    number of iterations per repetition"
+    echo "    -f    fraction of small parcels [0, 1]"
     echo "    -x    number of grid cells in the horizontal direction x"
     echo "    -y    number of grid cells in the horizontal direction y"
     echo "    -z    number of grid cells in the vertical direction z"
@@ -148,7 +150,7 @@ inc_cores=2
 nrep=1
 niter=1
 
-while getopts "h?m:l:u:j:r:i:x:y:z:a:b:c:s": option; do
+while getopts "h?m:l:u:j:r:f:i:x:y:z:a:b:c:s": option; do
     case "$option" in
         a)
             lx=$OPTARG
@@ -162,6 +164,9 @@ while getopts "h?m:l:u:j:r:i:x:y:z:a:b:c:s": option; do
         h|\?)
             print_help
             exit 0
+            ;;
+        f)
+            small_parcel_fraction=$OPTARG
             ;;
         i)
             niter=$OPTARG
@@ -208,6 +213,7 @@ check_for_input "min_cores" $min_cores
 check_for_input "inc_cores" $inc_cores
 check_for_input "max_cores" $max_cores
 check_for_input "subcomm" $subcomm
+check_for_input "small_parcel_fraction", $small_parcel_fraction
 
 if ! test -f "../$machine.sh"; then
     echo "Unable to run on $machine. The file ${machine}.sh does not exist. Exiting."
@@ -232,7 +238,7 @@ j=0
 for bin_dir in ${bins[*]}; do
     compiler="${compilers[$j]}"
 
-    run_jobs $machine $ntasks_per_node $compiler "$bin_dir" $nrep $niter $nx $ny $nz $lx $ly $lz $min_cores $inc_cores $max_cores $subcomm
+    run_jobs $machine $ntasks_per_node $compiler "$bin_dir" $nrep $niter $nx $ny $nz $lx $ly $lz $min_cores $inc_cores $max_cores $subcomm $small_parcel_fraction
 
     j=$((j+1))
 done

@@ -1,7 +1,7 @@
 program benchmark_random
     use parcel_container
     use options, only : parcel
-    use parameters, only : update_parameters, lower, extent, nx, ny, nz, max_num_parcels
+    use parameters, only : update_parameters, lower, extent, nx, ny, nz, max_num_parcels, vmin
     use parcel_init, only : parcel_default
     use parcel_merging
     use parcel_nearest, only : tree
@@ -27,13 +27,14 @@ program benchmark_random
 #endif
     implicit none
 
-    integer              :: k, niter, seed
-    double precision     :: lx, ly, lz, xlen, ylen, zlen
-    logical              :: l_shuffle, l_variable_nppc, l_subcomm
-    character(len=512)   :: csvfname
-    character(len=5)     :: comm_type ! shmem, rma, p2p or caf
-    character(len=1)     :: snum
-    integer(kind=int64)  :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
+    integer             :: k, niter, seed
+    integer(kind=int64) :: n_small_parcels, n_remaining_parcels
+    double precision    :: lx, ly, lz, small_parcel_fraction
+    logical             :: l_shuffle, l_variable_nppc, l_subcomm
+    character(len=512)  :: csvfname
+    character(len=5)    :: comm_type ! shmem, rma, p2p or caf
+    character(len=1)    :: snum
+    integer(kind=int64) :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
 
     call mpi_env_initialise
 
@@ -78,7 +79,11 @@ program benchmark_random
 
         ! -------------------------------------------------------------
         ! Set up the parcel configuration:
-        call setup_parcels(xlen, ylen, zlen, l_shuffle, l_variable_nppc)
+        call setup_parcels(small_parcel_fraction, l_shuffle, l_variable_nppc)
+
+        n_small_parcels = count(parcels%volume(1:parcels%local_num) < vmin, kind=int64)
+
+        call mpi_blocking_reduce(n_small_parcels, MPI_SUM, world)
 
         parcels%total_num = 0
 
@@ -93,7 +98,10 @@ program benchmark_random
         call parcel_communicate(parcels)
 
         if (world%rank == world%root) then
-            print *, "Number of parcels before merging:", parcels%total_num
+            n_remaining_parcels = parcels%total_num
+            print *, "Number of parcels before merging: ", parcels%total_num
+            print '(a,f8.4,a)', " Fraction of small parcels:                    ", &
+                                n_small_parcels / dble(parcels%total_num) * 100.0d0, "%"
         endif
 
         call parcel_merge
@@ -108,7 +116,9 @@ program benchmark_random
                            world%err)
 
         if (world%rank == world%root) then
-            print *, "Number of parcels after merging:", parcels%total_num
+            print *, "Number of parcels after merging:  ", parcels%total_num
+            print '(a,f8.4,a)', " Fraction of merged parcels:                   ", &
+                (n_remaining_parcels - parcels%total_num) / dble(n_remaining_parcels) * 100.d0, "%"
         endif
     enddo
 
@@ -151,10 +161,8 @@ contains
         lx = 128.0d0
         ly = 128.0d0
         lz = 128.0d0
-        xlen = lx
-        ylen = ly
-        zlen = lz
         niter = 1
+        small_parcel_fraction = 0.5d0
         parcel%n_per_cell = 40
         parcel%min_vratio = 40.0d0
         parcel%size_factor = 1.25d0
@@ -213,18 +221,10 @@ contains
                 i = i + 1
                 call get_command_argument(i, arg)
                 read(arg,'(f16.0)') lz
-            else if (arg == '--xlen') then
+            else if (arg == '--small-parcel-fraction') then
                 i = i + 1
                 call get_command_argument(i, arg)
-                read(arg,'(f16.0)') xlen
-            else if (arg == '--ylen') then
-                i = i + 1
-                call get_command_argument(i, arg)
-                read(arg,'(f16.0)') ylen
-            else if (arg == '--zlen') then
-                i = i + 1
-                call get_command_argument(i, arg)
-                read(arg,'(f16.0)') zlen
+                read(arg,'(f16.0)') small_parcel_fraction
             else if (arg == '--shuffle') then
                 l_shuffle = .true.
             else if (arg == '--variable-nppc') then
@@ -251,9 +251,9 @@ contains
                     print *, "./benchmark_random ",                              &
                              "--nx [int] --ny [int] --nz [int] ",                &
                              "--lx [float] --ly [float] --lz [float] ",          &
-                             "--xlen [float] --ylen [float] --zlen [float] ",    &
                              "--niter [int] --nppc [int] ",                      &
                              "--min-vratio [float] --size-factor [float] ",      &
+                             "--small-parcel-fration [float] ",                  &
                              "--shuffle (optional) --variable-nppc (optional) ", &
                              "--subcomm (optional, disabled for shmem) ",        &
                              "--seed [int] ",                                    &
@@ -282,13 +282,11 @@ contains
             print *, "lx", lx
             print *, "ly", ly
             print *, "lz", lz
-            print *, "xlen", xlen
-            print *, "ylen", ylen
-            print *, "zlen", zlen
             print *, "niter", niter
             print *, "nppc", parcel%n_per_cell
             print *, "min_vratio", parcel%min_vratio
             print *, "size_factor", parcel%size_factor
+            print *, "fraction of small parcels (%)", small_parcel_fraction * 100.d0
             print *, "shuffle parcels", l_shuffle
             print *, "seed", seed
             print *, "enabled subcommunicator", l_subcomm
