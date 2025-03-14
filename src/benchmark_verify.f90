@@ -71,7 +71,7 @@ program benchmark_verify
     if (l_setup) then
         call init_rng(seed)
 
-        call setup_parcels(xlen=lx, ylen=ly, zlen=lz, l_shuffle=l_shuffle, l_variable_nppc=.false.)
+        call setup_parcels(ratio=0.5d0, l_shuffle=l_shuffle, l_variable_nppc=.false.)
 
         parcels%total_num = 0
         call MPI_Allreduce(parcels%local_num, &

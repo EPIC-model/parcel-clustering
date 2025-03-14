@@ -2,7 +2,7 @@ program benchmark_read
     use constants, only : pi, zero, one, f12, f23, twopi
     use parcel_container
     use options, only : parcel
-    use parameters, only : update_parameters, lower, extent, nx, ny, nz, max_num_parcels
+    use parameters, only : update_parameters, lower, extent, nx, ny, nz, max_num_parcels, vmin
     use parcel_init, only : parcel_default
     use parcel_nearest, only : tree
     use parcel_mpi, only : parcel_communicate
@@ -30,12 +30,13 @@ program benchmark_read
 #endif
     implicit none
 
-    character(64)    :: basename
-    character(512)   :: csvfname, ncfname
-    integer          :: ncid, n, m, niter
-    integer          :: ncells(3), offset, nfiles
-    character(len=5) :: comm_type ! p2p, rma, shmem or caf
-    logical          :: l_subcomm
+    character(64)       :: basename
+    character(512)      :: csvfname, ncfname
+    integer             :: ncid, n, m, niter
+    integer             :: ncells(3), offset, nfiles
+    integer(kind=int64) :: n_small_parcels, n_remaining_parcels
+    character(len=5)    :: comm_type ! p2p, rma, shmem or caf
+    logical             :: l_subcomm
 
     call mpi_env_initialise
 
@@ -92,6 +93,10 @@ program benchmark_read
         endif
         call read_netcdf_parcels(ncfname)
 
+        n_small_parcels = count(parcels%volume(1:parcels%local_num) < vmin, kind=int64)
+
+        call mpi_blocking_reduce(n_small_parcels, MPI_SUM, world)
+
         parcels%total_num = 0
 
         call MPI_Allreduce(parcels%local_num, &
@@ -103,7 +108,10 @@ program benchmark_read
                            world%err)
 
         if (world%rank == world%root) then
-            print *, "Number of parcels before merging:", parcels%total_num
+            n_remaining_parcels = parcels%total_num
+            print *, "Number of parcels before merging: ", parcels%total_num
+            print '(a,f8.4,a)', " Fraction of small parcels:                    ", &
+                                n_small_parcels / dble(parcels%total_num) * 100.0d0, "%"
         endif
 
         call parcel_merge
@@ -119,7 +127,9 @@ program benchmark_read
 
 
         if (world%rank == world%root) then
-            print *, "Number of parcels after merging:", parcels%total_num
+            print *, "Number of parcels after merging:  ", parcels%total_num
+            print '(a,f8.4,a)', " Fraction of merged parcels:                   ", &
+                (n_remaining_parcels - parcels%total_num) / dble(n_remaining_parcels) * 100.d0, "%"
         endif
     enddo
 

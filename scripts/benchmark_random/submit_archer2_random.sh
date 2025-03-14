@@ -85,12 +85,10 @@ for i in $(seq 1 NREPEAT); do
         --lx LX \
         --ly LY \
         --lz LZ \
-        --xlen LX \
-        --ylen LY \
-        --zlen LZ \
         --min-vratio 20.0 \
         --nppc 20 \
         --niter NITER \
+        --small-parcel-fraction SMALL_PARCEL_FRACTION \
         --shuffle \
         --csvfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
@@ -107,12 +105,10 @@ for i in $(seq 1 NREPEAT); do
             --lx LX \
             --ly LY \
             --lz LZ \
-            --xlen LX \
-            --ylen LY \
-            --zlen LZ \
             --min-vratio 20.0 \
             --nppc 20 \
             --niter NITER \
+            --small-parcel-fraction SMALL_PARCEL_FRACTION \
             --shuffle \
             --csvfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
             --comm-type "$g"
@@ -130,12 +126,10 @@ for i in $(seq 1 NREPEAT); do
                 --lx LX \
                 --ly LY \
                 --lz LZ \
-                --xlen LX \
-                --ylen LY \
-                --zlen LZ \
                 --min-vratio 20.0 \
                 --nppc 20 \
                 --niter NITER \
+                --small-parcel-fraction SMALL_PARCEL_FRACTION \
                 --shuffle \
                 --csvfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
                 --comm-type "$g" \
