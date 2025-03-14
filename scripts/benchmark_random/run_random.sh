@@ -67,6 +67,7 @@ run_jobs() {
         cp "../$fname" $fn
         sed -i "s:JOBNAME:$compiler-random:g" $fn
         sed -i "s:COMPILER:$compiler:g" $fn
+        sed -i "s:MACHINE:$machine:g" $fn
 
         sed -i "s:NREPEAT:$nrepeat:g" $fn
         sed -i "s:NODES:$nodes:g" $fn
