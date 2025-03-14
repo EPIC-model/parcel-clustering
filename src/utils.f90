@@ -173,8 +173,8 @@ contains
                     enddo
                 enddo
             enddo
-            enddo
-            parcels%local_num = l - 1
+        enddo
+        parcels%local_num = l - 1
 
         if (l_shuffle) then
             call shuffleall
