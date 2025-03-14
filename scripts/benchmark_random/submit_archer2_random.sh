@@ -62,9 +62,6 @@ export SHMEM_ENV_DISPLAY=0
 
 export SLURM_CPU_FREQ_REQ=2000000
 
-module load craype-hugepages2M
-export HUGETLB_VERBOSE=2
-
 echo "Running on $SLURM_NNODES nodes with $SLURM_NTASKS tasks."
 
 module list

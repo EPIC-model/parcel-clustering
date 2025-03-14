@@ -53,9 +53,6 @@ fi
 
 export SLURM_CPU_FREQ_REQ=2000000
 
-module load craype-hugepages2M
-export HUGETLB_VERBOSE=2
-
 module list
 
 bin_dir=BIN_DIR
