@@ -8,7 +8,6 @@ from matplotlib.legend_handler import HandlerTuple
 
 plt.rcParams['font.family'] = 'sans'
 plt.rcParams['font.size'] = 12
-plt.rcParams['text.usetex'] = True
 
 try:
 
@@ -304,9 +303,15 @@ try:
             for j, grid in enumerate(grids):
 
                 nx, ny, nz = dset.get_mesh(grid)
-                title = r'$(nx = ' + str(nx) + \
-                        r')\times(ny = ' + str(ny) + \
-                        r')\times(nz = ' + str(nz) + r')$'
+                if args.enable_latex:
+                    title = r'$(nx = ' + str(nx) + \
+                            r')\times(ny = ' + str(ny) + \
+                            r')\times(nz = ' + str(nz) + r')$'
+                else:
+                    title = r'(nx = ' + str(nx) + \
+                            r') x (ny = ' + str(ny) + \
+                            r') x (nz = ' + str(nz) + r')'
+
                 axs[j].set_title(title)
 
                 axs[j].grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
@@ -565,7 +570,15 @@ try:
         choices=['weak-strong-scaling', 'strong-efficiency'],
         help="Plot scaling or efficiency figures.")
 
+    parser.add_argument(
+        "--enable-latex",
+        action='store_true',
+        help="Use LateX for plot labels."
+    )
+
     args = parser.parse_args()
+
+    plt.rcParams['text.usetex'] = args.enable_latex
 
     dset = DataSet(args.path, args.test_case)
 
