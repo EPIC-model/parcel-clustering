@@ -85,7 +85,7 @@ for i in $(seq 1 NREPEAT); do
         --niter NITER \
         --small-parcel-fraction SMALL_PARCEL_FRACTION \
         --shuffle \
-        --csvfname "COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+        --csvfname "MACHINE-COMPILER-shmem-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
@@ -105,7 +105,7 @@ for i in $(seq 1 NREPEAT); do
             --niter NITER \
             --small-parcel-fraction SMALL_PARCEL_FRACTION \
             --shuffle \
-            --csvfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+            --csvfname "MACHINE-COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
             --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
@@ -126,7 +126,7 @@ for i in $(seq 1 NREPEAT); do
                 --niter NITER \
                 --small-parcel-fraction SMALL_PARCEL_FRACTION \
                 --shuffle \
-                --csvfname "COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
+                --csvfname "MACHINE-COMPILER-$g-random-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
                 --comm-type "$g" \
                 --subcomm
         fi

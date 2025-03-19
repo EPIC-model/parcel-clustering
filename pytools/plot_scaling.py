@@ -8,7 +8,6 @@ from matplotlib.legend_handler import HandlerTuple
 
 plt.rcParams['font.family'] = 'sans'
 plt.rcParams['font.size'] = 12
-plt.rcParams['text.usetex'] = True
 
 try:
 
@@ -18,10 +17,12 @@ try:
     class DataSet:
 
         def __init__(self, path, test_case):
+            self.machines = set()
             self.compilers = set()
             self.grids = set()
             self.comms = set()
             self.groups = set()
+            self.path = path
 
             self.titles = {
                 'p2p':   r'P2P + P2P',
@@ -30,28 +31,30 @@ try:
             }
 
             tc = '-' + test_case + '-'
-            pattern = re.compile(r"(\w*)-(\w*)" + tc + r"(nx-\d*-ny-\d*-nz-\d*)-nodes-(\d*)-timings.csv")
+            pattern = re.compile(r"(\w*)-(\w*)-(\w*)" + tc + r"(nx-\d*-ny-\d*-nz-\d*)-nodes-(\d*)-timings.csv")
 
             self.configs = {}
             for fname in os.listdir(path=path):
                 m = re.match(pattern, fname)
                 if not m is None:
-                    group = m.group(1) + '-' + m.group(2) + tc + m.group(3)
+                    group = m.group(1) + '-' + m.group(2) + '-' + m.group(3) + tc + m.group(4)
                     self.groups.add(group)
-                    self.compilers.add(m.group(1))
-                    self.comms.add(m.group(2))
-                    self.grids.add(m.group(3))
+                    self.machines.add(m.group(1))
+                    self.compilers.add(m.group(2))
+                    self.comms.add(m.group(3))
+                    self.grids.add(m.group(4))
                     if not group in self.configs.keys():
                         self.configs[group] = {
                             'basename': group + '-nodes-',
-                            'compiler': m.group(1),
-                            'comm':     m.group(2),
-                            'grid':     m.group(3),
+                            'compiler': m.group(2),
+                            'comm':     m.group(3),
+                            'grid':     m.group(4),
                             'nodes':    []
                         }
-                    self.configs[group]['nodes'].append(int(m.group(4)))
+                    self.configs[group]['nodes'].append(int(m.group(5)))
 
             print("Found", len(self.configs.keys()), "different configurations. There are")
+            print("\t", len(self.machines), "machine(s):", self.machines)
             print("\t", len(self.compilers), "compiler(s):", self.compilers)
             print("\t", len(self.comms), "comm method(s):", self.comms)
             print("\t", len(self.grids), "grid configuration(s):", self.grids)
@@ -75,7 +78,7 @@ try:
             for i, node in enumerate(nodes):
                 fname = config['basename'] + str(node) + '-timings.csv'
 
-                df = pd.read_csv(fname, dtype=np.float64)
+                df = pd.read_csv(os.path.join(self.path, fname), dtype=np.float64)
 
                 long_names = list(df.columns)
                 for timing in timings:
@@ -300,9 +303,15 @@ try:
             for j, grid in enumerate(grids):
 
                 nx, ny, nz = dset.get_mesh(grid)
-                title = r'$(nx = ' + str(nx) + \
-                        r')\times(ny = ' + str(ny) + \
-                        r')\times(nz = ' + str(nz) + r')$'
+                if args.enable_latex:
+                    title = r'$(nx = ' + str(nx) + \
+                            r')\times(ny = ' + str(ny) + \
+                            r')\times(nz = ' + str(nz) + r')$'
+                else:
+                    title = r'(nx = ' + str(nx) + \
+                            r') x (ny = ' + str(ny) + \
+                            r') x (nz = ' + str(nz) + r')'
+
                 axs[j].set_title(title)
 
                 axs[j].grid(which='both', linestyle='dashed', linewidth=0.25, axis='y')
@@ -561,7 +570,15 @@ try:
         choices=['weak-strong-scaling', 'strong-efficiency'],
         help="Plot scaling or efficiency figures.")
 
+    parser.add_argument(
+        "--enable-latex",
+        action='store_true',
+        help="Use LateX for plot labels."
+    )
+
     args = parser.parse_args()
+
+    plt.rcParams['text.usetex'] = args.enable_latex
 
     dset = DataSet(args.path, args.test_case)
 
