@@ -24,8 +24,6 @@ export FI_OFI_RXM_SAR_LIMIT=64K
 
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
-export MPLCONFIGDIR=$PWD
-
 if test "COMPILER" = "gnu"; then
     echo "Loading the GNU Compiler Collection (GCC)"
     module load libtool/2.4.7

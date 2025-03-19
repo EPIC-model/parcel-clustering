@@ -23,8 +23,6 @@ export FI_OFI_RXM_SAR_LIMIT=64K
 
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
-export MPLCONFIGDIR=$PWD
-
 if test "COMPILER" = "gnu"; then
     echo "Loading the GNU Compiler Collection (GCC)"
     module load PrgEnv-gnu
@@ -62,9 +60,6 @@ export SHMEM_ENV_DISPLAY=0
 
 export SLURM_CPU_FREQ_REQ=2000000
 
-module load craype-hugepages2M
-export HUGETLB_VERBOSE=2
-
 echo "Running on $SLURM_NNODES nodes with $SLURM_NTASKS tasks."
 
 module list
@@ -83,7 +78,7 @@ for i in $(seq 1 NREPEAT); do
         --niter NITER \
         --offset OFFSET \
         --nfiles NFILES \
-        --csvfname "COMPILER-shmem-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+        --csvfname "MACHINE-COMPILER-shmem-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
@@ -96,7 +91,7 @@ for i in $(seq 1 NREPEAT); do
             --niter NITER \
             --offset OFFSET \
             --nfiles NFILES \
-            --csvfname "COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+            --csvfname "MACHINE-COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
             --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
@@ -110,7 +105,7 @@ for i in $(seq 1 NREPEAT); do
                 --niter NITER \
                 --offset OFFSET \
                 --nfiles NFILES \
-                --csvfname "COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
+                --csvfname "MACHINE-COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
                 --comm-type "$g" \
                 --subcomm
         fi
