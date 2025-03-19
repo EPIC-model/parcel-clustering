@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=JOBNAME
 #SBATCH --output=%x.o%j
-#SBATCH --time=00:10:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=NODES
 #SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
@@ -22,8 +22,6 @@ export OMP_PLACES=cores
 export FI_OFI_RXM_SAR_LIMIT=64K
 
 export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
-
-export MPLCONFIGDIR=$PWD
 
 if test "COMPILER" = "gnu"; then
     echo "Loading the GNU Compiler Collection (GCC)"
