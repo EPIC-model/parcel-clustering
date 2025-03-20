@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=JOBNAME
 #SBATCH --output=%x.o%j
-#SBATCH --time=00:10:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=NODES
 #SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
@@ -74,6 +74,7 @@ for i in $(seq 1 NREPEAT); do
         --unbuffered \
         --distribution=block:block \
         /tmp/benchmark_read \
+        --dirname DIRNAME \
         --ncbasename NC_BASENAME \
         --niter NITER \
         --offset OFFSET \
@@ -87,6 +88,7 @@ for i in $(seq 1 NREPEAT); do
             --distribution=block:block \
             --hint=nomultithread \
             /tmp/benchmark_read \
+            --dirname DIRNAME \
             --ncbasename NC_BASENAME \
             --niter NITER \
             --offset OFFSET \
@@ -101,6 +103,7 @@ for i in $(seq 1 NREPEAT); do
                 --distribution=block:block \
                 --hint=nomultithread \
                 /tmp/benchmark_read \
+                --dirname DIRNAME \
                 --ncbasename NC_BASENAME \
                 --niter NITER \
                 --offset OFFSET \

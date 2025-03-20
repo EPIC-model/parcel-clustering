@@ -30,6 +30,7 @@ program benchmark_read
 #endif
     implicit none
 
+    character(427)      :: dirname
     character(64)       :: basename
     character(512)      :: csvfname, ncfname
     integer             :: ncid, n, m, niter
@@ -48,7 +49,7 @@ program benchmark_read
 
     call parse_command_line
 
-    ncfname = trim(basename) // '_' // zfill(offset) // '_parcels.nc'
+    ncfname = trim(dirname) // trim(basename) // '_' // zfill(offset) // '_parcels.nc'
     call open_netcdf_file(trim(ncfname), NF90_NOWRITE, ncid)
 
     call get_netcdf_box(ncid, lower, extent, ncells)
@@ -87,9 +88,9 @@ program benchmark_read
 
         m = mod(n, nfiles) + offset
 
-        ncfname = trim(basename) // '_' // zfill(m) // '_parcels.nc'
+        ncfname = trim(dirname) // trim(basename) // '_' // zfill(m) // '_parcels.nc'
         if (world%rank == world%root) then
-           print *, "Read:", trim(ncfname)
+           print *, "Read: ", trim(ncfname)
         endif
         call read_netcdf_parcels(ncfname)
 
@@ -144,7 +145,7 @@ program benchmark_read
 
 contains
     subroutine parse_command_line
-        integer            :: i
+        integer            :: i, dirlen
         character(len=512) :: arg
 
         niter = 10
@@ -161,7 +162,11 @@ contains
                 exit
             endif
 
-            if (arg == '--ncbasename') then
+            if (arg == '--dirname') then
+                i = i + 1
+                call get_command_argument(i, arg)
+                dirname = trim(arg)
+            else if (arg == '--ncbasename') then
                 i = i + 1
                 call get_command_argument(i, arg)
                 basename = trim(arg)
@@ -197,6 +202,7 @@ contains
             else if (arg == '--help') then
                 if (world%rank == world%root) then
                     print *, "./benchmark_read ",                               &
+                             "--dirname [directory] ",                          &
                              "--ncbasename [basename] ",                        &
                              "--niter [int] ",                                  &
                              "--offset [int] ",                                 &
@@ -221,15 +227,23 @@ contains
         comm_type = 'caf'
 #endif
 
+        dirlen = len(trim(dirname))
+
+        if (dirname(dirlen:dirlen) /= '/') then
+            dirname = trim(dirname) // '/'
+        endif
+
+
         if (world%rank == world%root) then
-            print *, "basename", basename
-            print *, "offset", offset
-            print *, "number of files", nfiles
-            print *, "niter", niter
-            print *, "size-factor", parcel%size_factor
-            print *, "enabled subcommunicator", l_subcomm
-            print *, "comm-type: " // comm_type
-            print *, "ASCII file name: " // trim(csvfname)
+            print *, "dirname                 ", trim(dirname)
+            print *, "basename                ", trim(basename)
+            print *, "offset                  ", offset
+            print *, "number of files         ", nfiles
+            print *, "niter                   ", niter
+            print *, "size-factor             ", parcel%size_factor
+            print *, "enabled subcommunicator ", l_subcomm
+            print *, "comm-type:              " // comm_type
+            print *, "ASCII file name:        " // trim(csvfname)
         endif
 
     end subroutine parse_command_line

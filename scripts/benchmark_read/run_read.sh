@@ -11,7 +11,7 @@ run_jobs() {
     local bin_dir=${4}
     local nrepeat=${5}
     local niter=${6}
-    local bname=${7}
+    local fullname=${7}
     local offset=${8}
     local nfiles=${9}
 
@@ -19,6 +19,20 @@ run_jobs() {
     local inc_ntasks=${11}
     local max_ntasks=${12}
     local subcomm=${13}
+
+    local bname=$(basename $fullname)
+    local dname=$(dirname $fullname)
+    if [[ $bname =~ ^[a-z_]*([0-9]*)x([0-9]*)x([0-9]*)[_a-z]* ]]; then
+        local nx=${BASH_REMATCH[1]}
+        local ny=${BASH_REMATCH[2]}
+        local nz=${BASH_REMATCH[3]}
+        echo "$nx, $ny, $nz"
+    else
+        echo "Error in matching: $bname"
+        exit 1
+    fi
+
+
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
@@ -29,7 +43,11 @@ run_jobs() {
     echo "bin_dir         = $bin_dir"
     echo "nrepeat         = $nrepeat"
     echo "niter           = $niter"
+    echo "dirname         = $dname"
     echo "basename        = $bname"
+    echo "nx              = $nx"
+    echo "ny              = $ny"
+    echo "nz              = $nz"
     echo "offset          = $offset"
     echo "nfiles          = $nfiles"
     echo "min_ntasks      = $min_ntasks"
@@ -60,11 +78,17 @@ run_jobs() {
         cp "../$fname" $fn
         sed -i "s:JOBNAME:$compiler-read:g" $fn
         sed -i "s:COMPILER:$compiler:g" $fn
+        sed -i "s:MACHINE:$machine:g" $fn
+
+        sed -i "s:NX:$nx:g" $fn
+        sed -i "s:NY:$ny:g" $fn
+        sed -i "s:NZ:$nz:g" $fn
 
         sed -i "s:NREPEAT:$nrepeat:g" $fn
         sed -i "s:NODES:$nodes:g" $fn
         sed -i "s:NTASKS:$ntasks:g" $fn
         sed -i "s:--niter NITER:--niter $niter:g" $fn
+        sed -i "s:--dirname DIRNAME:--dirname $dname:g" $fn
         sed -i "s:--ncbasename NC_BASENAME:--ncbasename $bname:g" $fn
         sed -i "s:--offset OFFSET:--offset $offset:g" $fn
         sed -i "s:--nfiles NFILES:--nfiles $nfiles:g" $fn
@@ -138,7 +162,7 @@ inc_cores=2
 nrep=1
 niter=1
 
-while getopts "h?m:l:u:j:r:i:b:o:n:s": option; do
+while getopts "h?m:l:u:j:r:i:b:o:n:s" option; do
     case "$option" in
         b)
             file_base_name=$OPTARG

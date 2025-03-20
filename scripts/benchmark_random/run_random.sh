@@ -151,7 +151,7 @@ inc_cores=2
 nrep=1
 niter=1
 
-while getopts "h?m:l:u:j:r:f:i:x:y:z:a:b:c:s": option; do
+while getopts "h?m:l:u:j:r:f:i:x:y:z:a:b:c:s" option; do
     case "$option" in
         a)
             lx=$OPTARG
