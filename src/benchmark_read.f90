@@ -33,11 +33,13 @@ program benchmark_read
     character(427)      :: dirname
     character(64)       :: basename
     character(512)      :: csvfname, ncfname
-    integer             :: ncid, n, m, niter
+    integer             :: ncid, n, m, niter, k
     integer             :: ncells(3), offset, nfiles
     integer(kind=int64) :: n_small_parcels, n_remaining_parcels
     character(len=5)    :: comm_type ! p2p, rma, shmem or caf
     logical             :: l_subcomm
+    character(len=1)    :: snum
+    integer(kind=int64) :: buf(9)
 
     call mpi_env_initialise
 
@@ -135,6 +137,26 @@ program benchmark_read
     enddo
 
     call parcels%deallocate
+
+    buf(1) = n_parcel_merges
+    buf(2) = n_big_close
+    buf(3:9) = n_way_parcel_mergers
+
+    call mpi_blocking_reduce(buf, MPI_SUM, world)
+
+    n_parcel_merges = buf(1)
+
+    n_way_parcel_mergers = buf(3:9)
+
+    if (world%rank == world%root) then
+        print *, "Number of MPI ranks:        ", world%size
+        print *, "Total number of merges:     ", n_parcel_merges
+        print *, "Number of close big parcels:", buf(2) !n_big_close
+        do k = 1, 7
+            write(snum, fmt='(I1)')  k+1
+            print *, "Number of " // snum // "-way mergers:    ", n_way_parcel_mergers(k)
+        enddo
+    endif
 
     call write_timings(trim(csvfname))
 
