@@ -818,16 +818,14 @@ contains
         integer                           :: n
 
         do n = 1, 8
-            if (this%l_valid_comm_neighbour(n)) then
-                call this%remote(n)%dealloc
+            call this%remote(n)%dealloc
 
-                if (allocated(this%remote(n)%put_iclo)) then
-                    deallocate(this%remote(n)%put_iclo)
-                endif
+            if (allocated(this%remote(n)%put_iclo)) then
+                deallocate(this%remote(n)%put_iclo)
+            endif
 
-                if (allocated(this%remote(n)%get_iclo)) then
-                    deallocate(this%remote(n)%get_iclo)
-                endif
+            if (allocated(this%remote(n)%get_iclo)) then
+                deallocate(this%remote(n)%get_iclo)
             endif
         enddo
 
