@@ -454,13 +454,9 @@ contains
     subroutine p2p_graph_register_timer(this)
         class(p2p_graph_t), intent(inout) :: this
 
-        call register_timer('comm create', this%comm_timer)
-        call register_timer('resolve graphs', this%resolve_timer)
-        call register_timer('MPI allreduce', this%allreduce_timer)
+        call this%register_common_timers(label='MPI P2P')
+
         call register_timer('MPI graph info', this%info_timer)
-        call register_timer('MPI P2P put', this%put_timer)
-        call register_timer('MPI P2P get', this%get_timer)
-        call register_timer('MPI sync', this%sync_timer)
 
     end subroutine p2p_graph_register_timer
 

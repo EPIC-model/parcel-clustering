@@ -4,7 +4,8 @@ module parcel_nearest_graph
     use mpi_utils, only : mpi_check_for_error   &
                         , mpi_exit_on_error
     use mpi_timer, only : start_timer       &
-                        , stop_timer
+                        , stop_timer        &
+                        , register_timer
     implicit none
 
     private
@@ -41,6 +42,7 @@ module parcel_nearest_graph
         procedure(graph_register_timer), deferred :: register_timer
 
         procedure :: create_comm
+        procedure :: register_common_timers
     end type
 
     interface
@@ -198,5 +200,20 @@ contains
         call stop_timer(this%comm_timer)
 
     end subroutine create_comm
+
+    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    subroutine register_common_timers(this, label)
+        class(graph_t), intent(inout) :: this
+        character(*),   intent(in)    :: label
+
+        call register_timer('create comm', this%comm_timer)
+        call register_timer('resolve graphs', this%resolve_timer)
+        call register_timer('MPI allreduce', this%allreduce_timer)
+        call register_timer(label // ' put', this%put_timer)
+        call register_timer(label // ' get', this%get_timer)
+        call register_timer(label // ' sync', this%sync_timer)
+
+    end subroutine register_common_timers
 
 end module parcel_nearest_graph
