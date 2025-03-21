@@ -422,7 +422,7 @@ contains
             enddo
 
             call start_timer(this%allreduce_timer)
-            ! Perfoshmemnce improvement: We actually only need to synchronize with neighbours
+            ! Performance improvement: We actually only need to synchronize with neighbours
             call MPI_Allreduce(MPI_IN_PLACE,            &
                                l_continue_iteration,    &
                                1,                       &
