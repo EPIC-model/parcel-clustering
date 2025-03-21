@@ -1,4 +1,6 @@
 module shmem
+    implicit none
+
     interface
         subroutine shmem_init() bind(C, name="shmem_init")
             use, intrinsic :: iso_c_binding
@@ -420,7 +422,7 @@ contains
             enddo
 
             call start_timer(this%allreduce_timer)
-            ! Perfoshmemnce improvement: We actually only need to synchronize with neighbours
+            ! Performance improvement: We actually only need to synchronize with neighbours
             call MPI_Allreduce(MPI_IN_PLACE,            &
                                l_continue_iteration,    &
                                1,                       &
@@ -555,11 +557,7 @@ contains
     subroutine shmem_graph_register_timer(this)
         class(shmem_graph_t), intent(inout) :: this
 
-        call register_timer('resolve graphs', this%resolve_timer)
-        call register_timer('MPI allreduce', this%allreduce_timer)
-        call register_timer('SHMEM put', this%put_timer)
-        call register_timer('SHMEM get', this%get_timer)
-        call register_timer('SHMEM sync', this%sync_timer)
+        call this%register_common_timers(label='SHMEM')
 
     end subroutine shmem_graph_register_timer
 

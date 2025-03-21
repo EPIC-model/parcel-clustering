@@ -454,12 +454,9 @@ contains
     subroutine p2p_graph_register_timer(this)
         class(p2p_graph_t), intent(inout) :: this
 
-        call register_timer('resolve graphs', this%resolve_timer)
-        call register_timer('MPI allreduce', this%allreduce_timer)
+        call this%register_common_timers(label='MPI P2P')
+
         call register_timer('MPI graph info', this%info_timer)
-        call register_timer('MPI P2P put', this%put_timer)
-        call register_timer('MPI P2P get', this%get_timer)
-        call register_timer('MPI sync', this%sync_timer)
 
     end subroutine p2p_graph_register_timer
 
@@ -656,11 +653,14 @@ contains
         type(MPI_Status)                  :: recv_status, send_statuses(8)
         integer                           :: n_sends(8), n_recvs(8)
         integer                           :: n, m, send_size, recv_size, rc, l
+        integer                           :: n_requests
 
         call start_timer(this%info_timer)
 
         n_recvs = 0
         n_sends = 0
+
+        n_requests = 0
 
         !--------------------------------------------------
         ! Figure out how many *this* MPI rank sends to
@@ -668,6 +668,7 @@ contains
         do m = 1, n_local_small
             rc = rclo(m)
             do n = 1, 8
+                ! here we must check the Cartesian communicator!
                 if (rc == neighbours(n)%rank) then
                     n_sends(n) = n_sends(n) + 1
                 endif
@@ -676,37 +677,47 @@ contains
 
         ! Send information to neighbouring ranks
         do n = 1, 8
-            call MPI_Isend(n_sends(n),              &
-                           1,                       &
-                           MPI_INTEGER,             &
-                           neighbours(n)%rank,      &
-                           SEND_NEIGHBOUR_TAG(n),   &
-                           cart%comm,               &
-                           requests(n),             &
-                           cart%err)
+            if (this%l_valid_comm_neighbour(n)) then
+                n_requests = n_requests + 1
+                call MPI_Isend(n_sends(n),             &
+                               1,                      &
+                               MPI_INTEGER,            &
+                               neighbours(n)%rank,     &
+                               SEND_NEIGHBOUR_TAG(n),  &
+                               cart%comm,              &
+                               requests(n_requests),   &
+                               cart%err)
 
-            call mpi_check_for_error(cart, &
-                "in MPI_Isend of parcel_nearest::gather_info.")
+                call mpi_check_for_error(cart, &
+                    "in MPI_Isend of parcel_nearest::gather_info.")
+            else
+                if (n_sends(n) > 0) then
+                    call mpi_exit_on_error(&
+                        "in parcel_nearest_graph::gather_info: Invalid neighbour but non-empty send message.")
+                endif
+            endif
         enddo
 
         ! Receive information from neighbouring ranks
         do n = 1, 8
-            call MPI_Recv(n_recvs(n),               &
-                          1,                        &
-                          MPI_INTEGER,              &
-                          neighbours(n)%rank,       &
-                          RECV_NEIGHBOUR_TAG(n),    &
-                          cart%comm,                &
-                          recv_status,              &
-                          cart%err)
+            if (this%l_valid_comm_neighbour(n)) then
+                call MPI_Recv(n_recvs(n),             &
+                              1,                      &
+                              MPI_INTEGER,            &
+                              neighbours(n)%rank,     &
+                              RECV_NEIGHBOUR_TAG(n),  &
+                              cart%comm,              &
+                              recv_status,            &
+                              cart%err)
 
-            call mpi_check_for_error(cart, &
-                "in MPI_Recv of parcel_nearest::gather_info.")
+                call mpi_check_for_error(cart, &
+                    "in MPI_Recv of parcel_nearest::gather_info.")
+            endif
         enddo
 
-        call MPI_Waitall(8,                 &
-                         requests,          &
-                         send_statuses,     &
+        call MPI_Waitall(n_requests,                    &
+                         requests(1:n_requests),        &
+                         send_statuses(1:n_requests),   &
                          cart%err)
 
         call mpi_check_for_error(cart, &
@@ -717,35 +728,47 @@ contains
         ! Send indices of *ic* to owner remote is pointing
         ! to:
 
+        n_requests = 0
+
         ! Send information to neighbouring ranks
         do n = 1, 8
 
             send_size = n_sends(n)
 
-            allocate(this%remote(n)%put_iclo(send_size))
+            if (this%l_valid_comm_neighbour(n)) then
 
-            call this%remote(n)%alloc(send_size)
+                n_requests = n_requests + 1
 
-            l = 1
-            do m = 1, n_local_small
-                rc = rclo(m)
-                if (rc == neighbours(n)%rank) then
-                    this%remote(n)%put_iclo(l) = iclo(m)
-                    l = l + 1
+                allocate(this%remote(n)%put_iclo(send_size))
+
+                call this%remote(n)%alloc(send_size)
+
+                l = 1
+                do m = 1, n_local_small
+                    rc = rclo(m)
+                    if (rc == neighbours(n)%rank) then
+                        this%remote(n)%put_iclo(l) = iclo(m)
+                        l = l + 1
+                    endif
+                enddo
+
+                call MPI_Isend(this%remote(n)%put_iclo(1:send_size), &
+                               send_size,                            &
+                               MPI_INTEGER,                          &
+                               neighbours(n)%rank,                   &
+                               SEND_NEIGHBOUR_TAG(n),                &
+                               cart%comm,                            &
+                               requests(n_requests),                 &
+                               cart%err)
+
+                call mpi_check_for_error(cart, &
+                    "in MPI_Isend of p2p_graph_t::gather_info.")
+            else
+                if (send_size > 0) then
+                    call mpi_exit_on_error(&
+                        "in parcel_nearest_graph::gather_info: Invalid neighbour but non-empty send message.")
                 endif
-            enddo
-
-            call MPI_Isend(this%remote(n)%put_iclo(1:send_size),    &
-                           send_size,                               &
-                           MPI_INTEGER,                             &
-                           neighbours(n)%rank,                      &
-                           SEND_NEIGHBOUR_TAG(n),                   &
-                           cart%comm,                               &
-                           requests(n),                             &
-                           cart%err)
-
-            call mpi_check_for_error(cart, &
-                "in MPI_Isend of p2p_graph_t::gather_info.")
+            endif
         enddo
 
         ! Receive information from neighbouring ranks
@@ -753,25 +776,32 @@ contains
 
             recv_size = n_recvs(n)
 
-            allocate(this%remote(n)%get_iclo(recv_size))
+            if (this%l_valid_comm_neighbour(n)) then
 
-            call MPI_Recv(this%remote(n)%get_iclo(1:recv_size), &
-                          recv_size,                            &
-                          MPI_INTEGER,                          &
-                          neighbours(n)%rank,                   &
-                          RECV_NEIGHBOUR_TAG(n),                &
-                          cart%comm,                            &
-                          recv_status,                          &
-                          cart%err)
+                allocate(this%remote(n)%get_iclo(recv_size))
 
-            call mpi_check_for_error(cart, &
-                "in MPI_Recv of p2p_graph_t::gather_info.")
+                call MPI_Recv(this%remote(n)%get_iclo(1:recv_size), &
+                              recv_size,                            &
+                              MPI_INTEGER,                          &
+                              neighbours(n)%rank,                   &
+                              RECV_NEIGHBOUR_TAG(n),                &
+                              cart%comm,                            &
+                              recv_status,                          &
+                              cart%err)
 
+                call mpi_check_for_error(cart, &
+                    "in MPI_Recv of p2p_graph_t::gather_info.")
+            else
+                if (recv_size > 0) then
+                    call mpi_exit_on_error(&
+                        "in parcel_nearest_graph::gather_info: Invalid neighbour but non-empty receive message.")
+                endif
+            endif
         enddo
 
-        call MPI_Waitall(8,                 &
-                         requests,          &
-                         send_statuses,     &
+        call MPI_Waitall(n_requests,                  &
+                         requests(1:n_requests),      &
+                         send_statuses(1:n_requests), &
                          cart%err)
 
         call mpi_check_for_error(cart, &
@@ -797,7 +827,6 @@ contains
             if (allocated(this%remote(n)%get_iclo)) then
                 deallocate(this%remote(n)%get_iclo)
             endif
-
         enddo
 
     end subroutine free_remote_memory
@@ -808,27 +837,34 @@ contains
         class(p2p_graph_t), intent(inout) :: this
         type(MPI_Request)                 :: requests(8)
         type(MPI_Status)                  :: statuses(8)
-        integer                           :: n
+        integer                           :: n, n_requests
 
         call start_timer(this%sync_timer)
+
+        n_requests = 0
 
         !----------------------------------------------------------------------
         ! Send from remote to owning rank and sync data at owning rank
         do n = 1, 8
-            call this%send_from_remote(n,                           &
-                                       this%remote(n)%l_available,  &
-                                       this%remote(n)%dirty_avail,  &
-                                       requests(n))
+            if (this%l_valid_comm_neighbour(n)) then
+                n_requests = n_requests + 1
+                call this%send_from_remote(n,                           &
+                                           this%remote(n)%l_available,  &
+                                           this%remote(n)%dirty_avail,  &
+                                           requests(n_requests))
+            endif
         enddo
 
         do n = 1, 8
-            call this%recv_from_remote(n, this%l_available)
+            if (this%l_valid_comm_neighbour(n)) then
+                call this%recv_from_remote(n, this%l_available)
+            endif
         enddo
 
-        call MPI_Waitall(8,                 &
-                        requests,           &
-                        statuses,           &
-                        cart%err)
+        call MPI_Waitall(n_requests,             &
+                         requests(1:n_requests), &
+                         statuses(1:n_requests), &
+                         cart%err)
 
         call mpi_check_for_error(cart, &
                                 "in MPI_Waitall of parcel_mpi::sync_avail.")
@@ -837,21 +873,29 @@ contains
 
         !----------------------------------------------------------------------
         ! Send result from owning rank to remote
+
+        n_requests = 0
+
         do n = 1, 8
-            call this%send_all(n, this%l_available, requests(n))
+            if (this%l_valid_comm_neighbour(n)) then
+                n_requests = n_requests + 1
+                call this%send_all(n, this%l_available, requests(n_requests))
+            endif
         enddo
 
         do n = 1, 8
-            call this%recv_all(n, this%remote(n)%l_available)
+            if (this%l_valid_comm_neighbour(n)) then
+                call this%recv_all(n, this%remote(n)%l_available)
 
-            ! Reset:
-            this%remote(n)%dirty_avail = .false.
+                ! Reset:
+                this%remote(n)%dirty_avail = .false.
+            endif
         enddo
 
-        call MPI_Waitall(8,                 &
-                        requests,           &
-                        statuses,           &
-                        cart%err)
+        call MPI_Waitall(n_requests,             &
+                         requests(1:n_requests), &
+                         statuses(1:n_requests), &
+                         cart%err)
 
         call mpi_check_for_error(cart, &
                                 "in MPI_Waitall of parcel_mpi::sync_avail.")
@@ -868,27 +912,34 @@ contains
         class(p2p_graph_t), intent(inout) :: this
         type(MPI_Request)                 :: requests(8)
         type(MPI_Status)                  :: statuses(8)
-        integer                           :: n
+        integer                           :: n, n_requests
 
         call start_timer(this%sync_timer)
+
+        n_requests = 0
 
         !----------------------------------------------------------------------
         ! Send from remote to owning rank and sync data at owning rank
         do n = 1, 8
-            call this%send_from_remote(n,                           &
-                                       this%remote(n)%l_leaf,       &
-                                       this%remote(n)%dirty_leaf,   &
-                                       requests(n))
+            if (this%l_valid_comm_neighbour(n)) then
+                n_requests = n_requests + 1
+                call this%send_from_remote(n,                           &
+                                           this%remote(n)%l_leaf,       &
+                                           this%remote(n)%dirty_leaf,   &
+                                           requests(n_requests))
+            endif
         enddo
 
         do n = 1, 8
-            call this%recv_from_remote(n, this%l_leaf)
+            if (this%l_valid_comm_neighbour(n)) then
+                call this%recv_from_remote(n, this%l_leaf)
+            endif
         enddo
 
-        call MPI_Waitall(8,                 &
-                        requests,           &
-                        statuses,           &
-                        cart%err)
+        call MPI_Waitall(n_requests,             &
+                         requests(1:n_requests), &
+                         statuses(1:n_requests), &
+                         cart%err)
 
         call mpi_check_for_error(cart, &
                                 "in MPI_Waitall of parcel_mpi::sync_leaf.")
@@ -897,21 +948,28 @@ contains
 
         !----------------------------------------------------------------------
         ! Send result from owning rank to remote
+        n_requests = 0
+
         do n = 1, 8
-            call this%send_all(n, this%l_leaf, requests(n))
+            if (this%l_valid_comm_neighbour(n)) then
+                n_requests = n_requests + 1
+                call this%send_all(n, this%l_leaf, requests(n_requests))
+            endif
         enddo
 
         do n = 1, 8
-            call this%recv_all(n, this%remote(n)%l_leaf)
+            if (this%l_valid_comm_neighbour(n)) then
+                call this%recv_all(n, this%remote(n)%l_leaf)
 
-            ! Reset:
-            this%remote(n)%dirty_leaf = .false.
+                ! Reset:
+                this%remote(n)%dirty_leaf = .false.
+            endif
         enddo
 
-        call MPI_Waitall(8,                 &
-                        requests,           &
-                        statuses,           &
-                        cart%err)
+        call MPI_Waitall(n_requests,             &
+                         requests(1:n_requests), &
+                         statuses(1:n_requests), &
+                         cart%err)
 
         call mpi_check_for_error(cart, &
                                 "in MPI_Waitall of parcel_mpi::sync_leaf.")
@@ -928,27 +986,34 @@ contains
         class(p2p_graph_t), intent(inout) :: this
         type(MPI_Request)                 :: requests(8)
         type(MPI_Status)                  :: statuses(8)
-        integer                           :: n
+        integer                           :: n, n_requests
 
         call start_timer(this%sync_timer)
+
+        n_requests = 0
 
         !----------------------------------------------------------------------
         ! Send from remote to owning rank and sync data at owning rank
         do n = 1, 8
-            call this%send_from_remote(n,                           &
-                                       this%remote(n)%l_merged,     &
-                                       this%remote(n)%dirty_merged, &
-                                       requests(n))
+            if (this%l_valid_comm_neighbour(n)) then
+                n_requests = n_requests + 1
+                call this%send_from_remote(n,                           &
+                                           this%remote(n)%l_merged,     &
+                                           this%remote(n)%dirty_merged, &
+                                           requests(n_requests))
+            endif
         enddo
 
         do n = 1, 8
-            call this%recv_from_remote(n, this%l_merged)
+            if (this%l_valid_comm_neighbour(n)) then
+                call this%recv_from_remote(n, this%l_merged)
+            endif
         enddo
 
-        call MPI_Waitall(8,                 &
-                        requests,           &
-                        statuses,           &
-                        cart%err)
+        call MPI_Waitall(n_requests,             &
+                         requests(1:n_requests), &
+                         statuses(1:n_requests), &
+                         cart%err)
 
         call mpi_check_for_error(cart, &
                                 "in MPI_Waitall of parcel_mpi::sync_merged.")
@@ -957,21 +1022,29 @@ contains
 
         !----------------------------------------------------------------------
         ! Send result from owning rank to remote
+
+        n_requests = 0
+
         do n = 1, 8
-            call this%send_all(n, this%l_merged, requests(n))
+            if (this%l_valid_comm_neighbour(n)) then
+                n_requests = n_requests + 1
+                call this%send_all(n, this%l_merged, requests(n_requests))
+            endif
         enddo
 
         do n = 1, 8
-            call this%recv_all(n, this%remote(n)%l_merged)
+            if (this%l_valid_comm_neighbour(n)) then
+                call this%recv_all(n, this%remote(n)%l_merged)
 
-            ! Reset:
-            this%remote(n)%dirty_merged = .false.
+                ! Reset:
+                this%remote(n)%dirty_merged = .false.
+            endif
         enddo
 
-        call MPI_Waitall(8,                 &
-                        requests,           &
-                        statuses,           &
-                        cart%err)
+        call MPI_Waitall(n_requests,             &
+                         requests(1:n_requests), &
+                         statuses(1:n_requests), &
+                         cart%err)
 
         call mpi_check_for_error(cart, &
                                 "in MPI_Waitall of parcel_mpi::sync_merged.")
@@ -1038,14 +1111,11 @@ contains
         type(MPI_Status)                  :: recv_status
         integer                           :: recv_size, m, ic
 
-
-        ! check for incoming messages
-        call mpi_check_for_message(neighbours(n)%rank,      &
-                                   RECV_NEIGHBOUR_TAG(n),   &
-                                   recv_size,               &
-                                   cart,                    &
+        call mpi_check_for_message(neighbours(n)%rank,          &
+                                   RECV_NEIGHBOUR_TAG(n),       &
+                                   recv_size,                   &
+                                   cart,                        &
                                    MPI_INTEGER_LOGICAL_ARRAY)
-
 
         allocate(recv_buf(recv_size))
 
@@ -1195,17 +1265,24 @@ contains
 
     subroutine free_buffers
 
-        if (allocated(il_north_buf)) then
-            deallocate(il_north_buf)
-            deallocate(il_south_buf)
-            deallocate(il_west_buf)
-            deallocate(il_east_buf)
-            deallocate(il_northwest_buf)
-            deallocate(il_northeast_buf)
-            deallocate(il_southwest_buf)
-            deallocate(il_southeast_buf)
-        endif
+        call free_single_buffer(il_north_buf)
+        call free_single_buffer(il_south_buf)
+        call free_single_buffer(il_west_buf)
+        call free_single_buffer(il_east_buf)
+        call free_single_buffer(il_northwest_buf)
+        call free_single_buffer(il_northeast_buf)
+        call free_single_buffer(il_southwest_buf)
+        call free_single_buffer(il_southeast_buf)
 
     end subroutine free_buffers
+
+    subroutine free_single_buffer(buf)
+        type(intlog_pair_t), allocatable, intent(inout) :: buf(:)
+
+        if (allocated(buf)) then
+            deallocate(buf)
+        endif
+
+    end subroutine free_single_buffer
 
 end module parcel_nearest_p2p_graph

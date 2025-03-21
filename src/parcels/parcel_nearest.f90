@@ -365,7 +365,7 @@ contains
         ! Only MPI ranks that have small parcels or received remote small parcels
         ! must be part of the communicator.
 
-        call tree%create_comm(l_include=l_no_small)
+        call tree%create_comm(l_exclude=l_no_small)
 
         if (.not. l_no_small) then
             ! allocate arrays
