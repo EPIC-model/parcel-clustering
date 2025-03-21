@@ -1,4 +1,6 @@
 module shmem
+    implicit none
+
     interface
         subroutine shmem_init() bind(C, name="shmem_init")
             use, intrinsic :: iso_c_binding
