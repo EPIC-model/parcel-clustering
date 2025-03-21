@@ -881,7 +881,7 @@ contains
         do n = 1, 8
             if (this%l_valid_comm_neighbour(n)) then
                 n_requests = n_requests + 1
-                call this%send_all(n, this%l_available, requests(n))
+                call this%send_all(n, this%l_available, requests(n_requests))
             endif
         enddo
 
