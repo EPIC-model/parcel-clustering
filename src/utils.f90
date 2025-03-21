@@ -23,8 +23,8 @@ contains
 
     subroutine register_all_timers
 
-        ! We have 3 + 6 (in trees) timers
-        allocate(timings(9))
+        ! We have 3 + 7 (in trees) timers
+        allocate(timings(10))
 
         call register_timer('parcel merge (total)', merge_timer)
         call register_timer('find nearest', find_nearest_timer)

@@ -399,6 +399,7 @@ contains
     subroutine rma_graph_register_timer(this)
         class(rma_graph_t), intent(inout) :: this
 
+        call register_timer('comm create', this%comm_timer)
         call register_timer('resolve graphs', this%resolve_timer)
         call register_timer('MPI allreduce', this%allreduce_timer)
         call register_timer('MPI RMA put', this%put_timer)
@@ -645,61 +646,9 @@ contains
 
     subroutine barrier(this)
         class(rma_graph_t), intent(inout) :: this
-        type(MPI_Request)                 :: requests(8)
-        type(MPI_Status)                  :: statuses(8)
-        integer                           :: n
-        logical                           :: l_send, l_recv(8)
 
         call start_timer(this%sync_timer)
-
-
-        if (.not. this%l_enabled_subcomm) then
-            call MPI_Barrier(this%comm%comm, this%comm%err)
-            call stop_timer(this%sync_timer)
-            return
-        endif
-
-        l_send = .true.
-
-        !----------------------------------------------------------------------
-        ! Send from remote to owning rank and sync data at owning rank
-        do n = 1, 8
-            call MPI_Isend(l_send,                  &
-                           1,                       &
-                           MPI_LOGICAL,             &
-                           neighbours(n)%rank,      &
-                           SEND_NEIGHBOUR_TAG(n),   &
-                           cart%comm,               &
-                           requests(n),             &
-                           cart%err)
-
-            call mpi_check_for_error(cart, &
-                "in MPI_Isend of rma_graph_t::barrier.")
-        enddo
-
-        do n = 1, 8
-            call MPI_Recv(l_recv(n),                &
-                          1,                        &
-                          MPI_LOGICAL,              &
-                          neighbours(n)%rank,       &
-                          RECV_NEIGHBOUR_TAG(n),    &
-                          cart%comm,                &
-                          statuses(n),              &
-                          cart%err)
-        enddo
-
-        call MPI_Waitall(8,                 &
-                        requests,           &
-                        statuses,           &
-                        cart%err)
-
-        call mpi_check_for_error(cart, &
-                                "in MPI_Waitall of rma_graph_t::barrier.")
-
-        if (.not. all(l_recv)) then
-            call mpi_exit_on_error("in rma_graph_t::barrier: Not all MPI ranks finished.")
-        endif
-
+        call MPI_Barrier(this%comm%comm, this%comm%err)
         call stop_timer(this%sync_timer)
 
     end subroutine barrier
