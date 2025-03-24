@@ -53,7 +53,7 @@ bin_dir=BIN_DIR
 PATH=${bin_dir}:$PATH
 
 for i in $(seq 1 NREPEAT); do
-    mpirun --bind-to core -np NTASKS \
+    mpirun --bind-to core --mca spml ucx --mca osc ucx --mca pml ucx -np NTASKS \
          ${bin_dir}/benchmark_read \
          --dirname DIRNAME \
          --ncbasename NC_BASENAME \
@@ -63,7 +63,7 @@ for i in $(seq 1 NREPEAT); do
          --csvfname "COMPILER-shmem-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
          --comm-type "shmem"
     for g in "p2p" "rma"; do
-        mpirun --bind-to core -np NTASKS \
+        mpirun --bind-to core --mca spml ucx --mca osc ucx --mca pml ucx -np NTASKS \
              ${bin_dir}/benchmark_read \
              --dirname DIRNAME \
              --ncbasename NC_BASENAME \
@@ -74,7 +74,7 @@ for i in $(seq 1 NREPEAT); do
              --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
-            mpirun --bind-to core -np NTASKS \
+            mpirun --bind-to core --mca spml ucx --mca osc ucx --mca pml ucx -np NTASKS \
                  ${bin_dir}/benchmark_read \
                  --dirname DIRNAME \
                  --ncbasename NC_BASENAME \
