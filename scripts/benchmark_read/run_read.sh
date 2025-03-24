@@ -86,7 +86,8 @@ run_jobs() {
 
         sed -i "s:NREPEAT:$nrepeat:g" $fn
         sed -i "s:NODES:$nodes:g" $fn
-        sed -i "s:NTASKS:$ntasks:g" $fn
+        sed -i "s:--ntasks=NTASKS:--ntasks=$ntasks:g" $fn
+        sed -i "s:-np NTASKS:-np $ntasks:g" $fn
         sed -i "s:--niter NITER:--niter $niter:g" $fn
         sed -i "s:--dirname DIRNAME:--dirname $dname:g" $fn
         sed -i "s:--ncbasename NC_BASENAME:--ncbasename $bname:g" $fn
