@@ -339,7 +339,7 @@ int main(int argc, char* argv[]) {
                 const int nodes = int(std::ceil(double(nRank) / double(nTasksPerNode)));
 
                 try {
-                    std::string cmd = "mpirun -np  " + std::to_string(nRank) + " ";
+                    std::string cmd = "mpirun --bind-to core -np  " + std::to_string(nRank) + " ";
                     if (std::get<2>(args.cmd) == "srun") {
                         cmd = "srun --nodes=" + std::to_string(nodes)
                             + " --ntasks=" + std::to_string(nRank);
