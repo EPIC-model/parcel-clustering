@@ -100,9 +100,9 @@ program benchmark_read
 
         call mpi_blocking_reduce(n_small_parcels, MPI_SUM, world)
 
-        parcels%total_num = 0
+        parcels%total_num = parcels%local_num
 
-        call MPI_Allreduce(parcels%local_num, &
+        call MPI_Allreduce(MPI_IN_PLACE,      &
                            parcels%total_num, &
                            1,                 &
                            MPI_INTEGER_64BIT, &
@@ -119,8 +119,8 @@ program benchmark_read
 
         call parcel_merge
 
-        parcels%total_num = 0
-        call MPI_Allreduce(parcels%local_num, &
+        parcels%total_num = parcels%local_num
+        call MPI_Allreduce(MPI_IN_PLACE,      &
                            parcels%total_num, &
                            1,                 &
                            MPI_INTEGER_64BIT, &

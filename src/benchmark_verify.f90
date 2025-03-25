@@ -73,8 +73,8 @@ program benchmark_verify
 
         call setup_parcels(ratio=0.5d0, l_shuffle=l_shuffle, l_variable_nppc=.false.)
 
-        parcels%total_num = 0
-        call MPI_Allreduce(parcels%local_num, &
+        parcels%total_num = parcels%local_num
+        call MPI_Allreduce(MPI_IN_PLACE,      &
                            parcels%total_num, &
                            1,                 &
                            MPI_INTEGER_64BIT, &
@@ -102,9 +102,9 @@ program benchmark_verify
     endif
 
 
-    parcels%total_num = 0
+    parcels%total_num = parcels%local_num
 
-    call MPI_Allreduce(parcels%local_num, &
+    call MPI_Allreduce(MPI_IN_PLACE,      &
                        parcels%total_num, &
                        1,                 &
                        MPI_INTEGER_64BIT, &
@@ -118,8 +118,8 @@ program benchmark_verify
         call parallel_merge
     endif
 
-    parcels%total_num = 0
-    call MPI_Allreduce(parcels%local_num, &
+    parcels%total_num = parcels%local_num
+    call MPI_Allreduce(MPI_IN_PLACE,      &
                        parcels%total_num, &
                        1,                 &
                        MPI_INTEGER_64BIT, &
