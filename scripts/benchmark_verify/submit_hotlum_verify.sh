@@ -13,7 +13,7 @@
 export OMP_NUM_THREADS=1
 export OMP_PLACES=cores
 export FI_OFI_RXM_SAR_LIMIT=64K
-#export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
+export SRUN_CPUS_PER_TASK=$SLURM_CPUS_PER_TASK
 
 if test "COMPILER" = "gnu"; then
     echo "Loading the GNU Compiler Collection (GCC)"
