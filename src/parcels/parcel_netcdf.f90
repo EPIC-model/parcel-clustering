@@ -328,7 +328,12 @@ contains
                                world%err)
 
             if (.not. l_same_mpi_decomposition) then
-                call mpi_print("WARNING: MPI ranks agree, but different MPI decomposition!")
+                if (l_same_world_size) then
+                    call mpi_print("WARNING: Number of MPI ranks agree, but different MPI decomposition!")
+                else
+                    call mpi_print(&
+                    "WARNING: Number of MPI ranks and decomposition disagree! Reading may be inefficient!")
+                endif
             endif
         endif
 

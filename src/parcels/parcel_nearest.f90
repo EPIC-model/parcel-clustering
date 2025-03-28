@@ -203,12 +203,10 @@ contains
         !   halo_ncell includes halo cells
         ijk = 1 + ix + box%halo_size(1) * iy + box%halo_size(1) * box%halo_size(2) * iz
 
-#ifndef NEDBUG
         if (ijk < 1) then
             call mpi_exit_on_error(&
                     'in nearest_parcel_to_local_cell_index: Parcel not in local domain.')
         endif
-#endif
 
         ! Accumulate number of parcels in this grid cell:
         this%nppc(ijk) = this%nppc(ijk) + 1
