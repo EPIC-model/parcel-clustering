@@ -182,7 +182,7 @@ nrep=1
 niter=1
 timelimit="00:30:00"
 
-while getopts "h?m:l:u:j:r:i:b:o:n:sf:" option; do
+while getopts "h?m:l:u:j:r:i:b:o:n:sf:t:" option; do
     case "$option" in
         b)
             file_base_name=$OPTARG
