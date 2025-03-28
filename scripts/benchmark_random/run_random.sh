@@ -62,10 +62,10 @@ run_jobs() {
 
         echo "Submit job with $ntasks tasks on $nodes nodes using the $compiler version"
 
-        fn="submit_random_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
+        fn="submit_${machine}_random_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
 
         cp "../$fname" $fn
-        sed -i "s:JOBNAME:$compiler-random:g" $fn
+        sed -i "s:JOBNAME:$machine-$compiler-random:g" $fn
         sed -i "s:COMPILER:$compiler:g" $fn
         sed -i "s:MACHINE:$machine:g" $fn
 

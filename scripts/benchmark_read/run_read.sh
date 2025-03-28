@@ -19,6 +19,8 @@ run_jobs() {
     local inc_ntasks=${11}
     local max_ntasks=${12}
     local subcomm=${13}
+    local size_factor=${14}
+    local time_limit=${15}
 
     local bname=$(basename $fullname)
     local dname=$(dirname $fullname)
@@ -32,7 +34,14 @@ run_jobs() {
         exit 1
     fi
 
-
+    if [[ $bname == *"early"* ]]; then
+        name_tag="early"
+    elif [[ $bname == *"late"* ]]; then
+        name_tag="late"
+    else
+        echo "Error: Could not identify if 'early' or 'late' simulation time. Exiting."
+        exit 1
+    fi
 
     echo "--------------------------------"
     echo "Run jobs with following options:"
@@ -45,6 +54,8 @@ run_jobs() {
     echo "niter           = $niter"
     echo "dirname         = $dname"
     echo "basename        = $bname"
+    echo "name_tag        = $name_tag"
+    echo "size_factor     = $size_factor"
     echo "nx              = $nx"
     echo "ny              = $ny"
     echo "nz              = $nz"
@@ -53,6 +64,7 @@ run_jobs() {
     echo "min_ntasks      = $min_ntasks"
     echo "inc_ntasks      = $inc_ntasks"
     echo "max_ntasks      = $max_ntasks"
+    echo "time_limit      = $time_limit"
     if ! test "$subcomm" = "true"; then
         subcomm="false"
     fi
@@ -73,12 +85,14 @@ run_jobs() {
 
         echo "Submit job with $ntasks tasks on $nodes nodes using the $compiler version"
 
-        fn="submit_read_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
+        fn="submit_${machine}_read_${name_tag}_nx_${nx}_ny_${ny}_nz_${nz}_nodes_${nodes}.sh"
 
         cp "../$fname" $fn
-        sed -i "s:JOBNAME:$compiler-read:g" $fn
+        sed -i "s:JOBNAME:$machine-$compiler-read:g" $fn
         sed -i "s:COMPILER:$compiler:g" $fn
         sed -i "s:MACHINE:$machine:g" $fn
+        sed -i "s:NAMETAG:$name_tag:g" $fn
+        sed -i "s/--time=TIMELIMIT/--time=$time_limit/g" $fn
 
         sed -i "s:NX:$nx:g" $fn
         sed -i "s:NY:$ny:g" $fn
@@ -93,6 +107,7 @@ run_jobs() {
         sed -i "s:--ncbasename NC_BASENAME:--ncbasename $bname:g" $fn
         sed -i "s:--offset OFFSET:--offset $offset:g" $fn
         sed -i "s:--nfiles NFILES:--nfiles $nfiles:g" $fn
+        sed -i "s:--size-factor SIZE_FACTOR:--size-factor $size_factor:g" $fn
 
         sed -i "s:BIN_DIR:$bin_dir:g" $fn
         sed -i "s:SUBCOMM:$subcomm:g" $fn
@@ -119,6 +134,7 @@ run_jobs() {
 # inc_ntasks
 # max_ntasks
 # subcomm
+# size_factor
 
 print_help() {
     echo "Script to submit strong scaling jobs reading netCDF files"
@@ -145,6 +161,8 @@ print_help() {
     echo "          if the number of iterations > number of EPIC files, the"
     echo "          file reading cycle restarts at the starting index"
     echo "    -s    use sub-communicator (optional)"
+    echo "    -f    parcel container size factor, --size-factor"
+    echo "    -t    time limit of job, default: 00:30:00"
 }
 
 check_for_input() {
@@ -162,8 +180,9 @@ subcomm="false"
 inc_cores=2
 nrep=1
 niter=1
+timelimit="00:30:00"
 
-while getopts "h?m:l:u:j:r:i:b:o:n:s" option; do
+while getopts "h?m:l:u:j:r:i:b:o:n:sf:" option; do
     case "$option" in
         b)
             file_base_name=$OPTARG
@@ -171,6 +190,9 @@ while getopts "h?m:l:u:j:r:i:b:o:n:s" option; do
         h|\?)
             print_help
             exit 0
+            ;;
+        f)
+            szf=$OPTARG
             ;;
         i)
             niter=$OPTARG
@@ -195,6 +217,9 @@ while getopts "h?m:l:u:j:r:i:b:o:n:s" option; do
             ;;
         s)
             subcomm="true"
+            ;;
+        t)
+            timelimit=$OPTARG
             ;;
         u)
             max_cores=$OPTARG
@@ -225,6 +250,8 @@ check_for_input "min_cores" $min_cores
 check_for_input "inc_cores" $inc_cores
 check_for_input "max_cores" $max_cores
 check_for_input "subcomm" $subcomm
+check_for_input "size_factor" $szf
+check_for_input "time_limit" $timelimit
 
 echo "Submiting jobs on $machine with $min_cores to $max_cores cores."
 echo "Each job is repeated $nrep times with $niter iterations per repetition."
@@ -233,7 +260,7 @@ j=0
 for bin_dir in ${bins[*]}; do
     compiler="${compilers[$j]}"
 
-    run_jobs $machine $ntasks_per_node $compiler "$bin_dir" $nrep $niter $file_base_name $file_offset $num_files $min_cores $inc_cores $max_cores $subcomm
+    run_jobs $machine $ntasks_per_node $compiler "$bin_dir" $nrep $niter $file_base_name $file_offset $num_files $min_cores $inc_cores $max_cores $subcomm $szf $timelimit
 
     j=$((j+1))
 done

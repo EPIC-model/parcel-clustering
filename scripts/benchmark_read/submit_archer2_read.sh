@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=JOBNAME
 #SBATCH --output=%x.o%j
-#SBATCH --time=00:30:00
+#SBATCH --time=TIMELIMIT
 #SBATCH --nodes=NODES
 #SBATCH --ntasks-per-node=128
 #SBATCH --cpus-per-task=1
@@ -79,7 +79,8 @@ for i in $(seq 1 NREPEAT); do
         --niter NITER \
         --offset OFFSET \
         --nfiles NFILES \
-        --csvfname "MACHINE-COMPILER-shmem-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+        --size-factor SIZE_FACTOR \
+        --csvfname "MACHINE-COMPILER-shmem-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
@@ -93,7 +94,8 @@ for i in $(seq 1 NREPEAT); do
             --niter NITER \
             --offset OFFSET \
             --nfiles NFILES \
-            --csvfname "MACHINE-COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+            --size-factor SIZE_FACTOR \
+            --csvfname "MACHINE-COMPILER-$g-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
             --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
@@ -108,7 +110,8 @@ for i in $(seq 1 NREPEAT); do
                 --niter NITER \
                 --offset OFFSET \
                 --nfiles NFILES \
-                --csvfname "MACHINE-COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
+                --size-factor SIZE_FACTOR \
+                --csvfname "MACHINE-COMPILER-$g-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
                 --comm-type "$g" \
                 --subcomm
         fi
