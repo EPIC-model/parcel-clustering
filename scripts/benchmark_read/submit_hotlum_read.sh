@@ -47,20 +47,6 @@ elif test "COMPILER" = "cray"; then
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CRAY_NETCDF_HDF5PARALLEL_PREFIX/lib
 fi
 
-#export PGAS_MEMINFO_DISPLAY=1
-#export XT_SYMMETRIC_HEAP_SIZE=1G
-#export CRAY_PGAS_MAX_CONCURRENCY=1
-
-#echo "Setting SHMEM symmetric size"
-#export SHMEM_SYMMETRIC_SIZE=1G
-#export SHMEM_VERSION_DISPLAY=0
-#export SHMEM_ENV_DISPLAY=0
-
-#export SLURM_CPU_FREQ_REQ=2000000
-
-#module load craype-hugepages2M
-#export HUGETLB_VERBOSE=2
-
 echo "Running on $SLURM_NNODES nodes with $SLURM_NTASKS tasks."
 
 module list
@@ -79,7 +65,8 @@ for i in $(seq 1 NREPEAT); do
         --niter NITER \
         --offset OFFSET \
         --nfiles NFILES \
-        --csvfname "COMPILER-shmem-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+        --size-factor SIZE_FACTOR \
+        --csvfname "MACHINE-COMPILER-$g-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
@@ -92,7 +79,8 @@ for i in $(seq 1 NREPEAT); do
             --niter NITER \
             --offset OFFSET \
             --nfiles NFILES \
-            --csvfname "COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+            --size-factor SIZE_FACTOR \
+            --csvfname "MACHINE-COMPILER-$g-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
             --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
@@ -106,7 +94,8 @@ for i in $(seq 1 NREPEAT); do
                 --niter NITER \
                 --offset OFFSET \
                 --nfiles NFILES \
-                --csvfname "COMPILER-$g-read-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
+                --size-factor SIZE_FACTOR \
+                --csvfname "MACHINE-COMPILER-$g-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES-subcomm" \
                 --comm-type "$g" \
                 --subcomm
         fi
