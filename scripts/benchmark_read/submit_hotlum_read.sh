@@ -67,7 +67,7 @@ for i in $(seq 1 NREPEAT); do
         --offset OFFSET \
         --nfiles NFILES \
         --size-factor SIZE_FACTOR \
-        --csvfname "MACHINE-COMPILER-$g-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
+        --csvfname "MACHINE-COMPILER-shmem-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
         --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
@@ -104,4 +104,3 @@ for i in $(seq 1 NREPEAT); do
         fi
     done
 done
-
