@@ -61,6 +61,7 @@ for i in $(seq 1 NREPEAT); do
         --unbuffered \
         --distribution=block:block \
         /tmp/benchmark_read \
+        --dirname DIRNAME \
         --ncbasename NC_BASENAME \
         --niter NITER \
         --offset OFFSET \
@@ -75,6 +76,7 @@ for i in $(seq 1 NREPEAT); do
             --distribution=block:block \
             --hint=nomultithread \
             /tmp/benchmark_read \
+            --dirname DIRNAME \
             --ncbasename NC_BASENAME \
             --niter NITER \
             --offset OFFSET \
@@ -90,6 +92,7 @@ for i in $(seq 1 NREPEAT); do
                 --distribution=block:block \
                 --hint=nomultithread \
                 /tmp/benchmark_read \
+                --dirname DIRNAME \
                 --ncbasename NC_BASENAME \
                 --niter NITER \
                 --offset OFFSET \
