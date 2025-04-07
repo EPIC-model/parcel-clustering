@@ -98,6 +98,7 @@ run_jobs() {
         sed -i "s:NY:$ny:g" $fn
         sed -i "s:NZ:$nz:g" $fn
 
+        sed -i "s:#SBATCH --ntasks-per-node=NTASKS_PER_NODE:#SBATCH --ntasks-per-node=$ntasks_per_node:g" $fn
         sed -i "s:NREPEAT:$nrepeat:g" $fn
         sed -i "s:NODES:$nodes:g" $fn
         sed -i "s:--ntasks=NTASKS:--ntasks=$ntasks:g" $fn

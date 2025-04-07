@@ -3,7 +3,7 @@
 #SBATCH --output=%x.o%j
 #SBATCH --time=TIMELIMIT
 #SBATCH --nodes=NODES
-#SBATCH --ntasks-per-node=128
+#SBATCH --ntasks-per-node=NTASKS_PER_NODE
 #SBATCH --cpus-per-task=1
 #SBATCH --constraint=StandardMem
 #SBATCH --switches=1
