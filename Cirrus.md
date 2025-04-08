@@ -33,8 +33,8 @@ module load libtool/2.4.7
 module load gcc/10.2.0
 module load openmpi/4.1.6
 module load hdf5parallel/1.14.3-gcc10-ompi416
-export NETCDF_C_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
-export NETCDF_FORTRAN_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
+export NETCDF_C_DIR=/work/e710/e710/mf248/gcc-10.2.0-openmpi-4.1.6/netcdf
+export NETCDF_FORTRAN_DIR=/work/e710/e710/mf248/gcc-10.2.0-openmpi-4.1.6/netcdf
 export PATH=$PATH:$NETCDF_C_DIR/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR/lib
 export CPLUS_INCLUDE_PATH=$NETCDF_C_DIR/include:$CPLUS_INCLUDE_PATH
