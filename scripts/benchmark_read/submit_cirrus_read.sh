@@ -26,12 +26,11 @@ if test "COMPILER" = "gnu"; then
     echo "Loading the GNU Compiler Collection (GCC)"
     module load libtool/2.4.7
     module load gcc/10.2.0
-    export MPI_ROOT=/work/e710/e710/mf248/gcc/10.2.0/openmpi/5.0.7
-    export PATH=$MPI_ROOT/bin:$PATH
-    export NETCDF_C_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
-    export NETCDF_FORTRAN_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
+    module load openmpi/4.1.6
+    module load hdf5parallel/1.14.3-gcc10-ompi416
+    export NETCDF_C_DIR=/work/e710/e710/mf248/gcc-10.2.0-openmpi-4.1.6/netcdf
     export PATH=$PATH:$NETCDF_C_DIR/bin
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR/lib:$MPI_ROOT/lib
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR/lib
 else
     echo "Only GNU Compiler Collection available!"
     exit 1
@@ -46,14 +45,15 @@ echo "Running on $SLURM_NNODES nodes with $SLURM_NTASKS tasks."
 
 module list
 
-cmd=$(which mpirun)
-echo "MPIRUN: $cmd"
-
 bin_dir=BIN_DIR
 PATH=${bin_dir}:$PATH
 
 for i in $(seq 1 NREPEAT); do
-    mpirun --bind-to core --mca spml ucx --mca osc ucx --mca pml ucx -np NTASKS \
+    srun --kill-on-bad-exit \
+         --nodes=NODES \
+         --ntasks=NTASKS \
+         --unbuffered \
+         --distribution=block:block \
          ${bin_dir}/benchmark_read \
          --dirname DIRNAME \
          --ncbasename NC_BASENAME \
@@ -64,7 +64,12 @@ for i in $(seq 1 NREPEAT); do
          --csvfname "MACHINE-COMPILER-shmem-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
          --comm-type "shmem"
     for g in "p2p" "rma"; do
-        mpirun --bind-to core --mca spml ucx --mca osc ucx --mca pml ucx -np NTASKS \
+        srun --kill-on-bad-exit \
+             --nodes=NODES \
+             --ntasks=NTASKS \
+             --unbuffered \
+             --distribution=block:block \
+             --hint=nomultithread \
              ${bin_dir}/benchmark_read \
              --dirname DIRNAME \
              --ncbasename NC_BASENAME \
@@ -76,7 +81,12 @@ for i in $(seq 1 NREPEAT); do
              --comm-type "$g"
 
         if test "SUBCOMM" = "true"; then
-            mpirun --bind-to core --mca spml ucx --mca osc ucx --mca pml ucx -np NTASKS \
+            srun --kill-on-bad-exit \
+                 --nodes=NODES \
+                 --ntasks=NTASKS \
+                 --unbuffered \
+                 --distribution=block:block \
+                 --hint=nomultithread \
                  ${bin_dir}/benchmark_read \
                  --dirname DIRNAME \
                  --ncbasename NC_BASENAME \

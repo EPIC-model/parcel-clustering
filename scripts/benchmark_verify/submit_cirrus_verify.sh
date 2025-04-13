@@ -26,12 +26,11 @@ if test "COMPILER" = "gnu"; then
     echo "Loading the GNU Compiler Collection (GCC)"
     module load libtool/2.4.7
     module load gcc/10.2.0
-    export MPI_ROOT=/work/e710/e710/mf248/gcc/10.2.0/openmpi/5.0.7
-    export PATH=$MPI_ROOT/bin:$PATH
-    export NETCDF_C_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
-    export NETCDF_FORTRAN_DIR=/work/e710/e710/mf248/gcc/10.2.0/netcdf
+    module load openmpi/4.1.6
+    module load hdf5parallel/1.14.3-gcc10-ompi416
+    export NETCDF_C_DIR=/work/e710/e710/mf248/gcc-10.2.0-openmpi-4.1.6/netcdf
     export PATH=$PATH:$NETCDF_C_DIR/bin
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR/lib:$MPI_ROOT/lib
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$NETCDF_C_DIR/lib
 else
     echo "Only GNU Compiler Collection available!"
     exit 1
@@ -45,9 +44,6 @@ if test "COMM_TYPE" = "shmem"; then
 fi
 
 module list
-
-cmd=$(which mpirun)
-echo "MPIRUN: $cmd"
 
 bin_dir=BIN_DIR
 
@@ -66,7 +62,7 @@ if test "COMM_TYPE" = "shmem"; then
         --min-vratio 40.0 \
         --verbose \
         --nsamples N_SAMPLES \
-        --cmd "mpirun" \
+        --cmd "srun" \
         --seed SEED \
         --comm-type "COMM_TYPE"
 else
@@ -80,7 +76,7 @@ else
         --min-vratio 40.0 \
         --verbose \
         --nsamples N_SAMPLES \
-        --cmd "mpirun" \
+        --cmd "srun" \
         --seed SEED \
         --comm-type "COMM_TYPE" \
         --subcomm
