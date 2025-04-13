@@ -69,19 +69,6 @@ PATH=${bin_dir}:$PATH
 
 sbcast --compress=none ${bin_dir}/benchmark_read /tmp/benchmark_read
 for i in $(seq 1 NREPEAT); do
-    srun --nodes=NODES \
-        --ntasks=NTASKS \
-        --unbuffered \
-        --distribution=block:block \
-        /tmp/benchmark_read \
-        --dirname DIRNAME \
-        --ncbasename NC_BASENAME \
-        --niter NITER \
-        --offset OFFSET \
-        --nfiles NFILES \
-        --size-factor SIZE_FACTOR \
-        --csvfname "MACHINE-COMPILER-shmem-read-NAMETAG-nx-NX-ny-NY-nz-NZ-nodes-NODES" \
-        --comm-type "shmem"
     for g in "p2p" "rma"; do
         srun --nodes=NODES \
             --ntasks=NTASKS \
