@@ -1,35 +1,21 @@
-module parcel_nearest_rma_graph
+module parcel_nearest_rma_stage_lock_graph
     use mpi_layout
     use mpi_utils
     use mpi_timer, only : start_timer       &
                         , stop_timer        &
                         , register_timer
-    use parcel_nearest_graph, only : graph_t
+    use parcel_nearest_rma_graph, only : rma_graph_t
     use iso_c_binding, only : c_ptr, c_f_pointer
     implicit none
 
     private
 
-    type, extends(graph_t) :: rma_graph_t
-
-
-        ! Logicals used to determine which mergers are executed
-        ! Integers above could be reused for this, but this would
-        ! make the algorithm less readable
-        logical, pointer :: l_leaf(:)
-        logical, pointer :: l_available(:)
-        logical, pointer :: l_merged(:)    ! indicates parcels merged in first stage
-
-        type(MPI_Win) :: win_merged, win_avail, win_leaf
-        logical       :: l_win_allocated = .false.
+    type, extends(rma_graph_t) :: rma_stage_lock_graph_t
 
     contains
 
-        procedure :: initialise => rma_graph_initialise
-        procedure :: finalise   => rma_graph_finalise
-        procedure :: reset      => rma_graph_reset
-        procedure :: resolve    => rma_graph_resolve
-        procedure :: register_timer => rma_graph_register_timer
+        procedure :: resolve    => rma_stage_lock_graph_resolve
+        procedure :: register_timer => rma_stage_lock_graph_register_timer
 
         procedure :: put_avail
         procedure :: put_leaf
@@ -39,151 +25,25 @@ module parcel_nearest_rma_graph
         procedure :: get_leaf
         procedure :: get_merged
 
-        procedure :: barrier
-
     end type
 
-    public :: rma_graph_t
+    public :: rma_stage_lock_graph_t
 
 contains
-
-    subroutine rma_graph_initialise(this, num, l_subcomm)
-        class(rma_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: num
-        logical,            intent(in)    :: l_subcomm
-        integer (KIND=MPI_ADDRESS_KIND)   :: win_size
-        logical                           :: l_bytes
-        integer                           :: disp_unit
-        integer (KIND=MPI_ADDRESS_KIND)   :: long_type
-        type(c_ptr)                       :: buf_ptr
-
-        if (this%l_win_allocated) then
-            return
-        endif
-
-#ifndef NULL_ASSIGNMENT_WORKS
-        this%comm%comm = MPI_COMM_NULL
-#endif
-
-        this%l_enabled_subcomm = l_subcomm
-
-        if (.not. l_mpi_layout_initialised) then
-            call mpi_stop("Error: The Cartesian communicator not yet initialised.")
-        endif
-
-        this%l_win_allocated = .true.
-
-        call MPI_Sizeof(l_bytes, disp_unit, cart%err)
-
-        call mpi_check_for_error(cart, &
-            "in MPI_Sizeof of rma_graph_t::initialise.")
-
-        ! size of RMA window in bytes
-        long_type = disp_unit
-        win_size = long_type * num
-
-        if (win_size < 0) then
-            call mpi_stop("Error: Integer overflow. Unable to allocate MPI RMA windows.")
-        endif
-
-        ! allocate window win_leaf and memory for l_leaf
-        call MPI_Win_allocate(win_size,         &
-                              disp_unit,        &
-                              MPI_INFO_NULL,    &
-                              cart%comm,        &
-                              buf_ptr,          &
-                              this%win_leaf,    &
-                              cart%err)
-
-        call mpi_check_for_error(cart, &
-            "in MPI_Win_allocate of rma_graph_t::initialise.")
-
-        call c_f_pointer(buf_ptr, this%l_leaf, [num])
-
-
-        ! allocate window win_avail and memory for l_available
-        call MPI_Win_allocate(win_size,         &
-                              disp_unit,        &
-                              MPI_INFO_NULL,    &
-                              cart%comm,        &
-                              buf_ptr,          &
-                              this%win_avail,   &
-                              cart%err)
-
-        call mpi_check_for_error(cart, &
-            "in MPI_Win_allocate of rma_graph_t::initialise.")
-
-        call c_f_pointer(buf_ptr, this%l_available, [num])
-
-        ! allocate window win_merged and memory for l_merged
-        call MPI_Win_allocate(win_size,         &
-                              disp_unit,        &
-                              MPI_INFO_NULL,    &
-                              cart%comm,        &
-                              buf_ptr,          &
-                              this%win_merged,  &
-                              cart%err)
-
-        call mpi_check_for_error(cart, &
-            "in MPI_Win_allocate of rma_graph_t::initialise.")
-
-        call c_f_pointer(buf_ptr, this%l_merged, [num])
-
-        call mpi_check_rma_window_model(this%win_avail)
-        call mpi_check_rma_window_model(this%win_merged)
-        call mpi_check_rma_window_model(this%win_leaf)
-
-    end subroutine rma_graph_initialise
-
-    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    subroutine rma_graph_finalise(this)
-        class(rma_graph_t), intent(inout) :: this
-
-        if (.not. this%l_win_allocated) then
-            return
-        endif
-
-        call MPI_Win_free(this%win_leaf, cart%err)
-        call mpi_check_for_error(cart, &
-                "in MPI_Win_free of rma_graph_t::finalise.")
-
-        call MPI_Win_free(this%win_avail, cart%err)
-        call mpi_check_for_error(cart, &
-                "in MPI_Win_free of rma_graph_t::finalise.")
-
-        call MPI_Win_free(this%win_merged, cart%err)
-        call mpi_check_for_error(cart, &
-                "in MPI_Win_free of rma_graph_t::finalise.")
-
-    end subroutine rma_graph_finalise
-
-    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    subroutine rma_graph_reset(this)
-        class(rma_graph_t), intent(inout) :: this
-
-        this%l_merged = .false.
-        this%l_leaf = .false.
-        this%l_available = .false.
-
-    end subroutine rma_graph_reset
-
-    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     ! https://github.com/mpi-forum/mpi-forum-historic/issues/413
     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node294.htm
     ! https://www.mpi-forum.org/docs/mpi-3.1/mpi31-report/node279.htm
-    subroutine rma_graph_resolve(this, isma, iclo, rclo, n_local_small)
-        class(rma_graph_t), intent(inout) :: this
-        integer,            intent(inout) :: isma(0:)
-        integer,            intent(inout) :: iclo(:)
-        integer,            intent(inout) :: rclo(:)
-        integer,            intent(inout) :: n_local_small
-        integer                           :: ic, rc, is, m, j
-        logical                           :: l_helper
-        logical                           :: l_continue_iteration, l_do_merge(n_local_small)
-        logical                           :: l_isolated_dual_link(n_local_small)
+    subroutine rma_stage_lock_graph_resolve(this, isma, iclo, rclo, n_local_small)
+        class(rma_stage_lock_graph_t), intent(inout) :: this
+        integer,                       intent(inout) :: isma(0:)
+        integer,                       intent(inout) :: iclo(:)
+        integer,                       intent(inout) :: rclo(:)
+        integer,                       intent(inout) :: n_local_small
+        integer                                      :: ic, rc, is, m, j
+        logical                                      :: l_helper
+        logical                                      :: l_continue_iteration, l_do_merge(n_local_small)
+        logical                                      :: l_isolated_dual_link(n_local_small)
 
         call start_timer(this%resolve_timer)
 
@@ -193,6 +53,8 @@ contains
         do while (l_continue_iteration)
             l_continue_iteration = .false.
             ! reset relevant properties for candidate mergers
+
+            call MPI_Win_lock_all(0, this%win_avail)
 
             do m = 1, n_local_small
                 is = isma(m)
@@ -206,8 +68,12 @@ contains
                 endif
             enddo
 
+            call MPI_Win_unlock_all(this%win_avail)
+
             ! This barrier is necessary!
             call this%barrier
+
+            call MPI_Win_lock_all(0, this%win_leaf)
 
             ! determine leaf parcels
             do m = 1, n_local_small
@@ -220,9 +86,13 @@ contains
                 endif
             enddo
 
+            call MPI_Win_unlock_all(this%win_leaf)
+
             ! We must synchronise all MPI processes here to ensure all MPI processes
             ! have done theirRMA operations as we modify the windows again.
             call this%barrier
+
+            call MPI_Win_lock_all(0, this%win_avail)
 
             ! filter out parcels that are "unavailable" for merging
             do m = 1, n_local_small
@@ -237,11 +107,15 @@ contains
                 endif
             enddo
 
+            call MPI_Win_unlock_all(this%win_avail)
+
             ! This MPI_Barrier is necessary as MPI processes access their l_available
             ! array which may be modified in the loop above. In order to make sure all
             ! MPI ranks have finished above loop, we need this barrier.
             call this%barrier
 
+            call MPI_Win_lock_all(0, this%win_avail)
+            call MPI_Win_lock_all(0, this%win_merged)
 
             ! identify mergers in this iteration
             do m = 1, n_local_small
@@ -262,6 +136,9 @@ contains
                 endif
             enddo
 
+            call MPI_Win_unlock_all(this%win_merged)
+            call MPI_Win_unlock_all(this%win_avail)
+
             call start_timer(this%allreduce_timer)
             ! Performance improvement: We actually only need to synchronize with neighbours
             call MPI_Allreduce(MPI_IN_PLACE,            &
@@ -279,6 +156,8 @@ contains
         ! No barrier necessary because of the blocking MPI_Allreduce that acts like
         ! a barrier!
 
+        call MPI_Win_lock_all(0, this%win_avail)
+
         ! Second stage, related to dual links
         do m = 1, n_local_small
             is = isma(m)
@@ -292,8 +171,13 @@ contains
             endif
         enddo
 
+        call MPI_Win_unlock_all(this%win_avail)
+
         ! This barrier is necessary as we modifiy l_available above and need it below.
         call this%barrier
+
+        call MPI_Win_lock_all(0, this%win_leaf)
+        call MPI_Win_lock_all(0, this%win_avail)
 
         ! Second stage
         do m = 1, n_local_small
@@ -351,9 +235,13 @@ contains
             endif
         enddo
 
+        call MPI_Win_unlock_all(this%win_avail)
+        call MPI_Win_unlock_all(this%win_leaf)
 
         ! This barrier is necessary.
         call this%barrier
+
+        call MPI_Win_lock_all(0, this%win_avail)
 
         !------------------------------------------------------
         do m = 1, n_local_small
@@ -376,6 +264,8 @@ contains
             !------------------------------------------------------
         enddo
 
+        call MPI_Win_unlock_all(this%win_avail)
+
         j = 0
         do m = 1, n_local_small
             is = isma(m)
@@ -391,39 +281,30 @@ contains
         n_local_small = j
 
         call stop_timer(this%resolve_timer)
-    end subroutine rma_graph_resolve
+    end subroutine rma_stage_lock_graph_resolve
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-    subroutine rma_graph_register_timer(this)
-        class(rma_graph_t), intent(inout) :: this
+    subroutine rma_stage_lock_graph_register_timer(this)
+        class(rma_stage_lock_graph_t), intent(inout) :: this
 
-        call this%register_common_timers(label='MPI RMA')
+        call this%register_common_timers(label='MPI RMA (stage lock)')
 
-    end subroutine rma_graph_register_timer
+    end subroutine rma_stage_lock_graph_register_timer
 
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     subroutine put_avail(this, rank, ic, val)
-        class(rma_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical,            intent(in)    :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
+        class(rma_stage_lock_graph_t), intent(inout) :: this
+        integer,                       intent(in)    :: rank
+        integer,                       intent(in)    :: ic
+        logical,                       intent(in)    :: val
+        integer(KIND=MPI_ADDRESS_KIND)               :: offset
 
         if (rank == cart%rank) then
             this%l_available(ic) = val
         else
             call start_timer(this%put_timer)
-            call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_avail, cart%err)
-            !     MPI_Put(origin_addr, origin_count, origin_datatype, target_rank,
-            !         target_disp, target_count, target_datatype, win, ierror)
-            !     TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
-            !     INTEGER, INTENT(IN) :: origin_count, target_rank, target_count
-            !     TYPE(MPI_Datatype), INTENT(IN) :: origin_datatype, target_datatype
-            !     INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: target_disp
-            !     TYPE(MPI_Win), INTENT(IN) :: win
-            !     INTEGER, OPTIONAL, INTENT(OUT) :: ierror
             offset = ic - 1 ! starts at 0
             call MPI_Put(val,              &
                          1,                &
@@ -440,8 +321,6 @@ contains
             ! Complete RMA operation at the origin and the target
             call MPI_Win_flush(rank, this%win_avail, cart%err)
 
-            ! After MPI_Win_unlock, the RMA operation is completed at the origin and target.
-            call MPI_Win_unlock(rank, this%win_avail, cart%err)
             call stop_timer(this%put_timer)
         endif
 
@@ -450,17 +329,16 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     subroutine put_leaf(this, rank, ic, val)
-        class(rma_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical,            intent(in)    :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
+        class(rma_stage_lock_graph_t), intent(inout) :: this
+        integer,                       intent(in)    :: rank
+        integer,                       intent(in)    :: ic
+        logical,                       intent(in)    :: val
+        integer(KIND=MPI_ADDRESS_KIND)               :: offset
 
         if (rank == cart%rank) then
             this%l_leaf(ic) = val
         else
             call start_timer(this%put_timer)
-            call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_leaf, cart%err)
             offset = ic - 1
             call MPI_Put(val,              &
                          1,                &
@@ -476,7 +354,6 @@ contains
 
             call MPI_Win_flush(rank, this%win_leaf, cart%err)
 
-            call MPI_Win_unlock(rank, this%win_leaf, cart%err)
             call stop_timer(this%put_timer)
         endif
 
@@ -485,17 +362,16 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     subroutine put_merged(this, rank, ic, val)
-        class(rma_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical,            intent(in)    :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
+        class(rma_stage_lock_graph_t), intent(inout) :: this
+        integer,                       intent(in)    :: rank
+        integer,                       intent(in)    :: ic
+        logical,                       intent(in)    :: val
+        integer(KIND=MPI_ADDRESS_KIND)               :: offset
 
         if (rank == cart%rank) then
             this%l_merged(ic) = val
         else
             call start_timer(this%put_timer)
-            call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_merged, cart%err)
 
             offset = ic - 1
             call MPI_Put(val,              &
@@ -512,7 +388,6 @@ contains
 
             call MPI_Win_flush(rank, this%win_merged, cart%err)
 
-            call MPI_Win_unlock(rank, this%win_merged, cart%err)
             call stop_timer(this%put_timer)
         endif
 
@@ -521,30 +396,17 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     function get_avail(this, rank, ic) result(val)
-        class(rma_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical                           :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
+        class(rma_stage_lock_graph_t), intent(inout) :: this
+        integer,                       intent(in)    :: rank
+        integer,                       intent(in)    :: ic
+        logical                                      :: val
+        integer(KIND=MPI_ADDRESS_KIND)               :: offset
 
 
         if (rank == cart%rank) then
             val = this%l_available(ic)
         else
             call start_timer(this%get_timer)
-            call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_avail, cart%err)
-            ! Note: The OpenMPI specification says that processes must be on the same node
-            !       in order MPI_Get to work. However, I tested a simple MPI_Get on Archer2
-            !       between nodes with 1 rank per node. It works! It may therefore only be
-            !       a limitation of OpenMPI.
-            !     MPI_Get(origin_addr, origin_count, origin_datatype, target_rank,
-            !         target_disp, target_count, target_datatype, win, ierror)
-            !     TYPE(*), DIMENSION(..), ASYNCHRONOUS :: origin_addr
-            !     INTEGER, INTENT(IN) :: origin_count, target_rank, target_count
-            !     TYPE(MPI_Datatype), INTENT(IN) :: origin_datatype, target_datatype
-            !     INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: target_disp
-            !     TYPE(MPI_Win), INTENT(IN) :: win
-            !     INTEGER, OPTIONAL, INTENT(OUT) :: ierror
             offset = ic - 1
             call MPI_Get(val,              &
                          1,                &
@@ -560,7 +422,6 @@ contains
 
             call MPI_Win_flush(rank, this%win_avail, cart%err)
 
-            call MPI_Win_unlock(rank, this%win_avail, cart%err)
             call stop_timer(this%get_timer)
         endif
 
@@ -569,17 +430,16 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     function get_leaf(this, rank, ic) result(val)
-        class(rma_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical                           :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
+        class(rma_stage_lock_graph_t), intent(inout) :: this
+        integer,                       intent(in)    :: rank
+        integer,                       intent(in)    :: ic
+        logical                                      :: val
+        integer(KIND=MPI_ADDRESS_KIND)               :: offset
 
         if (rank == cart%rank) then
             val = this%l_leaf(ic)
         else
             call start_timer(this%get_timer)
-            call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_leaf, cart%err)
             offset = ic - 1
             call MPI_Get(val,              &
                          1,                &
@@ -595,7 +455,6 @@ contains
 
             call MPI_Win_flush(rank, this%win_leaf, cart%err)
 
-            call MPI_Win_unlock(rank, this%win_leaf, cart%err)
             call stop_timer(this%get_timer)
         endif
 
@@ -604,17 +463,16 @@ contains
     !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
     function get_merged(this, rank, ic) result(val)
-        class(rma_graph_t), intent(inout) :: this
-        integer,            intent(in)    :: rank
-        integer,            intent(in)    :: ic
-        logical                           :: val
-        integer(KIND=MPI_ADDRESS_KIND)    :: offset
+        class(rma_stage_lock_graph_t), intent(inout) :: this
+        integer,                       intent(in)    :: rank
+        integer,                       intent(in)    :: ic
+        logical                                      :: val
+        integer(KIND=MPI_ADDRESS_KIND)               :: offset
 
         if (rank == cart%rank) then
             val = this%l_merged(ic)
         else
             call start_timer(this%get_timer)
-            call MPI_Win_lock(MPI_LOCK_SHARED, rank, 0, this%win_merged, cart%err)
             offset = ic - 1
             call MPI_Get(val,              &
                          1,                &
@@ -630,21 +488,9 @@ contains
 
             call MPI_Win_flush(rank, this%win_merged, cart%err)
 
-            call MPI_Win_unlock(rank, this%win_merged, cart%err)
             call stop_timer(this%get_timer)
         endif
 
     end function get_merged
 
-    !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-    subroutine barrier(this)
-        class(rma_graph_t), intent(inout) :: this
-
-        call start_timer(this%sync_timer)
-        call MPI_Barrier(this%comm%comm, this%comm%err)
-        call stop_timer(this%sync_timer)
-
-    end subroutine barrier
-
-end module parcel_nearest_rma_graph
+end module parcel_nearest_rma_stage_lock_graph

@@ -12,6 +12,7 @@ program benchmark_random
     use mpi_datatypes, only : MPI_INTEGER_64BIT
     use mpi_ops, only : MPI_SUM_64BIT
     use mpi_utils, only : mpi_stop
+    use parcel_netcdf
 #ifdef ENABLE_COARRAY
     use mpi_utils, only : mpi_print
 #endif
@@ -21,6 +22,7 @@ program benchmark_random
 #ifndef ENABLE_COARRAY
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
+    use parcel_nearest_rma_stage_lock_graph, only : rma_stage_lock_graph_t
 #ifdef ENABLE_SHMEM
     use parcel_nearest_shmem_graph, only : shmem_graph_t
 #endif
@@ -32,7 +34,7 @@ program benchmark_random
     double precision    :: lx, ly, lz, small_parcel_fraction
     logical             :: l_shuffle, l_variable_nppc, l_subcomm
     character(len=512)  :: csvfname
-    character(len=5)    :: comm_type ! shmem, rma, p2p or caf
+    character(len=14)   :: comm_type
     character(len=1)    :: snum
     integer(kind=int64) :: buf(9) ! size(n_way_parcel_mergers) = 7; +1 (n_parcel_merges); +1 (n_big_close)
 
@@ -60,6 +62,8 @@ program benchmark_random
             allocate(p2p_graph_t :: tree)
         case ('rma')
             allocate(rma_graph_t :: tree)
+        case ('rma-stage-lock')
+            allocate(rma_stage_lock_graph_t :: tree)
 #ifdef ENABLE_SHMEM
         case ('shmem')
             allocate(shmem_graph_t :: tree)
@@ -96,6 +100,10 @@ program benchmark_random
                            world%err)
 
         call parcel_communicate(parcels)
+
+        call create_netcdf_parcel_file('artifcial', .true., .false.)
+        call write_netcdf_parcels(t = 0.0d0)
+        call mpi_stop("stop")
 
         if (world%rank == world%root) then
             n_remaining_parcels = parcels%total_num

@@ -24,6 +24,7 @@ program benchmark_read
 #ifndef ENABLE_COARRAY
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
+    use parcel_nearest_rma_stage_lock_graph, only : rma_stage_lock_graph_t
 #ifdef ENABLE_SHMEM
     use parcel_nearest_shmem_graph, only : shmem_graph_t
 #endif
@@ -36,7 +37,7 @@ program benchmark_read
     integer             :: ncid, n, m, niter, k
     integer             :: ncells(3), offset, nfiles
     integer(kind=int64) :: n_small_parcels, n_remaining_parcels
-    character(len=5)    :: comm_type ! p2p, rma, shmem or caf
+    character(len=14)   :: comm_type
     logical             :: l_subcomm
     character(len=1)    :: snum
     integer(kind=int64) :: buf(9)
@@ -73,6 +74,8 @@ program benchmark_read
             allocate(p2p_graph_t :: tree)
         case ('rma')
             allocate(rma_graph_t :: tree)
+        case ('rma-stage-lock')
+            allocate(rma_stage_lock_graph_t :: tree)
 #ifdef ENABLE_SHMEM
         case ('shmem')
             allocate(shmem_graph_t :: tree)

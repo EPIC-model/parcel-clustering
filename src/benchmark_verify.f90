@@ -20,6 +20,7 @@ program benchmark_verify
     use parcel_netcdf
     use parcel_nearest_p2p_graph, only : p2p_graph_t
     use parcel_nearest_rma_graph, only : rma_graph_t
+    use parcel_nearest_rma_stage_lock_graph, only : rma_stage_lock_graph_t
 #ifdef ENABLE_SHMEM
     use parcel_nearest_shmem_graph, only : shmem_graph_t
 #endif
@@ -29,7 +30,7 @@ program benchmark_verify
     integer              :: seed
     double precision     :: lx, ly, lz
     logical              :: l_setup, l_shuffle, l_subcomm
-    character(len=5)     :: comm_type ! shmem, rma, p2p or caf
+    character(len=14)    :: comm_type
 
     call mpi_env_initialise
 
@@ -54,6 +55,8 @@ program benchmark_verify
             allocate(p2p_graph_t :: tree)
         case ('rma')
             allocate(rma_graph_t :: tree)
+        case ('rma-stage-lock')
+            allocate(rma_stage_lock_graph_t :: tree)
 #ifdef ENABLE_SHMEM
         case ('shmem')
             allocate(shmem_graph_t :: tree)

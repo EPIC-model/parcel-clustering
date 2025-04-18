@@ -8,33 +8,34 @@ bin_PROGRAMS = benchmark_random			\
                benchmark_read			\
                benchmark_verify
 
-benchmark_random_SOURCES = 			\
-	mpi/mpi_tags.f90                        \
-        mpi/mpi_datatypes.f90                   \
-        mpi/mpi_ops.f90                         \
-        mpi/mpi_environment.f90                 \
-        mpi/mpi_utils.f90                       \
-        mpi/mpi_layout.f90                      \
-        mpi/mpi_collectives.f90                 \
-        mpi/mpi_timer.f90                       \
-        config.f90                              \
-        netcdf/netcdf_utils.f90                 \
-        netcdf/netcdf_writer.f90                \
-        netcdf/netcdf_reader.f90                \
-        options.f90                             \
-        parameters.f90                          \
-        armanip.f90                             \
-        parcels/parcel_ops.f90                  \
-        parcels/parcel_container.f90            \
-        parcels/parcel_ellipsoid.f90            \
-        parcels/parcels.f90                     \
-        parcels/parcel_bc.f90                   \
-        parcels/parcel_mpi.f90                  \
-        parcels/parcel_split.f90                \
-        parcels/parcel_init.f90                 \
-        parcels/parcel_nearest_graph.f90        \
-        parcels/parcel_nearest_p2p_graph.f90    \
-        parcels/parcel_nearest_rma_graph.f90
+benchmark_random_SOURCES = 				\
+	mpi/mpi_tags.f90                        	\
+        mpi/mpi_datatypes.f90                   	\
+        mpi/mpi_ops.f90                         	\
+        mpi/mpi_environment.f90                 	\
+        mpi/mpi_utils.f90                       	\
+        mpi/mpi_layout.f90                      	\
+        mpi/mpi_collectives.f90                 	\
+        mpi/mpi_timer.f90                       	\
+        config.f90                              	\
+        netcdf/netcdf_utils.f90                 	\
+        netcdf/netcdf_writer.f90                	\
+        netcdf/netcdf_reader.f90                	\
+        options.f90                             	\
+        parameters.f90                          	\
+        armanip.f90                             	\
+        parcels/parcel_ops.f90                  	\
+        parcels/parcel_container.f90            	\
+        parcels/parcel_ellipsoid.f90            	\
+        parcels/parcels.f90                     	\
+        parcels/parcel_bc.f90                   	\
+        parcels/parcel_mpi.f90                  	\
+        parcels/parcel_split.f90                	\
+        parcels/parcel_init.f90                 	\
+        parcels/parcel_nearest_graph.f90        	\
+        parcels/parcel_nearest_p2p_graph.f90    	\
+        parcels/parcel_nearest_rma_graph.f90		\
+        parcels/parcel_nearest_rma_stage_lock_graph.f90
 if ENABLE_SHMEM
 benchmark_random_SOURCES += 			\
         parcels/parcel_nearest_shmem_graph.f90
@@ -54,33 +55,34 @@ benchmark_random_SOURCES += 			\
 
 benchmark_random_LDADD = $(top_builddir)/src/utils/libcluster_utils.la
 
-benchmark_read_SOURCES = 			\
-	mpi/mpi_tags.f90                        \
-        mpi/mpi_datatypes.f90                   \
-        mpi/mpi_ops.f90                         \
-        mpi/mpi_environment.f90                 \
-        mpi/mpi_utils.f90                       \
-        mpi/mpi_layout.f90                      \
-        mpi/mpi_collectives.f90                 \
-        mpi/mpi_timer.f90                       \
-        config.f90                              \
-        netcdf/netcdf_utils.f90                 \
-        netcdf/netcdf_writer.f90                \
-        netcdf/netcdf_reader.f90                \
-        options.f90                             \
-        parameters.f90                          \
-        armanip.f90                             \
-        parcels/parcel_ops.f90                  \
-        parcels/parcel_container.f90            \
-        parcels/parcel_ellipsoid.f90            \
-        parcels/parcels.f90                     \
-        parcels/parcel_bc.f90                   \
-        parcels/parcel_mpi.f90                  \
-        parcels/parcel_split.f90                \
-        parcels/parcel_init.f90                 \
-        parcels/parcel_nearest_graph.f90        \
-        parcels/parcel_nearest_p2p_graph.f90    \
-        parcels/parcel_nearest_rma_graph.f90
+benchmark_read_SOURCES = 				\
+	mpi/mpi_tags.f90                        	\
+        mpi/mpi_datatypes.f90                   	\
+        mpi/mpi_ops.f90                         	\
+        mpi/mpi_environment.f90                 	\
+        mpi/mpi_utils.f90                       	\
+        mpi/mpi_layout.f90                      	\
+        mpi/mpi_collectives.f90                 	\
+        mpi/mpi_timer.f90                       	\
+        config.f90                              	\
+        netcdf/netcdf_utils.f90                 	\
+        netcdf/netcdf_writer.f90                	\
+        netcdf/netcdf_reader.f90                	\
+        options.f90                             	\
+        parameters.f90                          	\
+        armanip.f90                             	\
+        parcels/parcel_ops.f90                  	\
+        parcels/parcel_container.f90            	\
+        parcels/parcel_ellipsoid.f90            	\
+        parcels/parcels.f90                     	\
+        parcels/parcel_bc.f90                   	\
+        parcels/parcel_mpi.f90                  	\
+        parcels/parcel_split.f90                	\
+        parcels/parcel_init.f90                 	\
+        parcels/parcel_nearest_graph.f90        	\
+        parcels/parcel_nearest_p2p_graph.f90    	\
+        parcels/parcel_nearest_rma_graph.f90		\
+        parcels/parcel_nearest_rma_stage_lock_graph.f90
 if ENABLE_SHMEM
 benchmark_read_SOURCES += 			\
         parcels/parcel_nearest_shmem_graph.f90
@@ -100,33 +102,34 @@ benchmark_read_SOURCES += 			\
 
 benchmark_read_LDADD = $(top_builddir)/src/utils/libcluster_utils.la
 
-benchmark_verify_SOURCES = 			\
-	mpi/mpi_tags.f90                        \
-        mpi/mpi_datatypes.f90                   \
-        mpi/mpi_ops.f90                         \
-        mpi/mpi_environment.f90                 \
-        mpi/mpi_utils.f90                       \
-        mpi/mpi_layout.f90                      \
-        mpi/mpi_collectives.f90                 \
-        mpi/mpi_timer.f90                       \
-        config.f90                              \
-        netcdf/netcdf_utils.f90                 \
-        netcdf/netcdf_writer.f90                \
-        netcdf/netcdf_reader.f90                \
-        options.f90                       	\
-        parameters.f90                    	\
-        armanip.f90                       	\
-        parcels/parcel_ops.f90                  \
-        parcels/parcel_container.f90            \
-        parcels/parcel_ellipsoid.f90            \
-        parcels/parcels.f90                     \
-        parcels/parcel_bc.f90                   \
-        parcels/parcel_mpi.f90                  \
-        parcels/parcel_split.f90                \
-        parcels/parcel_init.f90                 \
-        parcels/parcel_nearest_graph.f90        \
-        parcels/parcel_nearest_p2p_graph.f90    \
-        parcels/parcel_nearest_rma_graph.f90
+benchmark_verify_SOURCES = 				\
+	mpi/mpi_tags.f90                        	\
+        mpi/mpi_datatypes.f90                   	\
+        mpi/mpi_ops.f90                         	\
+        mpi/mpi_environment.f90                 	\
+        mpi/mpi_utils.f90                       	\
+        mpi/mpi_layout.f90                      	\
+        mpi/mpi_collectives.f90                 	\
+        mpi/mpi_timer.f90                       	\
+        config.f90                              	\
+        netcdf/netcdf_utils.f90                 	\
+        netcdf/netcdf_writer.f90                	\
+        netcdf/netcdf_reader.f90                	\
+        options.f90                       		\
+        parameters.f90                    		\
+        armanip.f90                       		\
+        parcels/parcel_ops.f90                  	\
+        parcels/parcel_container.f90            	\
+        parcels/parcel_ellipsoid.f90            	\
+        parcels/parcels.f90                     	\
+        parcels/parcel_bc.f90                   	\
+        parcels/parcel_mpi.f90                  	\
+        parcels/parcel_split.f90                	\
+        parcels/parcel_init.f90                 	\
+        parcels/parcel_nearest_graph.f90        	\
+        parcels/parcel_nearest_p2p_graph.f90    	\
+        parcels/parcel_nearest_rma_graph.f90		\
+        parcels/parcel_nearest_rma_stage_lock_graph.f90
 if ENABLE_SHMEM
 benchmark_verify_SOURCES += 			\
         parcels/parcel_nearest_shmem_graph.f90
